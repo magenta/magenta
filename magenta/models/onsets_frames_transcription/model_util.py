@@ -5,8 +5,10 @@ from enum import Enum
 import numpy as np
 import uuid
 
-import tensorflow.compat.v1 as tf
 from magenta.models.onsets_frames_transcription.callback import Metrics
+
+import tensorflow.compat.v1 as tf
+from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -26,7 +28,8 @@ else:
 
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
 
-from magenta.models.onsets_frames_transcription.accuracy_util import AccuracyMetric
+from magenta.models.onsets_frames_transcription.accuracy_util import AccuracyMetric, \
+    binary_accuracy_wrapper
 from magenta.models.onsets_frames_transcription.midi_model import midi_prediction_model
 
 
@@ -41,7 +44,7 @@ def to_lists(x, y):
 
 
 class ModelWrapper:
-    model_save_format = '{}/Training {} Model {} {:.2f} {:.2f}.hdf5'
+    model_save_format = '{}/Training {} Model Weights {} {:.2f} {:.2f}.hdf5'
     history_save_format = '{}/Training {} History {} {:.2f} {:.2f}'
 
     def __init__(self, model_dir, type, id=None, batch_size=8, steps_per_epoch=100,
@@ -66,6 +69,15 @@ class ModelWrapper:
                                        use_numpy=False)
         self.metrics = Metrics(self.generator, self.hparams)
 
+    def save_model_with_metrics(self):
+        id_tup = (self.model_dir, self.type.name, self.id,
+                  self.metrics.metrics_history[-1].frames['f1_score'][0].numpy() * 100,
+                  self.metrics.metrics_history[-1].onsets['f1_score'][0].numpy() * 100)
+        print('Saving {} model...'.format(self.type.name))
+        self.model.save_weights(ModelWrapper.model_save_format.format(*id_tup))
+        np.save(ModelWrapper.history_save_format.format(*id_tup), [self.metrics.metrics_history])
+        print('Model weights saved at: ' + self.model_save_format.format(*id_tup))
+
     def save_model(self, eval_data=None):
         acc_name = 'acc'
         new_hist = self.model.history.history
@@ -85,7 +97,7 @@ class ModelWrapper:
                   self.hist['val_onsets_' + acc_name][-1] * 100,
                   self.hist['val_frames_' + acc_name][-1] * 100)
         print('Saving {} model...'.format(self.type.name))
-        self.model.save(ModelWrapper.model_save_format.format(*id_tup))
+        self.model.save_weights(ModelWrapper.model_save_format.format(*id_tup))
         np.save(ModelWrapper.history_save_format.format(*id_tup), [self.hist])
         print('Model saved at: ' + self.model_save_format.format(*id_tup))
 
@@ -93,23 +105,11 @@ class ModelWrapper:
         if self.model is None:
             self.build_model()
 
-        if True or self.hparams.using_plaidml:
-            self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
-                                     epochs=epochs, workers=2, max_queue_size=8,
-                                     callbacks=[self.metrics])
+        self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
+                                 epochs=epochs, workers=2, max_queue_size=8,
+                                 callbacks=[self.metrics])
 
-        else:
-            if True:  # not val_dataset:
-                val_dataset = self.dataset.shuffle(self.batch_size)
-            self.train_and_save_on_dataset(self.dataset, val_dataset, epochs)
-
-        # always try to save if we can
-        # Do this if we get a Keyboard Interrupt
-        if True or self.hparams.using_plaidml:
-
-            self.save_model(self.model.evaluate_generator(self.generator, steps=1))
-        else:
-            self.save_model()
+        self.save_model_with_metrics()
 
     # train on a tf.data Dataset
     def train_and_save_on_dataset(self, dataset, val_dataset, epochs=1):
@@ -128,21 +128,26 @@ class ModelWrapper:
     def predict(self, input):
         return self.model.predict(input)
 
-    def load_model(self, onsets_acc, frames_acc):
-        id_tup = (self.model_dir, self.type.name, self.id, onsets_acc * 100, frames_acc * 100)
+    def load_model(self, frames_f1, onsets_f1):
+        self.build_model()
+        id_tup = (self.model_dir, self.type.name, self.id, frames_f1, onsets_f1)
         if os.path.exists(ModelWrapper.model_save_format.format(*id_tup)) \
                 and os.path.exists(ModelWrapper.history_save_format.format(*id_tup) + '.npy'):
-            self.hist = \
+            self.metrics.load_metrics(
                 np.load(ModelWrapper.history_save_format.format(*id_tup) + '.npy',
-                        allow_pickle=True)[0]
+                        allow_pickle=True)[0])
             print('Loading pre-trained {} model...'.format(self.type.name))
-            self.model = load_model(ModelWrapper.model_save_format.format(*id_tup),
-                                    compile=False)
-            self.model.compile(Adam(self.hparams.learning_rate), 'categorical_crossentropy',
-                               metrics=['accuracy'])
+            self.model.load_weights(ModelWrapper.model_save_format.format(*id_tup))
+            # self.model = load_model(ModelWrapper.model_save_format.format(*id_tup),
+            #                         custom_objects={
+            #                             'log_loss_wrapper': log_loss_wrapper,
+            #                             'binary_accuracy_wrapper': binary_accuracy_wrapper
+            #                         },
+            #                         compile=True)
+            # self.model.compile(Adam(self.hparams.learning_rate), 'categorical_crossentropy',
+            #                    metrics=['accuracy'])
         else:
             print('Pre-trained model not found')
-            self.build_model()
 
     def build_model(self):
         if self.type == ModelType.MIDI:

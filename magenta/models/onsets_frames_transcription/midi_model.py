@@ -6,8 +6,8 @@ from dotmap import DotMap
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
-from magenta.common import flatten_maybe_padded_sequences
-from magenta.models.onsets_frames_transcription.accuracy_util import boolean_accuracy_wrapper
+from magenta.common import tf_utils
+from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper, \
     log_loss_flattener
 
@@ -21,8 +21,7 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import VarianceScaling
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-        Input, MaxPooling2D, Reshape, concatenate, Lambda
-    from tensorflow.keras.layers import Bidirectional, LSTM
+        Input, MaxPooling2D, Reshape, concatenate
     from keras.models import Model
 else:
     # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
@@ -31,7 +30,7 @@ else:
     from tensorflow.keras.initializers import VarianceScaling
     from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, \
         Dense, Dropout, \
-        Input, LSTM, MaxPooling2D, Reshape, concatenate, Lambda
+        Input, LSTM, MaxPooling2D, Reshape, concatenate
     from tensorflow.keras.models import Model
 
 from magenta.models.onsets_frames_transcription import constants
@@ -40,7 +39,7 @@ from magenta.models.onsets_frames_transcription import constants
 def get_default_hparams():
     return {
         'using_plaidml': True,
-        'batch_size': 2,
+        'batch_size': 8,
         'epochs_per_save': 1,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
@@ -73,7 +72,10 @@ def get_default_hparams():
         'bidirectional': True,
         'predict_frame_threshold': 0.5,
         'predict_onset_threshold': 0.5,
-        'predict_offset_threshold': 0,
+        'predict_offset_threshold': 0.5,
+        'frames_true_weighing': 2,
+        'onsets_true_weighing': 8,
+        'offsets_true_weighing': 8,
         'input_shape': (None, 229, 1),  # (None, 229, 1),
         'transform_wav_data': True,
         'model_id': None
@@ -158,28 +160,21 @@ def midi_prediction_model(hparams=None):
         hparams = DotMap(get_default_hparams())
     input = Input(shape=(hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],),
                   name='spec')
+    weights = Input(shape=(None, 88,), name='weights')
 
-    # spec = features.spec
     # if K.learning_phase():
-    #     onset_labels = labels.onsets
-    #     offset_labels = labels.offsets
-    #     velocity_labels = labels.velocities
-    #     frame_labels = labels.labels
-    #     frame_label_weights = labels.label_weights
 
     # Onset prediction model
     onset_outputs = acoustic_model_layer(hparams,
                                          0 if hparams.using_plaidml else hparams.onset_lstm_units)(
         input)
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
-    onset_probs_flat = K.flatten(onset_probs)  # flatten_maybe_padded_sequences(onset_probs)
 
     # Offset prediction model
     offset_outputs = acoustic_model_layer(hparams,
                                           0 if hparams.using_plaidml else hparams.offset_lstm_units)(
         input)
     offset_probs = midi_pitches_layer('offsets')(offset_outputs)
-    offset_probs_flat = K.flatten(offset_probs)  # flatten_maybe_padded_sequences(offset_probs)
 
     # Activation prediction model
     if not hparams.share_conv_features:
@@ -188,43 +183,35 @@ def midi_prediction_model(hparams=None):
             input)
     else:
         activation_outputs = onset_outputs
-    activation_probs = midi_pitches_layer('activations_probs')(activation_outputs)
+    activation_probs = midi_pitches_layer('activations')(activation_outputs)
 
     probs = []
-    probs.append(onset_probs)
-    probs.append(offset_probs)
+    probs.append(K.stop_gradient(onset_probs))
+    probs.append(K.stop_gradient(offset_probs))
     probs.append(activation_probs)
 
     combined_probs = concatenate(probs, 2)
 
     # Frame prediction
     frame_probs = midi_pitches_layer('frames')(combined_probs)
-    frame_probs_flat = K.flatten(frame_probs)  # flatten_maybe_padded_sequences(frame_probs)
 
-    # frame_predictions = frame_probs_flat > hparams.predict_frame_threshold
-    # onset_predictions = onset_probs_flat > hparams.predict_onset_threshold
-    # offset_predictions = offset_probs_flat > hparams.predict_offset_threshold
-
-    # name layers again
-    # frame_predictions = Lambda(lambda x: x, name='frames')(frame_probs_flat)
-    # onset_predictions = Lambda(lambda x: x, name='onsets')(onset_probs_flat)
-    # offset_predictions = Lambda(lambda x: x, name='offsets')(offset_probs_flat)
-
+    # use class_weighing to care more about correctly identifying actual notes instead of false positives
+    # TODO do these need to be as large as they are
     losses = {
-        'frames': log_loss_flattener,
-        'onsets': log_loss_flattener,
-        'offsets': log_loss_flattener,
+        'frames': log_loss_wrapper(2),
+        'onsets': log_loss_wrapper(8),
+        'offsets': log_loss_wrapper(8),
     }
 
     accuracies = {
-        'frames': boolean_accuracy_wrapper(hparams.predict_frame_threshold),
-        'onsets': boolean_accuracy_wrapper(hparams.predict_onset_threshold),
-        'offsets': boolean_accuracy_wrapper(hparams.predict_offset_threshold)
+        'frames': binary_accuracy_wrapper(hparams.predict_frame_threshold),
+        'onsets': binary_accuracy_wrapper(hparams.predict_onset_threshold),
+        'offsets': binary_accuracy_wrapper(hparams.predict_offset_threshold)
     }
 
     return Model(inputs=[
         input,
-        # Input(shape=(None,)),
+        weights,
         # Input(shape=(None,)),
     ],
         outputs=[frame_probs, onset_probs, offset_probs]), \

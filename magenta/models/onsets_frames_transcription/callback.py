@@ -1,10 +1,19 @@
 import collections
 
 import numpy as np
-from keras.callbacks import Callback
+
+
+import tensorflow.compat.v1 as tf
+
+FLAGS = tf.app.flags.FLAGS
+
+if FLAGS.using_plaidml:
+    from keras.callbacks import Callback
+else:
+    from tensorflow.keras.callbacks import Callback
+
 from magenta.models.onsets_frames_transcription.metrics import define_metrics, \
     calculate_frame_metrics
-from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
 OutputMetrics = collections.namedtuple('OutputMetrics', ('frames', 'onsets', 'offsets'))
 
@@ -17,6 +26,10 @@ class Metrics(Callback):
         self.generator = generator
         self.hparams = hparams
         self.metrics_history = metrics_history
+
+    def load_metrics(self, metrics_history):
+        # convert to list of namedtuples
+        self.metrics_history = [OutputMetrics(*x) for x in metrics_history]
 
     def on_train_batch_begin(self, *args):
         pass
@@ -44,6 +57,6 @@ class Metrics(Callback):
         self.metrics_history.append(metrics)
         for name, value in metrics._asdict().items():
             print('{} metrics:'.format(name))
-            print('Precision: {}, Recall: {}, F1: {}\n'.format(value['precision'][0].numpy(),
-                                                               value['recall'][0].numpy(),
-                                                               value['f1_score'][0].numpy()))
+            print('Precision: {}, Recall: {}, F1: {}\n'.format(value['precision'][0].numpy() * 100,
+                                                               value['recall'][0].numpy() * 100,
+                                                               value['f1_score'][0].numpy() * 100))

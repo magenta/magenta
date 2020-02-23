@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import functools
 import os
+import json
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -66,7 +67,8 @@ tf.app.flags.DEFINE_integer(
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
 tf.app.flags.DEFINE_string(
     'hparams', '',
-    'A comma-separated list of `name=value` hyperparameter values.')
+    'Json of `name: value` hyperparameter values. '
+    'ex. --hparams={\"frames_true_weighing\":2,\"onsets_true_weighing\":8}')
 tf.app.flags.DEFINE_boolean('use_tpu', False,
                             'Whether training will happen on a TPU.')
 tf.app.flags.DEFINE_enum('mode', 'train', ['train', 'eval'],
@@ -89,7 +91,7 @@ def run(config_map, data_fn, additional_trial_info):
   hparams = config.hparams
 
   # Command line flags override any of the preceding hyperparameter values.
-  hparams.update(FLAGS.hparams)
+  hparams.update(json.loads(FLAGS.hparams))
   hparams = DotMap(hparams)
 
   hparams.using_plaidml = FLAGS.using_plaidml
