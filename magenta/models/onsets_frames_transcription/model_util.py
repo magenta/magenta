@@ -5,11 +5,13 @@ from enum import Enum
 import numpy as np
 import uuid
 
+from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription.callback import MidiPredictionMetrics
 
 import tensorflow.compat.v1 as tf
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
 from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model
+from magenta.music import constants
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -90,11 +92,22 @@ class ModelWrapper:
         self.save_model_with_metrics()
 
     def predict(self, input):
-        return self.model.predict(input)
 
-    def load_model(self, frames_f1, onsets_f1):
+        y_pred = self.model.predict(input)
+        sequence = infer_util.predict_sequence(
+                frame_predictions=y_pred[0],
+                onset_predictions=y_pred[1],
+                offset_predictions=y_pred[2],
+                velocity_values=None,
+                hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
+
+
+
+    def load_model(self, frames_f1, onsets_f1, id=None):
+        if not id:
+            id = self.id
         self.build_model()
-        id_tup = (self.model_dir, self.type.name, self.id, frames_f1, onsets_f1)
+        id_tup = (self.model_dir, self.type.name, id, frames_f1, onsets_f1)
         if os.path.exists(ModelWrapper.model_save_format.format(*id_tup)) \
                 and os.path.exists(ModelWrapper.history_save_format.format(*id_tup) + '.npy'):
             self.metrics.load_metrics(
@@ -102,7 +115,9 @@ class ModelWrapper:
                         allow_pickle=True)[0])
             print('Loading pre-trained {} model...'.format(self.type.name))
             self.model.load_weights(ModelWrapper.model_save_format.format(*id_tup))
-            print('Pre-trained model not found')
+        else:
+            print('Couldn\'t find pre-trained model: {}'
+                  .format(ModelWrapper.model_save_format.format(*id_tup)))
 
     # num_classes only needed for timbre prediction
     def build_model(self, num_classes=2):

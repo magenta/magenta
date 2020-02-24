@@ -18,7 +18,7 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import he_normal
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-    Input, MaxPooling2D, concatenate, Flatten, Lambda, Cropping2D, Multiply
+        Input, MaxPooling2D, concatenate, Flatten, Lambda, Cropping2D, Multiply
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -31,7 +31,6 @@ else:
         Input, MaxPooling2D, concatenate, Flatten
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
-
 
 
 def get_default_hparams():
@@ -138,6 +137,7 @@ def instrument_prediction_layer(hparams, num_classes):
 
     return instrument_prediction_fn
 
+
 def high_pass_filter(input_list):
     spec = input_list[0]
     hp = input_list[1]
@@ -151,6 +151,7 @@ def high_pass_filter(input_list):
     reset_tensor = K.constant(reset_list)
     return Multiply()([spec, reset_tensor])
 
+
 def timbre_prediction_model(hparams=None, num_classes=2):
     if hparams is None:
         hparams = DotMap(get_default_hparams())
@@ -161,8 +162,8 @@ def timbre_prediction_model(hparams=None, num_classes=2):
     else:
         input_shape = (hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],)
         channel_axis = 3
-    input = Input(shape=input_shape,
-                  name='spec')
+    inputs = Input(shape=input_shape,
+                   name='spec')
     lowest_band = Input(shape=(1,), name='high_pass')
 
     filtered_spec = Lambda(high_pass_filter)([input, lowest_band])
@@ -178,4 +179,4 @@ def timbre_prediction_model(hparams=None, num_classes=2):
         'timbre_prediction': ['accuracy', fbeta_score]
     }
 
-    return Model(inputs=[input, lowest_band], outputs=[timbre_probs]), losses, accuracies
+    return Model(inputs=[inputs, lowest_band], outputs=[timbre_probs]), losses, accuracies

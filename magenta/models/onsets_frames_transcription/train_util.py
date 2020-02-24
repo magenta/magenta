@@ -82,7 +82,8 @@ def train(master,
                               dataset=transcription_data(params=hparams),
                               batch_size=hparams.batch_size, steps_per_epoch=10, hparams=hparams)
     #midi_model.load_model(71.85, 74.98)
-    midi_model.load_model(74.27, 70.17)
+    #midi_model.load_model(74.27, 70.17)
+    midi_model.load_model(81.72, 81.59, 'with-f1')
 
     for i in range(num_steps):
         midi_model.train_and_save(epochs=hparams.epochs_per_save)

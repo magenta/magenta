@@ -157,7 +157,7 @@ def midi_pitches_layer(name=None):
 def midi_prediction_model(hparams=None):
     if hparams is None:
         hparams = DotMap(get_default_hparams())
-    input = Input(shape=(hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],),
+    inputs = Input(shape=(hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],),
                   name='spec')
     weights = Input(shape=(None, constants.MIDI_PITCHES,), name='weights')
 
@@ -166,20 +166,20 @@ def midi_prediction_model(hparams=None):
     # Onset prediction model
     onset_outputs = acoustic_model_layer(hparams,
                                          0 if hparams.using_plaidml else hparams.onset_lstm_units)(
-        input)
+        inputs)
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
 
     # Offset prediction model
     offset_outputs = acoustic_model_layer(hparams,
                                           0 if hparams.using_plaidml else hparams.offset_lstm_units)(
-        input)
+        inputs)
     offset_probs = midi_pitches_layer('offsets')(offset_outputs)
 
     # Activation prediction model
     if not hparams.share_conv_features:
         activation_outputs = acoustic_model_layer(hparams,
                                                   0 if hparams.using_plaidml else hparams.frame_lstm_units)(
-            input)
+            inputs)
     else:
         activation_outputs = onset_outputs
     activation_probs = midi_pitches_layer('activations')(activation_outputs)
@@ -197,9 +197,9 @@ def midi_prediction_model(hparams=None):
     # use class_weighing to care more about correctly identifying actual notes instead of false positives
     # TODO do these need to be as large as they are
     losses = {
-        'frames': log_loss_wrapper(2),
-        'onsets': log_loss_wrapper(8),
-        'offsets': log_loss_wrapper(8),
+        'frames': log_loss_wrapper(hparams.frames_true_weighing),
+        'onsets': log_loss_wrapper(hparams.onsets_true_weighing),
+        'offsets': log_loss_wrapper(hparams.offsets_true_weighing),
     }
 
     accuracies = {
@@ -209,8 +209,8 @@ def midi_prediction_model(hparams=None):
     }
 
     return Model(inputs=[
-        input,
-        weights,
+        inputs,
+        # weights,
         # Input(shape=(None,)),
     ],
         outputs=[frame_probs, onset_probs, offset_probs]), \

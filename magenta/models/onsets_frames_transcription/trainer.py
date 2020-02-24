@@ -22,24 +22,24 @@ import functools
 import os
 import json
 
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+from magenta.models.onsets_frames_transcription.data import DatasetSource
 
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from dotmap import DotMap
 
 import tensorflow.compat.v1 as tf
+
 tf.enable_v2_behavior()
 tf.enable_eager_execution()
 
 tf.autograph.set_verbosity(0)
-
 
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_boolean('using_plaidml', True, 'Are we using plaidml')
 
 tf.app.flags.DEFINE_string('model_id', None, 'Id to save the model as')
-
 
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
@@ -77,65 +77,69 @@ tf.app.flags.DEFINE_string(
     'log', 'ERROR',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+tf.app.flags.DEFINE_string(
+    'dataset_source', 'MAESTRO',
+    'Source of the dataset (MAESTRO, NSYNTH)'
+)
 
 from magenta.models.onsets_frames_transcription import data, train_util, configs
 
 
 def run(config_map, data_fn, additional_trial_info):
-  """Run training or evaluation."""
-  tf.compat.v1.logging.set_verbosity(FLAGS.log)
+    """Run training or evaluation."""
+    tf.compat.v1.logging.set_verbosity(FLAGS.log)
 
-  config = config_map[FLAGS.config]
-  model_dir = os.path.expanduser(FLAGS.model_dir)
+    config = config_map[FLAGS.config]
+    model_dir = os.path.expanduser(FLAGS.model_dir)
 
-  hparams = config.hparams
+    hparams = config.hparams
 
-  # Command line flags override any of the preceding hyperparameter values.
-  hparams.update(json.loads(FLAGS.hparams))
-  hparams = DotMap(hparams)
+    # Command line flags override any of the preceding hyperparameter values.
+    hparams.update(json.loads(FLAGS.hparams))
+    hparams = DotMap(hparams)
 
-  hparams.using_plaidml = FLAGS.using_plaidml
-  hparams.model_id = FLAGS.model_id
+    hparams.using_plaidml = FLAGS.using_plaidml
+    hparams.model_id = FLAGS.model_id
 
-
-  if FLAGS.mode == 'train':
-    train_util.train(
-        data_fn=data_fn,
-        additional_trial_info=additional_trial_info,
-        master=FLAGS.master,
-        model_dir=model_dir,
-        use_tpu=FLAGS.use_tpu,
-        preprocess_examples=FLAGS.preprocess_examples,
-        hparams=hparams,
-        keep_checkpoint_max=FLAGS.keep_checkpoint_max,
-        num_steps=FLAGS.num_steps)
-  elif FLAGS.mode == 'eval':
-    train_util.evaluate(
-        #model_fn=config.model_fn,
-        data_fn=data_fn,
-        additional_trial_info=additional_trial_info,
-        master=FLAGS.master,
-        model_dir=model_dir,
-        name=FLAGS.eval_name,
-        preprocess_examples=FLAGS.preprocess_examples,
-        hparams=hparams,
-        num_steps=FLAGS.eval_num_steps)
-  else:
-    raise ValueError('Unknown/unsupported mode: %s' % FLAGS.mode)
+    if FLAGS.mode == 'train':
+        train_util.train(
+            data_fn=data_fn,
+            additional_trial_info=additional_trial_info,
+            master=FLAGS.master,
+            model_dir=model_dir,
+            use_tpu=FLAGS.use_tpu,
+            preprocess_examples=FLAGS.preprocess_examples,
+            hparams=hparams,
+            keep_checkpoint_max=FLAGS.keep_checkpoint_max,
+            num_steps=FLAGS.num_steps)
+    elif FLAGS.mode == 'eval':
+        train_util.evaluate(
+            # model_fn=config.model_fn,
+            data_fn=data_fn,
+            additional_trial_info=additional_trial_info,
+            master=FLAGS.master,
+            model_dir=model_dir,
+            name=FLAGS.eval_name,
+            preprocess_examples=FLAGS.preprocess_examples,
+            hparams=hparams,
+            num_steps=FLAGS.eval_num_steps)
+    else:
+        raise ValueError('Unknown/unsupported mode: %s' % FLAGS.mode)
 
 
 def main(argv):
-  del argv
-  tf.app.flags.mark_flags_as_required(['examples_path'])
-  data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path)
-  additional_trial_info = {'examples_path': FLAGS.examples_path}
-  run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
-      additional_trial_info=additional_trial_info)
+    del argv
+    tf.app.flags.mark_flags_as_required(['examples_path'])
+    data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path,
+                                dataset_source=DatasetSource[FLAGS.dataset_source])
+    additional_trial_info = {'examples_path': FLAGS.examples_path}
+    run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
+        additional_trial_info=additional_trial_info)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    tf.app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

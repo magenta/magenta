@@ -30,6 +30,7 @@ import functools
 import re
 import wave
 import zlib
+from enum import Enum
 
 import librosa
 from magenta.models.onsets_frames_transcription import audio_transform
@@ -42,6 +43,11 @@ import numpy as np
 import six
 import tensorflow.compat.v2 as tf
 from tensorflow_core import TensorSpec, TensorShape
+
+
+class DatasetSource(Enum):
+    MAESTRO = 'MAESTRO'
+    NSYNTH = 'NSYNTH'
 
 
 def hparams_frame_size(hparams):
@@ -112,7 +118,7 @@ def _wav_to_framed_samples(wav_audio, hparams):
 
 def wav_to_spec(wav_audio, hparams):
     """Transforms the contents of a wav file into a series of spectrograms."""
-    wav_audio = wav_audio.numpy() # convert eager tensor to numpy
+    wav_audio = wav_audio.numpy()  # convert eager tensor to numpy
     if hparams.spec_type == 'raw':
         spec = _wav_to_framed_samples(wav_audio, hparams)
     else:
@@ -191,7 +197,7 @@ def get_spectrogram_hash_op(spectrogram):
 
 def wav_to_num_frames(wav_audio, frames_per_second):
     """Transforms a wav-encoded audio string into number of frames."""
-    wav_audio = wav_audio.numpy() # convert to numpy
+    wav_audio = wav_audio.numpy()  # convert to numpy
     w = wave.open(six.BytesIO(wav_audio))
     return np.int32(w.getnframes() / w.getframerate() * frames_per_second)
 
@@ -317,7 +323,6 @@ InputTensors = collections.namedtuple(
                      'length', 'onsets', 'offsets', 'velocities', 'sequence_id',
                      'note_sequence'))
 
-
 def parse_example(example_proto):
     features = {
         'id': tf.io.FixedLenFeature(shape=(), dtype=tf.string),
@@ -327,6 +332,7 @@ def parse_example(example_proto):
     }
     record = tf.io.parse_single_example(example_proto, features)
     return record
+
 
 
 def preprocess_example(example_proto, hparams, is_training):
@@ -427,12 +433,10 @@ def input_tensors_to_example(inputs, hparams):
 
 
 FeatureTensors = collections.namedtuple(
-    'FeatureTensors', ('spec', 'label_weights'))
-    #'FeatureTensors', ('spec', 'length', 'sequence_id'))
+    # 'FeatureTensors', ('spec', 'label_weights'))
+    'FeatureTensors', ('spec',))  # 'label_weights', 'length', 'sequence_id'))
 LabelTensors = collections.namedtuple(
-    'LabelTensors', ('labels', 'onsets', 'offsets'))
-    #'LabelTensors', ('labels', 'label_weights', 'onsets', 'offsets',
-    #                 'velocities', 'note_sequence'))
+    'LabelTensors', ('labels', 'onsets', 'offsets', 'note_sequence'))  # , 'note_sequence'))
 
 
 def input_tensors_to_model_input(
@@ -511,17 +515,17 @@ def input_tensors_to_model_input(
 
     features = FeatureTensors(
         spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
-        label_weights=tf.reshape(label_weights, (final_length, num_classes))
-        #length=truncated_length,
-        #sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
+        # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
+        # length=truncated_length,
+        # sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
     )
     labels = LabelTensors(
         labels=tf.reshape(labels, (final_length, num_classes)),
-        #label_weights=tf.reshape(label_weights, (final_length, num_classes)),
+        # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
         onsets=tf.reshape(onsets, (final_length, num_classes)),
         offsets=tf.reshape(offsets, (final_length, num_classes)),
-        #velocities=tf.reshape(velocities, (final_length, num_classes)),
-        #note_sequence=truncated_note_sequence
+        # velocities=tf.reshape(velocities, (final_length, num_classes)),
+        # note_sequence=truncated_note_sequence
     )
 
     return features, labels
@@ -637,10 +641,13 @@ def create_batch(dataset, hparams, is_training, batch_size=None):
             # padded_shapes=(TensorShape(3), TensorShape(6)),
             # padded_shapes=dataset.element_spec,
             padded_shapes=(
-            FeatureTensors(TensorShape([None, 229, 1]), TensorShape([None, 88])),#, TensorShape([]), TensorShape([])),
-            LabelTensors(TensorShape([None, 88]), TensorShape([None, 88]), TensorShape([None, 88])
-                         #TensorShape([None, 88]), TensorShape([None, 88]), TensorShape([])
-                         )),
+                FeatureTensors(TensorShape([None, 229, 1])),  # , TensorShape([None, 88]),
+                # TensorShape([]), TensorShape([])),
+                LabelTensors(TensorShape([None, 88]), TensorShape([None, 88]),
+                             TensorShape([None, 88]),
+                             # TensorShape([None, 88]), TensorShape([None, 88]),
+                             # TensorShape([])
+                             )),
             drop_remainder=True)
     return dataset
 
