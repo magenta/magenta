@@ -1,15 +1,19 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+
+import sklearn
 from dotmap import DotMap
 
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
 from magenta.common import tf_utils
-from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper
+from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper, \
+    f1_wrapper
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper, \
     log_loss_flattener
+from sklearn.metrics import f1_score
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -38,7 +42,7 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'using_plaidml': True,
+        'using_plaidml': False,
         'batch_size': 8,
         'epochs_per_save': 1,
         'learning_rate': 0.0006,
@@ -72,7 +76,7 @@ def get_default_hparams():
         'bidirectional': True,
         'predict_frame_threshold': 0.5,
         'predict_onset_threshold': 0.5,
-        'predict_offset_threshold': 0.5,
+        'predict_offset_threshold': 0.0,
         'frames_true_weighing': 2,
         'onsets_true_weighing': 8,
         'offsets_true_weighing': 8,
@@ -203,9 +207,9 @@ def midi_prediction_model(hparams=None):
     }
 
     accuracies = {
-        'frames': binary_accuracy_wrapper(hparams.predict_frame_threshold),
-        'onsets': binary_accuracy_wrapper(hparams.predict_onset_threshold),
-        'offsets': binary_accuracy_wrapper(hparams.predict_offset_threshold)
+        'frames': [binary_accuracy_wrapper(hparams.predict_frame_threshold), f1_wrapper(hparams.predict_frame_threshold)],
+        'onsets': [binary_accuracy_wrapper(hparams.predict_onset_threshold), f1_wrapper(hparams.predict_onset_threshold)],
+        'offsets': [binary_accuracy_wrapper(hparams.predict_offset_threshold), f1_wrapper(hparams.predict_offset_threshold)]
     }
 
     return Model(inputs=[

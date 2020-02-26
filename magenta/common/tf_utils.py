@@ -68,7 +68,7 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, class_
         (1 - labels), tf.log(1 - predictions + epsilon))
     if weights is not None:
       losses = tf.multiply(losses, weights)
-    if class_weighing is not None:
+    if class_weighing:
       losses = tf.multiply(losses, (labels + 1/class_weighing)*class_weighing)
 
     return losses

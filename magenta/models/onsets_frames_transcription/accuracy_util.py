@@ -19,6 +19,18 @@ def Dixon(yTrue, yPred):
 
 def binary_accuracy_wrapper(threshold):
     def acc(labels, probs):
-        return binary_accuracy(labels, probs, threshold)
+        # return binary_accuracy(labels, probs, threshold)
+
+        return calculate_frame_metrics(labels, probs > threshold)['accuracy_without_true_negatives']
+
 
     return acc
+
+def f1_wrapper(threshold):
+    def f1(labels, probs):
+        # return binary_accuracy(labels, probs, threshold)
+
+        return calculate_frame_metrics(labels, probs > threshold)['f1_score']
+
+
+    return f1

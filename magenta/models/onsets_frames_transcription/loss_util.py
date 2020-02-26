@@ -12,7 +12,7 @@ else:
 
 def log_loss_wrapper(class_weighing):
     def log_loss_wrapper_fn(label_true, label_predicted):
-        return tf.reduce_mean(tf_utils.log_loss(K.flatten(label_true), K.flatten(label_predicted), class_weighing=class_weighing))
+        return tf.reduce_mean(tf_utils.log_loss(label_true, label_predicted, class_weighing=class_weighing))
 
     return log_loss_wrapper_fn
 

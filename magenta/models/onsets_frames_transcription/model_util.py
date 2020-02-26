@@ -5,13 +5,12 @@ from enum import Enum
 import numpy as np
 import uuid
 
-from magenta.models.onsets_frames_transcription import infer_util
+from magenta.models.onsets_frames_transcription import infer_util, constants
 from magenta.models.onsets_frames_transcription.callback import MidiPredictionMetrics
 
 import tensorflow.compat.v1 as tf
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
 from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model
-from magenta.music import constants
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -68,8 +67,11 @@ class ModelWrapper:
         self.hparams = hparams
 
         self.dataset = dataset
-        self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
-                                       use_numpy=False)
+        if dataset is None:
+            self.generator = None
+        else:
+            self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
+                                           use_numpy=True)
         self.metrics = MidiPredictionMetrics(self.generator, self.hparams)
 
     def save_model_with_metrics(self):
@@ -85,21 +87,38 @@ class ModelWrapper:
         if self.model is None:
             self.build_model()
 
-        self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
-                                 epochs=epochs, workers=2, max_queue_size=8,
-                                 callbacks=[self.metrics])
+        # self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
+        #                          epochs=epochs, workers=2, max_queue_size=8,
+        #                          callbacks=[self.metrics])
+        # self.model.fit(self.dataset, steps_per_epoch=self.steps_per_epoch,
+        #                epochs=epochs, workers=2, max_queue_size=8,
+        #                callbacks=[self.metrics])
+        for i in range(self.steps_per_epoch):
+            x, y = self.generator.get()
+            #print(hash(y[0]))
+            new_metrics = self.model.train_on_batch(x, y)
+            print(new_metrics)
+        self.metrics.on_epoch_end(1, model=self.model)
 
         self.save_model_with_metrics()
 
-    def predict(self, input):
+    def predict_sequence(self, input):
 
         y_pred = self.model.predict(input)
+        frame_predictions = y_pred[0][0] > self.hparams.predict_frame_threshold
+        onset_predictions = y_pred[1][0] > self.hparams.predict_onset_threshold
+        offset_predictions = y_pred[2][0] > self.hparams.predict_offset_threshold
+
+        # frame_predictions = tf.expand_dims(frame_predictions, axis=0)
+        # onset_predictions = tf.expand_dims(onset_predictions, axis=0)
+        # offset_predictions = tf.expand_dims(offset_predictions, axis=0)
         sequence = infer_util.predict_sequence(
-                frame_predictions=y_pred[0],
-                onset_predictions=y_pred[1],
-                offset_predictions=y_pred[2],
+                frame_predictions=frame_predictions,
+                onset_predictions=onset_predictions,
+                offset_predictions=offset_predictions,
                 velocity_values=None,
                 hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
+        return sequence
 
 
 

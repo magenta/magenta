@@ -23,10 +23,33 @@ import copy
 import functools
 import random
 import sys
+
+import six
 import tensorflow as tf
 
 # Should not be called from within the graph to avoid redundant summaries.
+from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
+from magenta.music.protobuf import music_pb2
+
+
+def create_example(filename, sample_rate, load_audio_with_librosa):
+  """Processes an audio file into an Example proto."""
+  wav_data = tf.compat.v1.gfile.Open(filename, 'rb').read()
+  example_list = list(
+      audio_label_data_utils.process_record(
+          wav_data=wav_data,
+          sample_rate=sample_rate,
+          ns=music_pb2.NoteSequence(),
+          # decode to handle filenames with extended characters.
+          example_id=six.ensure_text(filename, 'utf-8'),
+          min_length=0,
+          max_length=-1,
+          allow_empty_notesequence=True,
+          load_audio_with_librosa=load_audio_with_librosa))
+  assert len(example_list) == 1
+  return example_list[0].SerializeToString()
+
 
 
 def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
@@ -60,14 +83,10 @@ def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
         writer.close()
 
 
-def train(master,
-          data_fn,
-          additional_trial_info,
+def train(data_fn,
           model_dir,
           preprocess_examples,
           hparams,
-          keep_checkpoint_max,
-          use_tpu,
           num_steps=50):
     """Train loop."""
 
@@ -76,19 +95,50 @@ def train(master,
         preprocess_examples=preprocess_examples,
         is_training=True,
         shuffle_examples=True,
-        skip_n_initial_records=0)
+        skip_n_initial_records=2000)
 
-    midi_model = ModelWrapper('./models', ModelType.MIDI, id=hparams.model_id,
+    midi_model = ModelWrapper(model_dir, ModelType.MIDI, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
-                              batch_size=hparams.batch_size, steps_per_epoch=10, hparams=hparams)
-    #midi_model.load_model(71.85, 74.98)
-    #midi_model.load_model(74.27, 70.17)
-    midi_model.load_model(81.72, 81.59, 'with-f1')
+                              batch_size=hparams.batch_size, steps_per_epoch=5, hparams=hparams)
+    # midi_model.load_model(71.85, 74.98)
+    # midi_model.load_model(74.27, 70.17)
+    # midi_model.load_model(91.46, 92.58, 'no-weight')
+    # midi_model.load_model(69.19, 81.61, 'no-weight')
+    # midi_model.load_model(76.70, 82.13, 'no-loops')
+    # midi_model.load_model(83.89, 89.36, 'no-weight')
+    # midi_model.load_model(78.74, 83.30, 'dataset-test')
+    # midi_model.load_model(80.37, 83.94, 'weights-zero')
+    # midi_model.load_model(70.07, 80.87, 'weights-zero')
+    midi_model.load_model(71.05, 85.00, 'frame-weight-4') #fp:57, fr: 92, op:87, or: 82
 
     for i in range(num_steps):
         midi_model.train_and_save(epochs=hparams.epochs_per_save)
 
     # estimator.train(input_fn=transcription_data, max_steps=num_steps)
+
+
+def transcribe(data_fn,
+               filename,
+               model_dir,
+               hparams):
+    example = create_example(filename, hparams.sample_rate, False)
+
+    dataset = data_fn(
+        examples=[example],
+        preprocess_examples=True,
+        params=hparams,
+        is_training=False,
+        shuffle_examples=False,
+        skip_n_initial_records=0)
+    iterator = iter(dataset)
+    next_record = next(iterator)
+
+    midi_model = ModelWrapper('./models', ModelType.MIDI, id=hparams.model_id, hparams=hparams)
+    midi_model.load_model(74.87, 82.45, 'weights-zero')
+
+    foo = midi_model.predict_sequence(next_record)
+    print(foo)
+
 
 
 def evaluate(master,

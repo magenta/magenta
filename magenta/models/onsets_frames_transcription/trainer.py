@@ -14,15 +14,11 @@
 
 r"""Train Onsets and Frames piano transcription model."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import functools
-import os
 import json
-
-from magenta.models.onsets_frames_transcription.data import DatasetSource
+import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -37,7 +33,7 @@ tf.autograph.set_verbosity(0)
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_boolean('using_plaidml', True, 'Are we using plaidml')
+tf.app.flags.DEFINE_boolean('using_plaidml', False, 'Are we using plaidml')
 
 tf.app.flags.DEFINE_string('model_id', None, 'Id to save the model as')
 
@@ -66,12 +62,12 @@ tf.app.flags.DEFINE_integer(
     'keep_checkpoint_max', 100,
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
 tf.app.flags.DEFINE_string(
-    'hparams', '',
+    'hparams', '{}',
     'Json of `name: value` hyperparameter values. '
     'ex. --hparams={\"frames_true_weighing\":2,\"onsets_true_weighing\":8}')
 tf.app.flags.DEFINE_boolean('use_tpu', False,
                             'Whether training will happen on a TPU.')
-tf.app.flags.DEFINE_enum('mode', 'train', ['train', 'eval'],
+tf.app.flags.DEFINE_enum('mode', 'train', ['train', 'eval', 'predict'],
                          'Which mode to use.')
 tf.app.flags.DEFINE_string(
     'log', 'ERROR',
@@ -80,6 +76,10 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'dataset_source', 'MAESTRO',
     'Source of the dataset (MAESTRO, NSYNTH)'
+)
+tf.app.flags.DEFINE_string(
+    'audio_filename', '',
+    'Audio file to transcribe'
 )
 
 from magenta.models.onsets_frames_transcription import data, train_util, configs
@@ -104,14 +104,16 @@ def run(config_map, data_fn, additional_trial_info):
     if FLAGS.mode == 'train':
         train_util.train(
             data_fn=data_fn,
-            additional_trial_info=additional_trial_info,
-            master=FLAGS.master,
             model_dir=model_dir,
-            use_tpu=FLAGS.use_tpu,
             preprocess_examples=FLAGS.preprocess_examples,
             hparams=hparams,
-            keep_checkpoint_max=FLAGS.keep_checkpoint_max,
             num_steps=FLAGS.num_steps)
+    elif FLAGS.mode == 'predict':
+        train_util.transcribe(data_fn=data_fn,
+                              filename=FLAGS.audio_filename,
+                              model_dir='./out',
+                              hparams=hparams
+                              )
     elif FLAGS.mode == 'eval':
         train_util.evaluate(
             # model_fn=config.model_fn,
@@ -130,8 +132,7 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path,
-                                dataset_source=DatasetSource[FLAGS.dataset_source])
+    data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path)
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)

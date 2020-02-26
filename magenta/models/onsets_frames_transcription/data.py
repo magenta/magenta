@@ -351,9 +351,11 @@ def preprocess_example(example_proto, hparams, is_training):
     """
     record = parse_example(example_proto)
     sequence_id = record['id']
+    #tf.print(sequence_id)
     sequence = record['sequence']
     audio = record['audio']
     velocity_range = record['velocity_range']
+    #tf.print(velocity_range)
 
     wav_jitter_amount_ms = label_jitter_amount_ms = 0
     # if there is combined jitter, we must generate it once here
@@ -436,7 +438,7 @@ FeatureTensors = collections.namedtuple(
     # 'FeatureTensors', ('spec', 'label_weights'))
     'FeatureTensors', ('spec',))  # 'label_weights', 'length', 'sequence_id'))
 LabelTensors = collections.namedtuple(
-    'LabelTensors', ('labels', 'onsets', 'offsets', 'note_sequence'))  # , 'note_sequence'))
+    'LabelTensors', ('labels', 'onsets', 'offsets'))  # , 'note_sequence'))
 
 
 def input_tensors_to_model_input(
@@ -593,9 +595,15 @@ def read_examples(examples, is_training, shuffle_examples,
     if shuffle_examples:
         input_dataset = input_dataset.shuffle(hparams.shuffle_buffer_size)
     if is_training:
+        # names = dict()
+        # for i in next(iter(input_dataset)):
+        #     name = hash(i.numpy())
+        #     names[name] = names.get(name, 0) + 1
+        # print(len(names))
         input_dataset = input_dataset.repeat()
     if skip_n_initial_records:
         input_dataset = input_dataset.skip(skip_n_initial_records)
+
 
     return input_dataset
 

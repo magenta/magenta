@@ -45,7 +45,9 @@ class MetricsCallback(Callback):
     def predict(self, X, y):
         pass
 
-    def on_epoch_end(self, epoch, logs={}):
+    def on_epoch_end(self, epoch, logs={}, model=None):
+        if model:
+            self.model = model
         x, y = self.generator.get()
         metrics = self.predict(x, y)
         self.metrics_history.append(metrics)
