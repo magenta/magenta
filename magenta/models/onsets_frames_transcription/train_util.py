@@ -85,6 +85,7 @@ def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
 
 def train(data_fn,
           model_dir,
+          model_type,
           preprocess_examples,
           hparams,
           num_steps=50):
@@ -95,11 +96,11 @@ def train(data_fn,
         preprocess_examples=preprocess_examples,
         is_training=True,
         shuffle_examples=True,
-        skip_n_initial_records=2000)
+        skip_n_initial_records=10000)
 
-    midi_model = ModelWrapper(model_dir, ModelType.MIDI, id=hparams.model_id,
+    model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
-                              batch_size=hparams.batch_size, steps_per_epoch=5, hparams=hparams)
+                              batch_size=hparams.batch_size, steps_per_epoch=100, hparams=hparams)
     # midi_model.load_model(71.85, 74.98)
     # midi_model.load_model(74.27, 70.17)
     # midi_model.load_model(91.46, 92.58, 'no-weight')
@@ -109,10 +110,13 @@ def train(data_fn,
     # midi_model.load_model(78.74, 83.30, 'dataset-test')
     # midi_model.load_model(80.37, 83.94, 'weights-zero')
     # midi_model.load_model(70.07, 80.87, 'weights-zero')
-    midi_model.load_model(71.05, 85.00, 'frame-weight-4') #fp:57, fr: 92, op:87, or: 82
+    #midi_model.load_model(71.05, 85.00, 'frame-weight-4') #fp:57, fr: 92, op:87, or: 82
+    #midi_model.load_model(70.11, 84.78, '3-4-9-threshold')
+    model.load_model(29.92, id='2c3ef27f9cdc4b03b7a8d1b786e2ac9d')
+
 
     for i in range(num_steps):
-        midi_model.train_and_save(epochs=hparams.epochs_per_save)
+        model.train_and_save(epochs=hparams.epochs_per_save)
 
     # estimator.train(input_fn=transcription_data, max_steps=num_steps)
 

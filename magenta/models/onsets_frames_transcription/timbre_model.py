@@ -3,10 +3,9 @@ from __future__ import absolute_import, division, print_function
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
-import numpy as np
 from dotmap import DotMap
 from magenta.models.onsets_frames_transcription import constants
-from sklearn.metrics import fbeta_score
+from sklearn.metrics import f1_score
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -18,43 +17,43 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import he_normal
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-        Input, MaxPooling2D, concatenate, Flatten, Lambda, Cropping2D, Multiply
+    Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape
     from keras.models import Model
     from keras.regularizers import l2
 else:
     # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
     from tensorflow.keras import backend as K
-    from tensorflow.keras.initializers import he_normal
+    from tensorflow.keras.initializers import he_normal, VarianceScaling
     from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D, \
         Dense, Dropout, \
-        Input, MaxPooling2D, concatenate, Flatten
+        Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape, Bidirectional, LSTM
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
 
 def get_default_hparams():
     return {
-        'using_plaidml': True,
-        'batch_size': 8,
-        'epochs_per_save': 1,
-        'learning_rate': 0.0006,
-        'decay_steps': 10000,
-        'decay_rate': 0.98,
-        'clip_norm': 3.0,
-        'transform_audio': False,
-        'l2_regulizer': 1e-5,
-        'filter_m_sizes': [5, 80],
-        'filter_n_sizes': [1, 3, 5],
-        'num_filters': [128, 64, 32],
-        'filters_pool_size': (22, 32),
-        'pool_size': (2, 2),
-        'num_layers': 2,
-        'dropout_keep_amts': [1.0, 0.75, 0.75],
-        'fc_size': 256,
-        'fc_dropout_keep_amt': 0.5,
-        'input_shape': (None, constants.SPEC_BANDS, 1),  # (None, 229, 1),
-        'model_id': None
+        'nsynth_batch_size': 1,
+        'timbre_training_max_instruments': 1,
+        'timbre_learning_rate': 0.0006,
+        'timbre_decay_steps': 10000,
+        'timbre_decay_rate': 0.98,
+        'timbre_clip_norm': 3.0,
+        'timbre_l2_regularizer': 1e-5,
+        'timbre_filter_m_sizes': [5, 80],
+        'timbre_filter_n_sizes': [1, 3, 5],
+        'timbre_num_filters': [128, 64, 32],
+        'timbre_filters_pool_size': (22, 32),
+        'timbre_pool_size': (2, 2),
+        'timbre_num_layers': 2,
+        'timbre_dropout_keep_amts': [1.0, 0.75, 0.75],
+        'timbre_fc_size': 256,
+        'timbre_fc_dropout_keep_amt': 0.5,
+        'timbre_input_shape': (None, constants.SPEC_BANDS, 1),  # (None, 229, 1),
+        'timbre_num_classes': 11,
+        'timbre_lstm_units': 64,
+        'timbre_rnn_stack_size': 1,
     }
 
 
@@ -62,7 +61,7 @@ def filters_layer(hparams, channel_axis):
     def filters_layer_fn(inputs):
         parallel_layers = []
 
-        bn_elu_fn = lambda x: MaxPooling2D(pool_size=hparams.filters_pool_size) \
+        bn_elu_fn = lambda x: MaxPooling2D(pool_size=hparams.timbre_filters_pool_size) \
             (Activation('elu')
              (BatchNormalization(axis=channel_axis, scale=False)
               (x)))
@@ -73,28 +72,47 @@ def filters_layer(hparams, channel_axis):
                 [conv_temporal_size, conv_freq_size],
                 padding='same',
                 use_bias=False,
-                kernel_regularizer=l2(hparams.l2_regulizer),
+                kernel_regularizer=l2(hparams.timbre_l2_regularizer),
                 kernel_initializer=he_normal()
             )(x))
 
-        for m_i in hparams.filter_m_sizes:
-            for i, n_i in enumerate(hparams.filter_n_sizes):
-                parallel_layers.append(conv_bn_elu_layer(hparams.num_filters[i], m_i, n_i)(inputs))
+        for m_i in hparams.timbre_filter_m_sizes:
+            for i, n_i in enumerate(hparams.timbre_filter_n_sizes):
+                parallel_layers.append(conv_bn_elu_layer(hparams.timbre_num_filters[i], m_i, n_i)(inputs))
 
         return concatenate(parallel_layers, channel_axis)
 
     return filters_layer_fn
 
+def lstm_layer(num_units,
+               stack_size=1,
+               rnn_dropout_drop_amt=0,
+               implementation=2):
+    def lstm_layer_fn(inputs):
+        lstm_stack = inputs
+        for i in range(stack_size):
+            lstm_stack = Bidirectional(LSTM(
+                num_units,
+                recurrent_activation='sigmoid',
+                implementation=implementation,
+                return_sequences=False,
+                recurrent_dropout=rnn_dropout_drop_amt,
+                kernel_initializer=VarianceScaling(2, distribution='uniform'))
+            )(lstm_stack)
+        return lstm_stack
 
-def acoustic_model_layer(hparams, channel_axis, num_classes):
+    return lstm_layer_fn
+
+
+def acoustic_model_layer(hparams, channel_axis):
     def acoustic_model_fn(inputs):
         # inputs should be of type keras.layers.Input
         outputs = inputs
 
         # batch norm, then elu activation, then maxpool
-        bn_elu_fn = lambda x: MaxPooling2D(pool_size=hparams.pool_size, strides=hparams.pool_size) \
+        bn_elu_fn = lambda x: MaxPooling2D(pool_size=hparams.timbre_pool_size, strides=hparams.timbre_pool_size) \
             (Activation('elu')
-             (BatchNormalization(axis=channel_axis, mode=0, scale=False)
+             (BatchNormalization(axis=channel_axis, scale=False)
               (x)))
         # conv2d, then above
         conv_bn_elu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
@@ -104,35 +122,41 @@ def acoustic_model_layer(hparams, channel_axis, num_classes):
                 [conv_temporal_size, conv_freq_size],
                 padding='same',
                 use_bias=False,
-                kernel_regularizer=l2(hparams.l2_regulizer),
+                kernel_regularizer=l2(hparams.timbre_l2_regularizer),
                 kernel_initializer=he_normal()
             )(x))
 
         outputs = filters_layer(hparams, channel_axis)(outputs)
-        for i in range(hparams.num_layers):
+        for i in range(hparams.timbre_num_layers):
             outputs = Dropout(0.25)(outputs)
             outputs = conv_bn_elu_layer(128, 3, 3)(outputs)
+
+        outputs = Reshape((-1, K.int_shape(outputs)[2] * K.int_shape(outputs)[3]))(outputs)
+
+        if hparams.timbre_lstm_units:
+            outputs = lstm_layer(hparams.timbre_lstm_units, stack_size=hparams.timbre_rnn_stack_size)(outputs)
 
         return outputs
 
     return acoustic_model_fn
 
 
-def instrument_prediction_layer(hparams, num_classes):
+def instrument_prediction_layer(hparams):
     def instrument_prediction_fn(inputs):
         # inputs should be of type keras.layers.*
-        outputs = Flatten()(inputs)
+        #outputs = Flatten()(inputs)
+        outputs = inputs
         outputs = Dropout(0.5)(outputs)
-        outputs = Dense(hparams.fc_size,
+        outputs = Dense(hparams.timbre_fc_size,
                         kernel_initializer=he_normal(),
-                        kernel_regularizer=l2(hparams.l2_regulizer))(outputs)
+                        kernel_regularizer=l2(hparams.timbre_l2_regularizer))(outputs)
         outputs = Activation('elu')(outputs)
         outputs = Dropout(0.5)(outputs)
-        outputs = Dense(num_classes,
+        outputs = Dense(hparams.timbre_num_classes,
                         activation='softmax',
                         name='timbre_prediction',
                         kernel_initializer=he_normal(),
-                        kernel_regularizer=l2(hparams.l2_regulizer))(outputs)
+                        kernel_regularizer=l2(hparams.timbre_l2_regularizer))(outputs)
         return outputs
 
     return instrument_prediction_fn
@@ -143,40 +167,39 @@ def high_pass_filter(input_list):
     hp = input_list[1]
 
     reset_list = []
-    for batch_num in K.int_shape(hp)[0]:
-        ones_list = np.ones((K.int_shape(spec)[1], constants.SPEC_BANDS - hp[batch_num]))
-        zeroes_list = np.zeros((K.int_shape(spec)[1], hp[batch_num]))
-        reset_list = np.append(reset_list, np.concatenate((zeroes_list, ones_list), axis=1))
+    seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.SPEC_BANDS)), tf.float32)
+    seq_mask = K.expand_dims(seq_mask, 3)
+    # for batch_num in K.int_shape(hp)[0]:
+    #     ones_list = np.ones((K.int_shape(spec)[1], constants.SPEC_BANDS - hp[batch_num]))
+    #     zeroes_list = np.zeros((K.int_shape(spec)[1], hp[batch_num]))
+    #     reset_list = np.append(reset_list, np.concatenate((zeroes_list, ones_list), axis=1))
+    #
+    # reset_tensor = K.constant(reset_list)
+    return Multiply()([spec, seq_mask])
 
-    reset_tensor = K.constant(reset_list)
-    return Multiply()([spec, reset_tensor])
 
-
-def timbre_prediction_model(hparams=None, num_classes=2):
+def timbre_prediction_model(hparams=None):
     if hparams is None:
         hparams = DotMap(get_default_hparams())
 
-    if K.image_dim_ordering() == 'th':
-        input_shape = (hparams.input_shape[2], hparams.input_shape[0], hparams.input_shape[1],)
-        channel_axis = 1
-    else:
-        input_shape = (hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],)
-        channel_axis = 3
+    # if K.image_dim_ordering() == 'th':
+    #     input_shape = (hparams.timbre_input_shape[2], hparams.timbre_input_shape[0], hparams.timbre_input_shape[1],)
+    #     channel_axis = 1
+    # else:
+    input_shape = (hparams.timbre_input_shape[0], hparams.timbre_input_shape[1], hparams.timbre_input_shape[2],)
+    channel_axis = 3
+
     inputs = Input(shape=input_shape,
                    name='spec')
-    lowest_band = Input(shape=(1,), name='high_pass')
+    pitch = Input(shape=(1,), name='pitch')
 
-    filtered_spec = Lambda(high_pass_filter)([input, lowest_band])
+    filtered_spec = Lambda(high_pass_filter)([inputs, pitch])
 
-    timbre_outputs = acoustic_model_layer(hparams, channel_axis, num_classes)(filtered_spec)
-    timbre_probs = instrument_prediction_layer(hparams, num_classes)(timbre_outputs)
+    timbre_outputs = acoustic_model_layer(hparams, channel_axis)(filtered_spec)
+    timbre_probs = instrument_prediction_layer(hparams)(timbre_outputs)
 
-    losses = {
-        'timbre_prediction': 'categorical_crossentropy'
-    }
+    losses = 'categorical_crossentropy'
 
-    accuracies = {
-        'timbre_prediction': ['accuracy', fbeta_score]
-    }
+    accuracies = ['categorical_accuracy']
 
-    return Model(inputs=[inputs, lowest_band], outputs=[timbre_probs]), losses, accuracies
+    return Model(inputs=[inputs, pitch], outputs=timbre_probs), losses, accuracies

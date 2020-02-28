@@ -42,9 +42,7 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'using_plaidml': False,
         'batch_size': 8,
-        'epochs_per_save': 1,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 0.98,
@@ -81,7 +79,6 @@ def get_default_hparams():
         'onsets_true_weighing': 8,
         'offsets_true_weighing': 8,
         'input_shape': (None, 229, 1),  # (None, 229, 1),
-        'model_id': None
     }
 
 
@@ -91,9 +88,6 @@ def lstm_layer(num_units,
                implementation=2):
     def lstm_layer_fn(inputs):
         lstm_stack = inputs
-        if FLAGS.using_plaidml:
-            lstm_stack.shape = tf.TensorShape(
-                [d if isinstance(d, int) else None for d in lstm_stack.shape.dims])
         for i in range(stack_size):
             lstm_stack = Bidirectional(LSTM(
                 num_units,

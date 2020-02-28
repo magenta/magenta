@@ -81,8 +81,10 @@ tf.app.flags.DEFINE_string(
     'audio_filename', '',
     'Audio file to transcribe'
 )
+tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'TIMBRE', 'FULL'],
+                         'type of model to train')
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs
+from magenta.models.onsets_frames_transcription import data, train_util, configs, nsynth_reader, model_util
 
 
 def run(config_map, data_fn, additional_trial_info):
@@ -105,6 +107,7 @@ def run(config_map, data_fn, additional_trial_info):
         train_util.train(
             data_fn=data_fn,
             model_dir=model_dir,
+            model_type=model_util.ModelType[FLAGS.model_type],
             preprocess_examples=FLAGS.preprocess_examples,
             hparams=hparams,
             num_steps=FLAGS.num_steps)
@@ -132,7 +135,9 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path)
+    provide_batch_fn = data.provide_batch if model_util.ModelType[FLAGS.model_type] == model_util.ModelType.MIDI \
+        else nsynth_reader.provide_batch
+    data_fn = functools.partial(provide_batch_fn, examples=FLAGS.examples_path)
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)

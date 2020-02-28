@@ -4,6 +4,7 @@ from abc import abstractmethod
 import numpy as np
 
 import tensorflow.compat.v1 as tf
+import tensorflow.keras.backend as K
 from sklearn.metrics import f1_score, precision_recall_fscore_support
 
 FLAGS = tf.app.flags.FLAGS
@@ -31,10 +32,6 @@ class MetricsCallback(Callback):
         self.hparams = hparams
         self.metrics_history = metrics_history
 
-    def load_metrics(self, metrics_history):
-        # convert to list of namedtuples
-        self.metrics_history = [MidiPredictionOutputMetrics(*x) for x in metrics_history]
-
     def on_train_batch_begin(self, *args):
         pass
 
@@ -59,6 +56,9 @@ class MetricsCallback(Callback):
 
 
 class MidiPredictionMetrics(MetricsCallback):
+    def load_metrics(self, metrics_history):
+        # convert to list of namedtuples
+        self.metrics_history = [MidiPredictionOutputMetrics(*x) for x in metrics_history]
     def predict(self, X, y):
         # 'frames': boolean_accuracy_wrapper(hparams.predict_frame_threshold),
         # 'onsets': boolean_accuracy_wrapper(hparams.predict_onset_threshold),
@@ -75,13 +75,18 @@ class MidiPredictionMetrics(MetricsCallback):
 
 
 class TimbrePredictionMetrics(MetricsCallback):
+
+    def load_metrics(self, metrics_history):
+        # convert to list of namedtuples
+        self.metrics_history = [TimbrePredictionOutputMetrics(*x) for x in metrics_history]
     def predict(self, X, y):
         y_probs = self.model.predict_on_batch(X)
-        precision, recall, f1, _ = precision_recall_fscore_support(y, y_probs,
+        y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), tf.shape(y_probs)[1])
+        precision, recall, f1, _ = precision_recall_fscore_support(y[0], y_predictions,
                                                  average='weighted')  # TODO maybe 'macro'
         scores = {
-            'precision': precision,
-            'recall': recall,
-            'f1_score': f1
+            'precision': K.constant(precision),
+            'recall': K.constant(recall),
+            'f1_score': K.constant(f1)
         }
         return TimbrePredictionOutputMetrics(scores)

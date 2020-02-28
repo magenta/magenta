@@ -24,4 +24,12 @@ MIN_MIDI_PITCH = librosa.note_to_midi('A0')
 MAX_MIDI_PITCH = librosa.note_to_midi('C8')
 MIDI_PITCHES = MAX_MIDI_PITCH - MIN_MIDI_PITCH + 1
 
+MIN_TIMBRE_PITCH = librosa.note_to_midi('C0')
+MAX_TIMBRE_PITCH = librosa.note_to_midi('C9')
+TIMBRE_PITCHES = MAX_TIMBRE_PITCH - MIN_TIMBRE_PITCH + 1
+
+
 SPEC_BANDS = 229
+
+# is 25
+BINS_PER_OCTAVE = int(SPEC_BANDS / (TIMBRE_PITCHES / 12))

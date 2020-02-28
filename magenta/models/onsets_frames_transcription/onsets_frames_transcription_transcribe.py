@@ -76,7 +76,8 @@ def run(argv, config_map, data_fn):
     #midi_model.load_model(80.37, 83.94, 'weights-zero')
     #midi_model.load_model(71.11, 85.35, 'frame-weight-4')
     #midi_model.load_model(44.94, 86.05, '1-4-9-threshold')
-    midi_model.load_model(63.17, 89.81, '2-4-9-threshold')
+    #midi_model.load_model(63.17, 89.81, '2-4-9-threshold')
+    midi_model.load_model(67.10, 85.14, '3-4-9-threshold')
 
 
     for filename in argv[1:]:
