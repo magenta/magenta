@@ -4,32 +4,20 @@ from __future__ import absolute_import, division, print_function
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
 from dotmap import DotMap
+from keras.layers import LeakyReLU
 from magenta.models.onsets_frames_transcription import constants
 from sklearn.metrics import f1_score
 
 FLAGS = tf.app.flags.FLAGS
 
-if FLAGS.using_plaidml:
-    import plaidml.keras
 
-    plaidml.keras.install_backend()
-
-    from keras import backend as K
-    from keras.initializers import he_normal
-    from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-    Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape
-    from keras.models import Model
-    from keras.regularizers import l2
-else:
-    # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
-
-    from tensorflow.keras import backend as K
-    from tensorflow.keras.initializers import he_normal, VarianceScaling
-    from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D, \
-        Dense, Dropout, \
-        Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape, Bidirectional, LSTM
-    from tensorflow.keras.models import Model
-    from tensorflow.keras.regularizers import l2
+from tensorflow.keras import backend as K
+from tensorflow.keras.initializers import he_normal, VarianceScaling
+from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D, \
+    Dense, Dropout, \
+    Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape, Bidirectional, LSTM
+from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import l2
 
 
 def get_default_hparams():
@@ -54,6 +42,7 @@ def get_default_hparams():
         'timbre_num_classes': 11,
         'timbre_lstm_units': 128,
         'timbre_rnn_stack_size': 2,
+        'timbre_leaky_alpha': 0.33, # per han et al 2016
     }
 
 
@@ -62,7 +51,7 @@ def filters_layer(hparams, channel_axis):
         parallel_layers = []
 
         bn_elu_fn = lambda x: MaxPooling2D(pool_size=hparams.timbre_filters_pool_size) \
-            (Activation('elu')
+            (LeakyReLU(hparams.timbre_leaky_alpha)
              (BatchNormalization(axis=channel_axis, scale=False)
               (x)))
         conv_bn_elu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
@@ -109,9 +98,9 @@ def acoustic_model_layer(hparams, channel_axis):
         # inputs should be of type keras.layers.Input
         outputs = inputs
 
-        # batch norm, then elu activation, then maxpool
+        # batch norm, then leakyrelu activation, then maxpool
         bn_elu_fn = lambda x: MaxPooling2D(pool_size=hparams.timbre_pool_size, strides=hparams.timbre_pool_size) \
-            (Activation('elu')
+            (LeakyReLU(hparams.timbre_leaky_alpha)
              (BatchNormalization(axis=channel_axis, scale=False)
               (x)))
         # conv2d, then above
@@ -181,10 +170,6 @@ def timbre_prediction_model(hparams=None):
     if hparams is None:
         hparams = DotMap(get_default_hparams())
 
-    # if K.image_dim_ordering() == 'th':
-    #     input_shape = (hparams.timbre_input_shape[2], hparams.timbre_input_shape[0], hparams.timbre_input_shape[1],)
-    #     channel_axis = 1
-    # else:
     input_shape = (hparams.timbre_input_shape[0], hparams.timbre_input_shape[1], hparams.timbre_input_shape[2],)
     channel_axis = 3
 
