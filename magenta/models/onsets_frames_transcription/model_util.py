@@ -107,22 +107,24 @@ class ModelWrapper:
         #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
-            print(x[1])
+            print(np.argmax(y[0], 1))
+            '''print(x[1])
+            print('family: {}'.format(y[0]))
             foo = high_pass_filter(x)
             plt.figure(figsize=(12,8))
             plt.subplot(2, 1, 1)
-            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(x[0])).numpy()),
+            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(x[0][0])).numpy()),
                                      y_axis='cqt_note',
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=constants.MIN_TIMBRE_PITCH,
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
             plt.subplot(2, 1, 2)
-            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(foo)).numpy()),
+            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(foo[0])).numpy()),
                                      y_axis='cqt_note',
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=constants.MIN_TIMBRE_PITCH,
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
-            plt.show()
+            plt.show()'''
             new_metrics = self.model.train_on_batch(x, y)
             print(new_metrics)
         self.metrics.on_epoch_end(1, model=self.model)

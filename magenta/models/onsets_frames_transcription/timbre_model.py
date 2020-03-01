@@ -34,8 +34,8 @@ else:
 
 def get_default_hparams():
     return {
-        'nsynth_batch_size': 1,
-        'timbre_training_max_instruments': 1,
+        'nsynth_batch_size': 16,
+        'timbre_training_max_instruments': 2,
         'timbre_learning_rate': 0.0006,
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 0.98,
@@ -44,7 +44,7 @@ def get_default_hparams():
         'timbre_filter_m_sizes': [5, 80],
         'timbre_filter_n_sizes': [1, 3, 5],
         'timbre_num_filters': [128, 64, 32],
-        'timbre_filters_pool_size': (22, 32),
+        'timbre_filters_pool_size': (32, int(constants.BINS_PER_OCTAVE/2)),#(int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_pool_size': (2, 2),
         'timbre_num_layers': 2,
         'timbre_dropout_keep_amts': [1.0, 0.75, 0.75],
@@ -52,8 +52,8 @@ def get_default_hparams():
         'timbre_fc_dropout_keep_amt': 0.5,
         'timbre_input_shape': (None, constants.SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': 11,
-        'timbre_lstm_units': 64,
-        'timbre_rnn_stack_size': 1,
+        'timbre_lstm_units': 128,
+        'timbre_rnn_stack_size': 2,
     }
 
 
@@ -95,7 +95,7 @@ def lstm_layer(num_units,
                 num_units,
                 recurrent_activation='sigmoid',
                 implementation=implementation,
-                return_sequences=False,
+                return_sequences=i < stack_size - 1,
                 recurrent_dropout=rnn_dropout_drop_amt,
                 kernel_initializer=VarianceScaling(2, distribution='uniform'))
             )(lstm_stack)
@@ -169,12 +169,11 @@ def high_pass_filter(input_list):
     reset_list = []
     seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.SPEC_BANDS)), tf.float32)
     seq_mask = K.expand_dims(seq_mask, 3)
-    # for batch_num in K.int_shape(hp)[0]:
-    #     ones_list = np.ones((K.int_shape(spec)[1], constants.SPEC_BANDS - hp[batch_num]))
-    #     zeroes_list = np.zeros((K.int_shape(spec)[1], hp[batch_num]))
-    #     reset_list = np.append(reset_list, np.concatenate((zeroes_list, ones_list), axis=1))
-    #
-    # reset_tensor = K.constant(reset_list)
+
+    # this doesn't work with batches unfortunately
+    # tf.slice(spec, K.cast(concatenate([0 * hp, 0 * hp, hp, 0 * hp]), dtype='int64'),
+    #          K.cast(concatenate([0 * hp - 1, 0 * hp - 1, constants.SPEC_BANDS - hp, 0 * hp - 1]),
+    #                 dtype='int64'))
     return Multiply()([spec, seq_mask])
 
 
@@ -191,7 +190,7 @@ def timbre_prediction_model(hparams=None):
 
     inputs = Input(shape=input_shape,
                    name='spec')
-    pitch = Input(shape=(1,), name='pitch')
+    pitch = Input(shape=(1,), name='pitch', dtype='int64')
 
     filtered_spec = Lambda(high_pass_filter)([inputs, pitch])
 

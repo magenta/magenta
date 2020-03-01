@@ -61,10 +61,11 @@ def get_mel_index(pitch, hparams):
 def preprocess_nsynth_example(example_proto, hparams, is_training):
     record = example_proto
     pitch = record['pitch']
-    tf.print(pitch)
     pitch = tf.py_function(functools.partial(get_cqt_index, hparams=hparams),
                            [pitch],
                            tf.int64)
+
+    #tf.print(pitch)
     instrument = record['instrument']
     audio = record['audio']
     velocity = record['velocity']
@@ -117,21 +118,22 @@ def nsynth_input_tensors_to_model_input(
 
 # combine the batched datasets' audio together
 def reduce_batch_fn(tensor, hparams=None, is_training=True):
+    #tf.print(tensor['pitch'])
     pitch = K.constant(128, dtype=tf.int64)
     instrument = K.constant(0, dtype=tf.int64)
     instrument_family = K.constant(0, dtype=tf.int64)
     velocity = K.constant(0, dtype=tf.int64)
 
-    for i in range(hparams.timbre_training_max_instruments):
-        # randomly leave out some instruments
-        if i and random.randrange(2) == 0:
-            continue
+    # randomly leave out some instruments
+    instrument_count = random.randint(1, hparams.timbre_training_max_instruments)
+    for i in range(instrument_count):
+        # otherwise move the audio so diff attack times
         if tensor['pitch'][i] < pitch:
             pitch = tensor['pitch'][i]
             instrument = tensor['instrument'][i]
             instrument_family = tensor['instrument_family'][i]
             velocity = tensor['velocity'][i]
-    audio = tf.reduce_sum(tf.sparse.to_dense(tensor['audio']), 0)
+    audio = tf.reduce_sum(tf.sparse.to_dense(tensor['audio']), 0) / instrument_count
 
     # audio = tf.py_function(lambda a: [sum(x) for x in itertools.zip_longest(*a, fillvalue=0)],
     #                        [audio],
