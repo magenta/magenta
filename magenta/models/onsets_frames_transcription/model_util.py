@@ -151,7 +151,7 @@ class ModelWrapper:
 
 
 
-    def load_model(self, frames_f1, onsets_f1=None, id=None):
+    def load_model(self, frames_f1, onsets_f1=-1, id=-1):
         if not id:
             id = self.id
         self.build_model()

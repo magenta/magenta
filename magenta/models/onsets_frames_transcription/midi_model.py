@@ -102,21 +102,39 @@ def lstm_layer(num_units,
     return lstm_layer_fn
 
 
-def acoustic_model_layer(hparams, lstm_units):
+bn_relu_fn = lambda x: Activation('relu')(BatchNormalization(scale=False)(x))
+conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
+        x: bn_relu_fn(
+    Conv2D(
+        num_filters,
+        [conv_temporal_size, conv_freq_size],
+        padding='same',
+        use_bias=False,
+        kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
+    )(x))
+
+
+def acoustic_dense_layer(hparams, lstm_units):
+    def acoustic_dense_fn(inputs):
+        # shape: (None, None, 57, 96)
+        outputs = bn_relu_fn(Dense(hparams.fc_size, use_bias=False,
+                                   kernel_initializer=VarianceScaling(scale=2, mode='fan_avg',
+                                                                      distribution='uniform'))(
+            # Flatten while preserving batch and time dimensions.
+            Reshape((-1, K.int_shape(inputs)[2] * K.int_shape(inputs)[3]))(
+                inputs)))
+
+        if lstm_units:
+            outputs = lstm_layer(lstm_units, stack_size=hparams.acoustic_rnn_stack_size)(outputs)
+        return outputs
+
+    return acoustic_dense_fn
+
+
+def acoustic_model_layer(hparams):
     def acoustic_model_fn(inputs):
         # inputs should be of type keras.layers.Input
         outputs = inputs
-
-        bn_relu_fn = lambda x: Activation('relu')(BatchNormalization(scale=False)(x))
-        conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
-                x: bn_relu_fn(
-            Conv2D(
-                num_filters,
-                [conv_temporal_size, conv_freq_size],
-                padding='same',
-                use_bias=False,
-                kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
-            )(x))
 
         for (conv_temporal_size, conv_freq_size,
              num_filters, freq_pool_size, dropout_amt) in zip(
@@ -128,16 +146,6 @@ def acoustic_model_layer(hparams, lstm_units):
                 outputs = MaxPooling2D([1, freq_pool_size], strides=[1, freq_pool_size])(outputs)
             if dropout_amt < 1:
                 outputs = Dropout(dropout_amt)(outputs)
-
-        outputs = bn_relu_fn(Dense(hparams.fc_size, use_bias=False,
-                                   kernel_initializer=VarianceScaling(scale=2, mode='fan_avg',
-                                                                      distribution='uniform'))(
-            # Flatten while preserving batch and time dimensions.
-            Reshape((-1, K.int_shape(outputs)[2] * K.int_shape(outputs)[3]))(
-                outputs)))
-
-        if lstm_units:
-            outputs = lstm_layer(lstm_units, stack_size=hparams.acoustic_rnn_stack_size)(outputs)
         return outputs
 
     return acoustic_model_fn
@@ -156,28 +164,31 @@ def midi_prediction_model(hparams=None):
     if hparams is None:
         hparams = DotMap(get_default_hparams())
     inputs = Input(shape=(hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],),
-                  name='spec')
+                   name='spec')
     weights = Input(shape=(None, constants.MIDI_PITCHES,), name='weights')
 
     # if K.learning_phase():
 
     # Onset prediction model
-    onset_outputs = acoustic_model_layer(hparams,
-                                         0 if hparams.using_plaidml else hparams.onset_lstm_units)(
-        inputs)
+    onset_conv = acoustic_model_layer(hparams)(inputs)
+    onset_outputs = acoustic_dense_layer(hparams,
+                                         0 if hparams.using_plaidml
+                                         else hparams.onset_lstm_units)(onset_conv)
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
 
     # Offset prediction model
-    offset_outputs = acoustic_model_layer(hparams,
-                                          0 if hparams.using_plaidml else hparams.offset_lstm_units)(
-        inputs)
+    offset_conv = acoustic_model_layer(hparams)(inputs)
+    offset_outputs = acoustic_dense_layer(hparams,
+                                          0 if hparams.using_plaidml
+                                          else hparams.offset_lstm_units)(offset_conv)
     offset_probs = midi_pitches_layer('offsets')(offset_outputs)
 
     # Activation prediction model
     if not hparams.share_conv_features:
-        activation_outputs = acoustic_model_layer(hparams,
-                                                  0 if hparams.using_plaidml else hparams.frame_lstm_units)(
-            inputs)
+        activation_conv = acoustic_model_layer(hparams)(inputs)
+        activation_outputs = acoustic_dense_layer(hparams,
+                                                  0 if hparams.using_plaidml
+                                                  else hparams.frame_lstm_units)(activation_conv)
     else:
         activation_outputs = onset_outputs
     activation_probs = midi_pitches_layer('activations')(activation_outputs)
@@ -193,7 +204,6 @@ def midi_prediction_model(hparams=None):
     frame_probs = midi_pitches_layer('frames')(combined_probs)
 
     # use class_weighing to care more about correctly identifying actual notes instead of false positives
-    # TODO do these need to be as large as they are
     losses = {
         'frames': log_loss_wrapper(hparams.frames_true_weighing),
         'onsets': log_loss_wrapper(hparams.onsets_true_weighing),
@@ -201,9 +211,12 @@ def midi_prediction_model(hparams=None):
     }
 
     accuracies = {
-        'frames': [binary_accuracy_wrapper(hparams.predict_frame_threshold), f1_wrapper(hparams.predict_frame_threshold)],
-        'onsets': [binary_accuracy_wrapper(hparams.predict_onset_threshold), f1_wrapper(hparams.predict_onset_threshold)],
-        'offsets': [binary_accuracy_wrapper(hparams.predict_offset_threshold), f1_wrapper(hparams.predict_offset_threshold)]
+        'frames': [binary_accuracy_wrapper(hparams.predict_frame_threshold),
+                   f1_wrapper(hparams.predict_frame_threshold)],
+        'onsets': [binary_accuracy_wrapper(hparams.predict_onset_threshold),
+                   f1_wrapper(hparams.predict_onset_threshold)],
+        'offsets': [binary_accuracy_wrapper(hparams.predict_offset_threshold),
+                    f1_wrapper(hparams.predict_offset_threshold)]
     }
 
     return Model(inputs=[
