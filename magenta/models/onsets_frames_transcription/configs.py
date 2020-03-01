@@ -21,22 +21,28 @@ from __future__ import print_function
 import collections
 
 from magenta.common import tf_utils
-from magenta.models.onsets_frames_transcription import audio_transform, midi_model
+from magenta.models.onsets_frames_transcription import audio_transform, midi_model, timbre_model, \
+    constants
 
 Config = collections.namedtuple('Config', ('hparams',))
 
 DEFAULT_HPARAMS = {
     **audio_transform.DEFAULT_AUDIO_TRANSFORM_HPARAMS,
     **{
+        'model_id': None,
+        'epochs_per_save': 1,
+        'using_plaidml': False,
         'eval_batch_size': 1,
         'predict_batch_size': 1,
         'shuffle_buffer_size': 64,
+        'nsynth_shuffle_buffer_size': 80000,
         'sample_rate': 16000,
         'spec_type': 'mel',
         'spec_mel_htk': True,
         'spec_log_amplitude': True,
         'spec_hop_length': 512,
-        'spec_n_bins': 229,
+        'timbre_hop_length': 256,
+        'spec_n_bins': constants.SPEC_BANDS,
         'spec_fmin': 30.0,  # A0
         'cqt_bins_per_octave': 36,
         'truncated_length_secs': 0.0,
@@ -55,7 +61,7 @@ CONFIG_MAP = {}
 
 CONFIG_MAP['onsets_frames'] = Config(
     #model_fn=model.model_fn,
-    hparams={**DEFAULT_HPARAMS, **midi_model.get_default_hparams()},
+    hparams={**DEFAULT_HPARAMS, **midi_model.get_default_hparams(), **timbre_model.get_default_hparams()},
 )
 
 DatasetConfig = collections.namedtuple(

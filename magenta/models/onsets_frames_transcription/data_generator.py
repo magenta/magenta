@@ -1,3 +1,5 @@
+import sys
+
 import numpy as np
 
 import threading
@@ -21,20 +23,21 @@ class DataGenerator(keras.utils.Sequence):
         self.steps_per_epoch = steps_per_epoch
         self.shuffle = shuffle
         self.use_numpy = use_numpy
+        self.iterator = iter(self.dataset)
         self.lock = threading.Lock()
         self.on_epoch_end()
 
     def __len__(self):
         'Denotes the number of batches per epoch'
-        return self.steps_per_epoch
+        return 0
 
     def __getitem__(self, index):
         'Generate one batch of data'
         with self.lock:
             if self.use_numpy:
-                x, y = ([t.numpy() for t in tensors] for tensors in next(iter(self.dataset)))
+                x, y = ([t.numpy() for t in tensors] for tensors in next(self.iterator))
             else:
-                x, y = ([t for t in tensors] for tensors in next(iter(self.dataset)))
+                x, y = ([t for t in tensors] for tensors in next(self.iterator))
             return x, y
 
     def get(self):

@@ -1,15 +1,19 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+
+import sklearn
 from dotmap import DotMap
 
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
 from magenta.common import tf_utils
-from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper
+from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper, \
+    f1_wrapper
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper, \
     log_loss_flattener
+from sklearn.metrics import f1_score
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -38,9 +42,7 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'using_plaidml': True,
         'batch_size': 8,
-        'epochs_per_save': 1,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 0.98,
@@ -72,13 +74,11 @@ def get_default_hparams():
         'bidirectional': True,
         'predict_frame_threshold': 0.5,
         'predict_onset_threshold': 0.5,
-        'predict_offset_threshold': 0.5,
+        'predict_offset_threshold': 0.0,
         'frames_true_weighing': 2,
         'onsets_true_weighing': 8,
         'offsets_true_weighing': 8,
         'input_shape': (None, 229, 1),  # (None, 229, 1),
-        'transform_wav_data': True,
-        'model_id': None
     }
 
 
@@ -88,9 +88,6 @@ def lstm_layer(num_units,
                implementation=2):
     def lstm_layer_fn(inputs):
         lstm_stack = inputs
-        if FLAGS.using_plaidml:
-            lstm_stack.shape = tf.TensorShape(
-                [d if isinstance(d, int) else None for d in lstm_stack.shape.dims])
         for i in range(stack_size):
             lstm_stack = Bidirectional(LSTM(
                 num_units,
@@ -110,16 +107,16 @@ def acoustic_model_layer(hparams, lstm_units):
         # inputs should be of type keras.layers.Input
         outputs = inputs
 
-        bn_relu_fn = lambda inputs: Activation('relu')(BatchNormalization(scale=False)(inputs))
+        bn_relu_fn = lambda x: Activation('relu')(BatchNormalization(scale=False)(x))
         conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
-                inputs: bn_relu_fn(
+                x: bn_relu_fn(
             Conv2D(
                 num_filters,
                 [conv_temporal_size, conv_freq_size],
                 padding='same',
                 use_bias=False,
                 kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
-            )(inputs))
+            )(x))
 
         for (conv_temporal_size, conv_freq_size,
              num_filters, freq_pool_size, dropout_amt) in zip(
@@ -158,29 +155,29 @@ def midi_pitches_layer(name=None):
 def midi_prediction_model(hparams=None):
     if hparams is None:
         hparams = DotMap(get_default_hparams())
-    input = Input(shape=(hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],),
+    inputs = Input(shape=(hparams.input_shape[0], hparams.input_shape[1], hparams.input_shape[2],),
                   name='spec')
-    weights = Input(shape=(None, 88,), name='weights')
+    weights = Input(shape=(None, constants.MIDI_PITCHES,), name='weights')
 
     # if K.learning_phase():
 
     # Onset prediction model
     onset_outputs = acoustic_model_layer(hparams,
                                          0 if hparams.using_plaidml else hparams.onset_lstm_units)(
-        input)
+        inputs)
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
 
     # Offset prediction model
     offset_outputs = acoustic_model_layer(hparams,
                                           0 if hparams.using_plaidml else hparams.offset_lstm_units)(
-        input)
+        inputs)
     offset_probs = midi_pitches_layer('offsets')(offset_outputs)
 
     # Activation prediction model
     if not hparams.share_conv_features:
         activation_outputs = acoustic_model_layer(hparams,
                                                   0 if hparams.using_plaidml else hparams.frame_lstm_units)(
-            input)
+            inputs)
     else:
         activation_outputs = onset_outputs
     activation_probs = midi_pitches_layer('activations')(activation_outputs)
@@ -198,20 +195,20 @@ def midi_prediction_model(hparams=None):
     # use class_weighing to care more about correctly identifying actual notes instead of false positives
     # TODO do these need to be as large as they are
     losses = {
-        'frames': log_loss_wrapper(2),
-        'onsets': log_loss_wrapper(8),
-        'offsets': log_loss_wrapper(8),
+        'frames': log_loss_wrapper(hparams.frames_true_weighing),
+        'onsets': log_loss_wrapper(hparams.onsets_true_weighing),
+        'offsets': log_loss_wrapper(hparams.offsets_true_weighing),
     }
 
     accuracies = {
-        'frames': binary_accuracy_wrapper(hparams.predict_frame_threshold),
-        'onsets': binary_accuracy_wrapper(hparams.predict_onset_threshold),
-        'offsets': binary_accuracy_wrapper(hparams.predict_offset_threshold)
+        'frames': [binary_accuracy_wrapper(hparams.predict_frame_threshold), f1_wrapper(hparams.predict_frame_threshold)],
+        'onsets': [binary_accuracy_wrapper(hparams.predict_onset_threshold), f1_wrapper(hparams.predict_onset_threshold)],
+        'offsets': [binary_accuracy_wrapper(hparams.predict_offset_threshold), f1_wrapper(hparams.predict_offset_threshold)]
     }
 
     return Model(inputs=[
-        input,
-        weights,
+        inputs,
+        # weights,
         # Input(shape=(None,)),
     ],
         outputs=[frame_probs, onset_probs, offset_probs]), \
