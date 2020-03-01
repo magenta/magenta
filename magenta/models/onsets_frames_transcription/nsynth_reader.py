@@ -146,7 +146,8 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
         instrument=instrument,
         instrument_family=instrument_family,
         velocity=velocity,
-        audio=audio
+        audio=audio,
+        num_notes=instrument_count
     )
 
 

@@ -114,7 +114,7 @@ def train(data_fn,
     #midi_model.load_model(70.11, 84.78, '3-4-9-threshold')
     #model.load_model(0.0, id='901dcedede0e40898ba0daf790673b4c')
     #model.load_model(8.93, id='eadb12c34708460896a671a7a3dabf58')
-    model.load_model(78.67, id='temp')
+    #model.load_model(78.67, id='temp')
 
 
     for i in range(num_steps):

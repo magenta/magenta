@@ -16,7 +16,7 @@ from tensorflow.keras.initializers import he_normal, VarianceScaling
 from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D, \
     Dense, Dropout, \
     Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape, Bidirectional, LSTM, \
-    LeakyReLU, TimeDistributed, Cropping2D, Layer, Flatten
+    LeakyReLU, TimeDistributed, Cropping2D, Layer, Flatten, Masking
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
 
@@ -160,7 +160,6 @@ def high_pass_filter(input_list):
     spec = input_list[0]
     hp = input_list[1]
 
-    reset_list = []
     seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.SPEC_BANDS)), tf.float32)
     seq_mask = K.expand_dims(seq_mask, 3)
 
@@ -171,33 +170,39 @@ def high_pass_filter(input_list):
     return Multiply()([spec, seq_mask])
 
 
+# This increases dimensionality by duplicating our input spec image and getting differently
+# cropped views of it (essentially, get a small view for each note being played in a piece)
+# num_crops are the number of notes
+# the cropping list shows the pitch, start, and end of the note
+# we do a high pass masking
+# so that we don't look at any frequency data below a note's pitch for classifying
 def get_all_croppings(input_list, hparams):
     conv_output_list = tf.unstack(input_list[0], num=hparams.nsynth_batch_size)
-    croppings_list = tf.unstack(input_list[1], num=hparams.nsynth_batch_size)
-    num_croppings_list = tf.unstack(input_list[2], num=hparams.nsynth_batch_size)
+    note_croppings_list = tf.unstack(input_list[1], num=hparams.nsynth_batch_size)
+    num_notes_list = tf.unstack(input_list[2], num=hparams.nsynth_batch_size)
 
     all_outputs = []
-    # unbatch
+    # unbatch / do different things for each batch (we kinda create mini-batches)
     for batch_idx in range(hparams.nsynth_batch_size):
         conv_output = conv_output_list[batch_idx]
-        croppings = croppings_list[batch_idx]
-        num_croppings = num_croppings_list[batch_idx]
+        note_croppings = note_croppings_list[batch_idx]
+        num_notes = num_notes_list[batch_idx]
         repeated_conv_output = tf.repeat(K.expand_dims(conv_output, axis=0),
-                                         num_croppings, axis=0)
+                                         num_notes, axis=0)
 
         pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
             K.expand_dims(
                 K.cast(
-                    tf.gather(croppings, indices=0, axis=1)
+                    tf.gather(note_croppings, indices=0, axis=1)
                     * K.int_shape(conv_output)[1]
                     / constants.SPEC_BANDS, dtype='int32'
                 ), 1), K.int_shape(conv_output)[1]
         )), tf.float32)
         right_mask = K.cast(tf.sequence_mask(
-            K.expand_dims(tf.gather(croppings, indices=1, axis=1), 1)
+            K.expand_dims(tf.gather(note_croppings, indices=1, axis=1), 1)
         ), tf.float32)
         left_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
-            K.expand_dims(tf.gather(croppings, indices=2, axis=1), 1),
+            K.expand_dims(tf.gather(note_croppings, indices=2, axis=1), 1),
             maxlen=K.int_shape(right_mask)[1]
         )), tf.float32)
 
@@ -217,6 +222,9 @@ def get_all_croppings(input_list, hparams):
         out = Multiply()([repeated_conv_output, pitch_mask])
         out = Multiply()([out, right_mask])
         out = Multiply()([out, left_mask])
+
+        # Tell downstream layers to skip timesteps that are fully masked out
+        out = Masking(mask_value=0.0)(out)
         all_outputs.append(K.expand_dims(out, 0))
 
     return K.concatenate(all_outputs, axis=0)
@@ -237,45 +245,45 @@ def timbre_prediction_model(hparams=None):
     # batched dimensions for cropping like:
     # ((top_crop, bottom_crop), (left_crop, right_crop))
     # with a high pass, top_crop will always be 0, bottom crop is relative to pitch
-    croppings = Input(shape=(None, 3), name='cropping', dtype='int64')
+    note_croppings = Input(shape=(None, 3), name='note_croppings', dtype='int64')
 
-    num_crops = Input(shape=(1,), name='num_crops', dtype='int64')
-
-
-    # high_pass_filter([inputs, num_crops])
+    num_notes = Input(shape=(1,), name='num_notes', dtype='int64')
 
     # acoustic_outputs shape: (None, None, 57, 128)
     # aka: (batch_size, length, freq_range, num_channels)
     acoustic_outputs = acoustic_model_layer(hparams, channel_axis)(inputs)
 
     # cropped_outputs shape: (batch_size, None, None, 57, 128)
-    # aka: (batch_size, num_crops, length, freq_range, num_channels)
+    # aka: (batch_size, num_notes, length, freq_range, num_channels)
     cropped_outputs = Lambda(functools.partial(get_all_croppings, hparams=hparams))(
-        [acoustic_outputs, croppings, num_crops])
+        [acoustic_outputs, note_croppings, num_notes])
+
+    # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
+    # last 3 independently (time, frequency, and number of channels/filters)
 
     # filter_outputs shape: (None, None, None, 4, 448)
-    # aka: (batch_size, num_crops, length, freq_range, num_channels)
+    # aka: (batch_size, num_notes, length, freq_range, num_channels)
     filter_outputs = filters_layer(hparams, channel_axis)(
         cropped_outputs)
 
     # flatten while preserving batch and time dimensions
     # shape: (None, None, None, 1792)
-    # aka: (batch_size, num_crops, length, vec_size)
+    # aka: (batch_size, num_notes, length, vec_size)
     timbre_outputs = Reshape(
         (-1, -1, K.int_shape(filter_outputs)[3] * K.int_shape(filter_outputs)[4]))(
         filter_outputs)
     if hparams.timbre_lstm_units:
         # shape: (None, None, 256)
-        # aka: (batch_size, num_crops, lstm_units)
+        # aka: (batch_size, num_notes, lstm_units)
         timbre_outputs = lstm_layer(hparams.timbre_lstm_units,
                                     stack_size=hparams.timbre_rnn_stack_size)(timbre_outputs)
 
     # shape: (None, None, 11)
-    # aka: (batch_size, num_crops, num_classes)
+    # aka: (batch_size, num_notes, num_classes)
     timbre_probs = instrument_prediction_layer(hparams)(timbre_outputs)
 
     losses = 'categorical_crossentropy'
 
     accuracies = ['categorical_accuracy']
 
-    return Model(inputs=[inputs, croppings, num_crops], outputs=timbre_probs), losses, accuracies
+    return Model(inputs=[inputs, note_croppings, num_notes], outputs=timbre_probs), losses, accuracies
