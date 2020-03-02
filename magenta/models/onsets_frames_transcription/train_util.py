@@ -96,7 +96,7 @@ def train(data_fn,
         preprocess_examples=preprocess_examples,
         is_training=True,
         shuffle_examples=True,
-        skip_n_initial_records=100000)
+        skip_n_initial_records=0)
 
     model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),

@@ -57,60 +57,35 @@ def get_mel_index(pitch, hparams):
 
     return np.abs(frequencies - librosa.midi_to_hz(pitch.numpy())).argmin()
 
+FeatureTensors = collections.namedtuple('FeatureTensors', ('spec', 'note_croppings', 'num_notes'))
 
-def preprocess_nsynth_example(example_proto, hparams, is_training):
-    record = example_proto
-    pitch = record['pitch']
-    pitch = tf.py_function(functools.partial(get_cqt_index, hparams=hparams),
-                           [pitch],
-                           tf.int64)
+LabelTensors = collections.namedtuple('LabelTensors', ('instrument_families',))
 
-    #tf.print(pitch)
-    instrument = record['instrument']
-    audio = record['audio']
-    velocity = record['velocity']
-    instrument_family = record['instrument_family']
+NoteCropping = collections.namedtuple('NoteCropping', ('pitch', 'start_idx', 'end_idx'))
 
-    # Transpose so that the data is in [frame, bins] format.
-    spec = tf.py_function(
-        functools.partial(create_spectrogram, hparams=hparams),
-        [audio],
-        tf.float32,
-        name='samples_to_spec')
-
-    return dict(
-        spec=spec,
-        pitch=pitch,
-        velocity=velocity,
-        instrument=instrument,
-        instrument_family=instrument_family,
-        length=len(audio),
-    )
-
-
-FeatureTensors = collections.namedtuple('FeatureTensors', ('spec', 'pitch'))
-
-LabelTensors = collections.namedtuple('LabelTensors', ('instrument_family',))
+NoteLabel = collections.namedtuple('NoteLabel', ('instrument_family'))
 
 
 def nsynth_input_tensors_to_model_input(
         input_tensors, hparams, is_training):
     """Processes an InputTensor into FeatureTensors and LabelTensors."""
-    length = tf.cast(input_tensors['length'], tf.int32)
+    #length = tf.cast(input_tensors['length'], tf.int32)
     spec = tf.reshape(input_tensors['spec'], (-1, hparams_frame_size(hparams), 1))
-    pitch = tf.expand_dims(tf.cast(input_tensors['pitch'], tf.int32), 0)
-    instrument_family = tf.one_hot(tf.cast(input_tensors['instrument_family'], tf.int32),
-                                   hparams.timbre_num_classes)
+    note_croppings = input_tensors['note_croppings']
+    instrument_families = input_tensors['instrument_families']
+    num_notes = input_tensors['num_notes']
+    #instrument_family = input_tensors['instrument_family']
     # tf.print(instrument_family)
 
     features = FeatureTensors(
         spec=spec,
-        pitch=pitch
+        note_croppings=note_croppings,
+        num_notes=num_notes
         # length=truncated_length,
         # sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
     )
     labels = LabelTensors(
-        instrument_family=instrument_family
+        instrument_families=instrument_families
     )
 
     return features, labels
@@ -118,35 +93,53 @@ def nsynth_input_tensors_to_model_input(
 
 # combine the batched datasets' audio together
 def reduce_batch_fn(tensor, hparams=None, is_training=True):
-    #tf.print(tensor['pitch'])
-    pitch = K.constant(128, dtype=tf.int64)
-    instrument = K.constant(0, dtype=tf.int64)
-    instrument_family = K.constant(0, dtype=tf.int64)
-    velocity = K.constant(0, dtype=tf.int64)
-
     # randomly leave out some instruments
-    instrument_count = random.randint(1, hparams.timbre_training_max_instruments)
+    instrument_count = 2#random.randint(1, hparams.timbre_training_max_instruments)
+    note_croppping_list = []
+    instrument_family_list = []
+    audios = []
+    max_length = 0
     for i in range(instrument_count):
         # otherwise move the audio so diff attack times
-        if tensor['pitch'][i] < pitch:
-            pitch = tensor['pitch'][i]
-            instrument = tensor['instrument'][i]
-            instrument_family = tensor['instrument_family'][i]
-            velocity = tensor['velocity'][i]
-    audio = tf.reduce_sum(tf.sparse.to_dense(tensor['audio']), 0) / instrument_count
+        pitch = tensor['pitch'][i]
+        start_idx = random.randint(0, hparams.timbre_max_start_offset)
+        audio = K.concatenate([tf.zeros(start_idx), tf.sparse.to_dense(tensor['audio'])[i]])
+        audios.append(audio)
 
-    # audio = tf.py_function(lambda a: [sum(x) for x in itertools.zip_longest(*a, fillvalue=0)],
-    #                        [audio],
-    #                        tf.float32)
+        end_idx = len(audio)
+        if end_idx > max_length:
+            max_length = end_idx
 
-    # audio = [sum(x) for x in itertools.zip_longest(*audio, fillvalue=0)]
+        instrument = tensor['instrument'][i]
+        instrument_family = tensor['instrument_family'][i]
+        velocity = tensor['velocity'][i]
+        note_croppping_list.append(NoteCropping(
+            pitch=pitch,
+            start_idx=start_idx,
+            end_idx=end_idx
+        ))
+        instrument_family_list.append(tf.one_hot(tf.cast(instrument_family, tf.int32),
+                                   hparams.timbre_num_classes))
+
+    # pad the end of the shorter audio clips
+    audios = list(map(lambda x: tf.pad(x, [[0, max_length - len(x)]]), audios))
+
+    combined_audio = tf.reduce_sum(tf.convert_to_tensor(audios), axis=0) / instrument_count
+    note_croppings = tf.convert_to_tensor(note_croppping_list, dtype=tf.int32)
+    instrument_families = tf.convert_to_tensor(instrument_family_list, dtype=tf.int32)
+
+
+    # Transpose so that the data is in [frame, bins] format.
+    spec = tf.py_function(
+        functools.partial(create_spectrogram, hparams=hparams),
+        [combined_audio],
+        tf.float32,
+        name='samples_to_spec')
 
     return dict(
-        pitch=pitch,
-        instrument=instrument,
-        instrument_family=instrument_family,
-        velocity=velocity,
-        audio=audio,
+        spec=spec,
+        note_croppings=note_croppings,
+        instrument_families=instrument_families,
         num_notes=instrument_count
     )
 
@@ -162,7 +155,7 @@ def provide_batch(examples,
     Args:
       examples: A string path to a TFRecord file of examples, a python list of
         serialized examples, or a Tensor placeholder for serialized examples.
-      params: HParams object specifying hyperparameters. Called 'params' here
+      params: HParams object specifying hyperparameters. Called 'pK.constant(note_croppings)arams' here
         because that is the interface that TPUEstimator expects.
       is_training: Whether this is a training run.
       shuffle_examples: Whether examples should be shuffled.
@@ -184,16 +177,18 @@ def provide_batch(examples,
 
     input_dataset = input_dataset.map(parse_nsynth_example)
 
+    foo = reduce_batch_fn(next(iter(input_dataset.batch(hparams.timbre_training_max_instruments))), hparams=hparams, is_training=is_training)
+
     reduced_dataset = input_dataset.batch(hparams.timbre_training_max_instruments).map(
         functools.partial(reduce_batch_fn, hparams=hparams, is_training=is_training))
 
-    input_map_fn = functools.partial(
-        preprocess_nsynth_example, hparams=hparams, is_training=is_training)
-    # foo = next(iter(input_dataset.batch(hparams.timbre_training_max_instruments)))
-    # reduce_batch_fn(foo, hparams, is_training)
-    input_tensors = reduced_dataset.map(input_map_fn)
+    # input_map_fn = functools.partial(
+    #     preprocess_nsynth_example, hparams=hparams, is_training=is_training)
+    # # foo = next(iter(input_dataset.batch(hparams.timbre_training_max_instruments)))
+    # # reduce_batch_fn(foo, hparams, is_training)
+    # input_tensors = reduced_dataset.map(input_map_fn)
 
-    model_input = input_tensors.map(
+    model_input = reduced_dataset.map(
         functools.partial(
             nsynth_input_tensors_to_model_input,
             hparams=hparams, is_training=is_training))
