@@ -14,7 +14,7 @@ from magenta.models.onsets_frames_transcription.callback import MidiPredictionMe
 import tensorflow.compat.v1 as tf
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
 from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model, \
-    high_pass_filter
+    high_pass_filter, get_croppings_for_single_image
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -107,19 +107,25 @@ class ModelWrapper:
         #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
+            '''foo = get_croppings_for_single_image(x[0][0], x[1][0], x[2][0], self.hparams)
             print(np.argmax(y[0], 1))
-            '''print(x[1])
+            print(x[1])
             print('family: {}'.format(y[0]))
-            foo = high_pass_filter(x)
             plt.figure(figsize=(12,8))
-            plt.subplot(2, 1, 1)
+            plt.subplot(3, 1, 1)
             librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(x[0][0])).numpy()),
                                      y_axis='cqt_note',
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=constants.MIN_TIMBRE_PITCH,
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
-            plt.subplot(2, 1, 2)
+            plt.subplot(3, 1, 2)
             librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(foo[0])).numpy()),
+                                     y_axis='cqt_note',
+                                     hop_length=self.hparams.timbre_hop_length,
+                                     fmin=constants.MIN_TIMBRE_PITCH,
+                                     bins_per_octave=constants.BINS_PER_OCTAVE)
+            plt.subplot(3, 1, 3)
+            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(foo[1])).numpy()),
                                      y_axis='cqt_note',
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=constants.MIN_TIMBRE_PITCH,

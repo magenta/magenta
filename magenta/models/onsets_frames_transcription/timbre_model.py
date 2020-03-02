@@ -163,56 +163,7 @@ def high_pass_filter(input_list):
 
     seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.SPEC_BANDS)), tf.float32)
     seq_mask = K.expand_dims(seq_mask, 3)
-
-    # this doesn't work with batches unfortunately
-    # tf.slice(spec, K.cast(concatenate([0 * hp, 0 * hp, hp, 0 * hp]), dtype='int64'),
-    #          K.cast(concatenate([0 * hp - 1, 0 * hp - 1, constants.SPEC_BANDS - hp, 0 * hp - 1]),
-    #                 dtype='int64'))
     return Multiply()([spec, seq_mask])
-
-
-def get_all_croppings_shape(input_shape, acoustic_outputs, hparams):
-    K.print_tensor(acoustic_outputs.shape, 'shape time')
-    return (hparams.nsynth_batch_size,
-            None,
-            K.int_shape(acoustic_outputs)[1],
-            K.int_shape(acoustic_outputs)[2],
-            K.int_shape(acoustic_outputs)[3]
-            )
-
-class CroppingLayer(Layer):
-    def __init__(self, acoustic_shape, hparams, **kwargs):
-        self.acoustic_shape = acoustic_shape
-        self.hparams = hparams
-        self.result = None
-        super(CroppingLayer, self).__init__(**kwargs)
-
-    def call(self, x, **kwargs):
-        assert isinstance(x, list)
-        # return K.expand_dims(x[0], 1), x[1], x[2]
-        self.result = get_all_croppings(x, self.hparams)
-        return tf.reshape(self.result, self.compute_output_shape(x))
-        # return tf.reshape(get_all_croppings(x, self.hparams), x[1], x[2], self.compute_output_shape(input_shape))
-
-    def build(self, input_shape):
-        print('build input shape: {}'.format(input_shape))
-        super(CroppingLayer, self).build(input_shape)
-
-    def compute_output_shape(self, input_shape):
-        assert isinstance(input_shape, list)
-        conv_shape, note_cropping_shape, num_notes_shape = input_shape
-        print('compute input shape: {}'.format(input_shape))
-        # K.print_tensor(input_shape, 'input shape')
-        # K.print_tensor(conv_shape, 'conv shape')
-        print('result shape: {}'.format(K.int_shape(self.result)))
-        return tf.shape(self.result)
-        # return [(self.hparams.nsynth_batch_size,
-        #         None,
-        #         conv_shape[1],
-        #         conv_shape[2],
-        #         conv_shape[3]
-        #     ), note_cropping_shape, num_notes_shape]
-
 
 
 # This increases dimensionality by duplicating our input spec image and getting differently
@@ -225,71 +176,72 @@ def get_all_croppings(input_list, hparams):
     conv_output_list = tf.unstack(input_list[0], num=hparams.nsynth_batch_size)
     note_croppings_list = tf.unstack(input_list[1], num=hparams.nsynth_batch_size)
     num_notes_list = tf.unstack(input_list[2], num=hparams.nsynth_batch_size)
-    # K.print_tensor(note_croppings_list[0].shape, 'get_all_croppings')
 
     all_outputs = []
     # unbatch / do different things for each batch (we kinda create mini-batches)
     for batch_idx in range(hparams.nsynth_batch_size):
-        conv_output = conv_output_list[batch_idx]
-        note_croppings = note_croppings_list[batch_idx]
-        num_notes = num_notes_list[batch_idx]
-
-        # K.print_tensor(conv_output.shape, 'about to repeat')
-        repeated_conv_output = tf.repeat(K.expand_dims(conv_output, axis=0),
-                                         num_notes, axis=0)
-
-        # K.print_tensor(repeated_conv_output.shape, 'repeated')
-
-        pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
-            K.expand_dims(
-                K.cast(
-                    tf.gather(note_croppings, indices=0, axis=1)
-                    * K.int_shape(conv_output)[1]
-                    / constants.SPEC_BANDS, dtype='int32'
-                ), 1), K.int_shape(conv_output)[1]
-        )), tf.float32)
-        end_mask = K.cast(tf.sequence_mask(
-            K.expand_dims(tf.gather(note_croppings, indices=2, axis=1), 1),
-            maxlen=K.shape(conv_output)[0]
-        ), tf.float32)
-        start_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
-            K.expand_dims(tf.gather(note_croppings, indices=1, axis=1), 1),
-            maxlen=K.shape(conv_output)[0]#K.int_shape(end_mask)[2]
-        )), tf.float32)
-
-        # constant time for the pitch mask
-        pitch_mask = K.expand_dims(pitch_mask, 3)
-
-        # reorder to mask temporally
-        end_mask = K.permute_dimensions(end_mask, (0, 2, 1))
-        # constant pitch for right mask
-        end_mask = K.expand_dims(end_mask, 2)
-
-        # reorder to mask temporally
-        start_mask = K.permute_dimensions(start_mask, (0, 2, 1))
-        # constant pitch for left mask
-        start_mask = K.expand_dims(start_mask, 2)
-
-        # K.print_tensor(pitch_mask.shape, 'the pitch mask')
-        out = repeated_conv_output
-        print('out shape: {}'.format(out.shape))
-        print('pitch shape: {}'.format(pitch_mask.shape))
-        print('right shape: {}'.format(end_mask.shape))
-        print('left shape: {}'.format(start_mask.shape))
-        out = tf.math.multiply(out, pitch_mask)
-        out = tf.math.multiply(out, end_mask)
-        out = tf.math.multiply(out, start_mask)
-
-        # Tell downstream layers to skip timesteps that are fully masked out
-        out = Masking(mask_value=0.0)(out)
-        # K.print_tensor(out.shape, 'Masked, batch: {}'.format(batch_idx))
+        out = get_croppings_for_single_image(conv_output_list[batch_idx],
+                                             note_croppings_list[batch_idx],
+                                             num_notes_list[batch_idx],
+                                             hparams=hparams,
+                                             temporal_scale=1/4)
         all_outputs.append(out)
 
-    # K.print_tensor(all_outputs[0].shape, 'concat time')
     converted = tf.convert_to_tensor(all_outputs)
-    # K.print_tensor(converted.shape, 'concatted')
 
     return converted
+
+
+# conv output is the image we are generating crops of
+# note croppings tells us the min pitch, start idx and end idx to crop
+# num notes tells us how many crops to make
+def get_croppings_for_single_image(conv_output, note_croppings,
+                                   num_notes, hparams=None, temporal_scale=1.0):
+    repeated_conv_output = tf.repeat(K.expand_dims(conv_output, axis=0),
+                                     num_notes, axis=0)
+    pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
+        K.expand_dims(
+            K.cast(
+                tf.gather(note_croppings, indices=0, axis=1)
+                * K.int_shape(conv_output)[1]
+                / constants.SPEC_BANDS, dtype='int32'
+            ), 1), K.int_shape(conv_output)[1]
+    )), tf.float32)
+    end_mask = K.cast(tf.sequence_mask(
+        K.expand_dims(
+            K.cast(
+                tf.gather(note_croppings, indices=2, axis=1)
+                / hparams.timbre_hop_length
+                / temporal_scale, dtype='int32'
+            ), 1),
+        maxlen=K.shape(conv_output)[0]
+    ), tf.float32)
+    start_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
+        K.expand_dims(
+            K.cast(
+                tf.gather(note_croppings, indices=1, axis=1)
+                / hparams.timbre_hop_length
+                / temporal_scale, dtype='int32'
+            ), 1),
+        maxlen=K.shape(conv_output)[0]  # K.int_shape(end_mask)[2]
+    )), tf.float32)
+    # constant time for the pitch mask
+    pitch_mask = K.expand_dims(pitch_mask, 3)
+    # reorder to mask temporally
+    end_mask = K.permute_dimensions(end_mask, (0, 2, 1))
+    # constant pitch for right mask
+    end_mask = K.expand_dims(end_mask, 2)
+    # reorder to mask temporally
+    start_mask = K.permute_dimensions(start_mask, (0, 2, 1))
+    # constant pitch for left mask
+    start_mask = K.expand_dims(start_mask, 2)
+    out = repeated_conv_output
+    out = Multiply()([out, pitch_mask])
+    out = Multiply()([out, end_mask])
+    out = Multiply()([out, start_mask])
+    # Tell downstream layers to skip timesteps that are fully masked out
+    #out = Masking(mask_value=0.0)(out)
+    return out
 
 
 def timbre_prediction_model(hparams=None):
@@ -323,14 +275,6 @@ def timbre_prediction_model(hparams=None):
     cropped_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams))(
         [acoustic_outputs, note_croppings, num_notes])
-
-    # cropped_outputs = CroppingLayer(acoustic_shape=acoustic_outputs.shape, hparams=hparams)(
-    #     [acoustic_outputs, note_croppings, num_notes]
-    # )
-    print('cropped: {}'.format(cropped_outputs.shape))
-
-    #cropped_outputs = K.expand_dims(acoustic_outputs, 1)
-    K.print_tensor(K.constant, 'yeahhh')
     K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
 
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
@@ -362,18 +306,12 @@ def timbre_prediction_model(hparams=None):
     K.print_tensor(instrument_family_probs.shape, 'instrument_family_probs')
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
-
     K.print_tensor(instrument_family_probs, 'output time')
 
-    def fake_loss(y_true, y_pred):
-        return y_pred
 
-    def fake_acc(y_true, y_pred):
-        return y_pred
+    losses = {'family_probs': 'categorical_crossentropy'}
 
-    losses = {'family_probs': 'categorical_crossentropy'}  # 'categorical_crossentropy'
-
-    accuracies = {'family_probs': 'categorical_accuracy'}  # ['categorical_accuracy']
+    accuracies = {'family_probs': 'categorical_accuracy'}
 
     return Model(inputs=[inputs, note_croppings, num_notes],
                  outputs=instrument_family_probs), losses, accuracies

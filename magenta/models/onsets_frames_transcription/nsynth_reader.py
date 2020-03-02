@@ -40,7 +40,8 @@ def create_spectrogram(audio, hparams):
         hop_length=hparams.timbre_hop_length,
         fmin=constants.MIN_TIMBRE_PITCH,
         n_bins=constants.SPEC_BANDS,
-        bins_per_octave=constants.BINS_PER_OCTAVE
+        bins_per_octave=constants.BINS_PER_OCTAVE,
+        pad_mode='constant'
     ).T)
 
 
@@ -94,7 +95,7 @@ def nsynth_input_tensors_to_model_input(
 # combine the batched datasets' audio together
 def reduce_batch_fn(tensor, hparams=None, is_training=True):
     # randomly leave out some instruments
-    instrument_count = 2#random.randint(1, hparams.timbre_training_max_instruments)
+    instrument_count = hparams.timbre_training_max_instruments #random.randint(1, hparams.timbre_training_max_instruments)
     note_croppping_list = []
     instrument_family_list = []
     audios = []
@@ -102,6 +103,9 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
     for i in range(instrument_count):
         # otherwise move the audio so diff attack times
         pitch = tensor['pitch'][i]
+        pitch = tf.py_function(functools.partial(get_cqt_index, hparams=hparams),
+                       [pitch],
+                       tf.int64)
         start_idx = random.randint(0, hparams.timbre_max_start_offset)
         audio = K.concatenate([tf.zeros(start_idx), tf.sparse.to_dense(tensor['audio'])[i]])
         audios.append(audio)
