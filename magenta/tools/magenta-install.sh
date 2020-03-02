@@ -92,14 +92,14 @@ conda create -n magenta python=3.7
 # In order to determine if any errors occurred while executing it, we verify
 # that the environment changed afterward.
 set +e
-source activate magenta
+conda activate magenta
 set -e
 if [[ $(conda info --envs | grep "*" | awk '{print $1}') != "magenta" ]]; then
   err 'Did not successfully activate the magenta conda environment'
 fi
 
 # Install other dependencies
-pip3 install jupyter magenta
+pip install jupyter magenta
 
 # Install rtmidi for realtime midi IO
 if [[ $(which apt-get) ]]; then
@@ -111,7 +111,7 @@ if [[ $(which apt-get) ]]; then
     echo ""
     sudo apt-get install build-essential libasound2-dev libjack-dev
 fi
-pip3 install --pre python-rtmidi
+pip install --pre python-rtmidi
 
 echo ""
 echo "=============================="
