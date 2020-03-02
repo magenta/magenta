@@ -6,6 +6,7 @@ import functools
 
 import tensorflow as tf
 from dotmap import DotMap
+
 from magenta.models.onsets_frames_transcription import constants
 from sklearn.metrics import f1_score
 
@@ -20,11 +21,13 @@ from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D, \
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
 
+from tensorflow.keras.losses import categorical_crossentropy
+from tensorflow.keras.metrics import categorical_accuracy
 
 def get_default_hparams():
     return {
-        'nsynth_batch_size': 2,
-        'timbre_training_max_instruments': 2,
+        'nsynth_batch_size': 4,
+        'timbre_training_max_instruments': 4,
         'timbre_learning_rate': 0.0006,
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 0.98,
@@ -306,12 +309,22 @@ def timbre_prediction_model(hparams=None):
     K.print_tensor(instrument_family_probs.shape, 'instrument_family_probs')
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
-    K.print_tensor(instrument_family_probs, 'output time')
 
+    def flatten_loss(y_true, y_pred):
+        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[2]))
+        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[2]))
+        return categorical_crossentropy(rebatched_true, rebatched_pred)
 
-    losses = {'family_probs': 'categorical_crossentropy'}
+    def flatten_accuracy(y_true, y_pred):
+        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[2]))
+        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[2]))
+        return categorical_accuracy(rebatched_true, rebatched_pred)
 
-    accuracies = {'family_probs': 'categorical_accuracy'}
+    losses = {'family_probs':  flatten_loss}
+
+    accuracies = {'family_probs': flatten_accuracy}
 
     return Model(inputs=[inputs, note_croppings, num_notes],
                  outputs=instrument_family_probs), losses, accuracies

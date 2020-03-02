@@ -107,6 +107,7 @@ class ModelWrapper:
         #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
+            print(np.argmax(y[0], -1))
             '''foo = get_croppings_for_single_image(x[0][0], x[1][0], x[2][0], self.hparams)
             print(np.argmax(y[0], 1))
             print(x[1])

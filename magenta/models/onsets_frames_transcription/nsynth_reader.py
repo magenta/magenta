@@ -95,7 +95,7 @@ def nsynth_input_tensors_to_model_input(
 # combine the batched datasets' audio together
 def reduce_batch_fn(tensor, hparams=None, is_training=True):
     # randomly leave out some instruments
-    instrument_count = hparams.timbre_training_max_instruments #random.randint(1, hparams.timbre_training_max_instruments)
+    instrument_count = hparams.timbre_training_max_instruments
     note_croppping_list = []
     instrument_family_list = []
     audios = []

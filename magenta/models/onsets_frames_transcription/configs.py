@@ -35,7 +35,7 @@ DEFAULT_HPARAMS = {
         'eval_batch_size': 1,
         'predict_batch_size': 1,
         'shuffle_buffer_size': 64,
-        'nsynth_shuffle_buffer_size': 8,
+        'nsynth_shuffle_buffer_size': 60000,
         'sample_rate': 16000,
         'spec_type': 'mel',
         'spec_mel_htk': True,
