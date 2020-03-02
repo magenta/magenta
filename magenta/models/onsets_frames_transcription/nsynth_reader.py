@@ -181,8 +181,6 @@ def provide_batch(examples,
 
     input_dataset = input_dataset.map(parse_nsynth_example)
 
-    foo = reduce_batch_fn(next(iter(input_dataset.batch(hparams.timbre_training_max_instruments))), hparams=hparams, is_training=is_training)
-
     reduced_dataset = input_dataset.batch(hparams.timbre_training_max_instruments).map(
         functools.partial(reduce_batch_fn, hparams=hparams, is_training=is_training))
 

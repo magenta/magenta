@@ -89,7 +89,7 @@ from magenta.models.onsets_frames_transcription import data, train_util, configs
 
 def run(config_map, data_fn, additional_trial_info):
     """Run training or evaluation."""
-    tf.compat.v1.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
     config = config_map[FLAGS.config]
     model_dir = os.path.expanduser(FLAGS.model_dir)

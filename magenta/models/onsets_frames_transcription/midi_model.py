@@ -65,9 +65,9 @@ def get_default_hparams():
         'freq_sizes': [3, 3, 3],
         'num_filters': [48, 48, 96],
         'pool_sizes': [1, 2, 2],
-        'dropout_keep_amts': [1.0, 0.75, 0.75],
+        'dropout_drop_amts': [0.0, 0.25, 0.25],
         'fc_size': 768,
-        'fc_dropout_keep_amt': 0.5,
+        'fc_dropout_drop_amt': 0.5,
         'use_lengths': False,
         'use_cudnn': True,
         'rnn_dropout_drop_amt': 0.0,
@@ -139,12 +139,12 @@ def acoustic_model_layer(hparams):
         for (conv_temporal_size, conv_freq_size,
              num_filters, freq_pool_size, dropout_amt) in zip(
             hparams.temporal_sizes, hparams.freq_sizes, hparams.num_filters,
-            hparams.pool_sizes, hparams.dropout_keep_amts):
+            hparams.pool_sizes, hparams.dropout_drop_amts):
 
             outputs = conv_bn_relu_layer(num_filters, conv_temporal_size, conv_freq_size)(outputs)
             if freq_pool_size > 1:
                 outputs = MaxPooling2D([1, freq_pool_size], strides=[1, freq_pool_size])(outputs)
-            if dropout_amt < 1:
+            if dropout_amt > 0:
                 outputs = Dropout(dropout_amt)(outputs)
         return outputs
 

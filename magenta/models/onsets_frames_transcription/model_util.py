@@ -79,8 +79,11 @@ class ModelWrapper:
             self.generator = None
         else:
             self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
-                                           use_numpy=True)
-        self.metrics = MidiPredictionMetrics(self.generator, self.hparams) if type == ModelType.MIDI else TimbrePredictionMetrics(self.generator, self.hparams)
+                                           use_numpy=False,
+                                           coagulate_mini_batches=type is not ModelType.MIDI and hparams.timbre_coagulate_mini_batches)
+        self.metrics = MidiPredictionMetrics(self.generator,
+                                             self.hparams) if type == ModelType.MIDI else TimbrePredictionMetrics(
+            self.generator, self.hparams)
 
     def save_model_with_metrics(self):
         if self.type == ModelType.MIDI:
@@ -107,7 +110,7 @@ class ModelWrapper:
         #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
-            print(np.argmax(y[0], -1))
+
             '''foo = get_croppings_for_single_image(x[0][0], x[1][0], x[2][0], self.hparams)
             print(np.argmax(y[0], 1))
             print(x[1])
@@ -149,14 +152,12 @@ class ModelWrapper:
         # onset_predictions = tf.expand_dims(onset_predictions, axis=0)
         # offset_predictions = tf.expand_dims(offset_predictions, axis=0)
         sequence = infer_util.predict_sequence(
-                frame_predictions=frame_predictions,
-                onset_predictions=onset_predictions,
-                offset_predictions=offset_predictions,
-                velocity_values=None,
-                hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
+            frame_predictions=frame_predictions,
+            onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
+            velocity_values=None,
+            hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
         return sequence
-
-
 
     def load_model(self, frames_f1, onsets_f1=-1, id=-1):
         if not id:

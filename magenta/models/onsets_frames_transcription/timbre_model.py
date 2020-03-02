@@ -24,9 +24,10 @@ from tensorflow.keras.regularizers import l2
 from tensorflow.keras.losses import categorical_crossentropy
 from tensorflow.keras.metrics import categorical_accuracy
 
+
 def get_default_hparams():
     return {
-        'nsynth_batch_size': 4,
+        'nsynth_batch_size': 8,
         'timbre_training_max_instruments': 4,
         'timbre_learning_rate': 0.0006,
         'timbre_decay_steps': 10000,
@@ -40,7 +41,8 @@ def get_default_hparams():
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_pool_size': (1, 2),
         'timbre_num_layers': 2,
-        'timbre_dropout_keep_amts': [1.0, 0.75, 0.75],
+        'timbre_dropout_drop_amts': [0.0, 0.25, 0.25],
+        'timbre_rnn_dropout_drop_amt': 0.0,
         'timbre_fc_size': 256,
         'timbre_fc_dropout_keep_amt': 0.5,
         'timbre_input_shape': (None, constants.SPEC_BANDS, 1),  # (None, 229, 1),
@@ -50,56 +52,62 @@ def get_default_hparams():
         'timbre_leaky_alpha': 0.33,  # per han et al 2016
         'timbre_max_time': 256,
         'timbre_max_start_offset': 4000,
+        'timbre_coagulate_mini_batches': True,
     }
+
+
+# if we aren't coagulating the cropped mini-batches, then we use TimeDistributed
+def time_distributed_wrapper(x, hparams):
+    if hparams.timbre_coagulate_mini_batches:
+        return x
+    return TimeDistributed(x)
 
 
 def filters_layer(hparams, channel_axis):
     def filters_layer_fn(inputs):
         parallel_layers = []
 
-        bn_elu_fn = lambda x: TimeDistributed(
-            MaxPooling2D(pool_size=hparams.timbre_filters_pool_size)) \
+        bn_elu_fn = lambda x: time_distributed_wrapper(
+            MaxPooling2D(pool_size=hparams.timbre_filters_pool_size), hparams=hparams) \
             (LeakyReLU(hparams.timbre_leaky_alpha)
-             (TimeDistributed(BatchNormalization(axis=channel_axis, scale=False))
+             (time_distributed_wrapper(BatchNormalization(axis=channel_axis, scale=False),
+                                       hparams=hparams)
               (x)))
         conv_bn_elu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
                 x: bn_elu_fn(
-            TimeDistributed(Conv2D(
+            time_distributed_wrapper(Conv2D(
                 num_filters,
                 [conv_temporal_size, conv_freq_size],
                 padding='same',
                 use_bias=False,
                 kernel_regularizer=l2(hparams.timbre_l2_regularizer),
                 kernel_initializer=he_normal()
-            ))(x))
+            ), hparams=hparams)(x))
 
         for m_i in hparams.timbre_filter_m_sizes:
             for i, n_i in enumerate(hparams.timbre_filter_n_sizes):
                 parallel_layers.append(
                     conv_bn_elu_layer(hparams.timbre_num_filters[i], m_i, n_i)(inputs))
 
-        # add 1 to the channel axis because we are now "time distributed"
         K.print_tensor(parallel_layers[0], 'parallel')
-        return concatenate(parallel_layers, channel_axis + 1)
+        return concatenate(parallel_layers, axis=-1)
 
     return filters_layer_fn
 
 
-def lstm_layer(num_units,
-               stack_size=1,
-               rnn_dropout_drop_amt=0,
+def lstm_layer(hparams,
                implementation=2):
     def lstm_layer_fn(inputs):
         lstm_stack = inputs
-        for i in range(stack_size):
-            lstm_stack = TimeDistributed(Bidirectional(LSTM(
-                num_units,
+        for i in range(hparams.timbre_rnn_stack_size):
+            lstm_stack = time_distributed_wrapper(Bidirectional(LSTM(
+                hparams.timbre_lstm_units,
                 recurrent_activation='sigmoid',
                 implementation=implementation,
-                return_sequences=i < stack_size - 1,
-                recurrent_dropout=rnn_dropout_drop_amt,
+                return_sequences=i < hparams.timbre_rnn_stack_size - 1,
+                recurrent_dropout=hparams.timbre_rnn_dropout_drop_amt,
                 kernel_initializer=VarianceScaling(2, distribution='uniform'))
-            ))(lstm_stack)
+            ), hparams=hparams)(lstm_stack)
         return lstm_stack
 
     return lstm_layer_fn
@@ -142,19 +150,23 @@ def instrument_prediction_layer(hparams):
         # inputs should be of type keras.layers.*
         # outputs = Flatten()(inputs)
         outputs = inputs
-        outputs = TimeDistributed(Dropout(0.5))(outputs)
-        outputs = TimeDistributed(Dense(hparams.timbre_fc_size,
-                                        kernel_initializer=he_normal(),
-                                        kernel_regularizer=l2(hparams.timbre_l2_regularizer)))(
-            outputs)
+        outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_keep_amt),
+                                           hparams=hparams)(outputs)
+        outputs = time_distributed_wrapper(Dense(hparams.timbre_fc_size,
+                                                 kernel_initializer=he_normal(),
+                                                 kernel_regularizer=l2(
+                                                     hparams.timbre_l2_regularizer)),
+                                           hparams=hparams)(outputs)
         outputs = LeakyReLU(hparams.timbre_leaky_alpha)(outputs)
-        outputs = TimeDistributed(Dropout(0.5))(outputs)
-        outputs = TimeDistributed(Dense(hparams.timbre_num_classes,
-                                        activation='softmax',
-                                        name='timbre_prediction',
-                                        kernel_initializer=he_normal(),
-                                        kernel_regularizer=l2(hparams.timbre_l2_regularizer)))(
-            outputs)
+        outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_keep_amt),
+                                           hparams=hparams)(outputs)
+        outputs = time_distributed_wrapper(Dense(hparams.timbre_num_classes,
+                                                 activation='softmax',
+                                                 name='timbre_prediction',
+                                                 kernel_initializer=he_normal(),
+                                                 kernel_regularizer=l2(
+                                                     hparams.timbre_l2_regularizer)),
+                                           hparams=hparams)(outputs)
         return outputs
 
     return instrument_prediction_fn
@@ -187,12 +199,13 @@ def get_all_croppings(input_list, hparams):
                                              note_croppings_list[batch_idx],
                                              num_notes_list[batch_idx],
                                              hparams=hparams,
-                                             temporal_scale=1/4)
+                                             temporal_scale=1 / 4)
         all_outputs.append(out)
 
-    converted = tf.convert_to_tensor(all_outputs)
+    if hparams.timbre_coagulate_mini_batches:
+        return K.concatenate(all_outputs, axis=0)
 
-    return converted
+    return tf.convert_to_tensor(all_outputs)
 
 
 # conv output is the image we are generating crops of
@@ -238,13 +251,12 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     start_mask = K.permute_dimensions(start_mask, (0, 2, 1))
     # constant pitch for left mask
     start_mask = K.expand_dims(start_mask, 2)
-    out = repeated_conv_output
-    out = Multiply()([out, pitch_mask])
-    out = Multiply()([out, end_mask])
-    out = Multiply()([out, start_mask])
+    mask = Multiply()([repeated_conv_output, pitch_mask])
+    mask = Multiply()([mask, pitch_mask])
+    mask = Multiply()([mask, start_mask])
+    mask = Multiply()([mask, end_mask])
     # Tell downstream layers to skip timesteps that are fully masked out
-    #out = Masking(mask_value=0.0)(out)
-    return out
+    return Masking(mask_value=0.0)(mask)
 
 
 def timbre_prediction_model(hparams=None):
@@ -292,16 +304,15 @@ def timbre_prediction_model(hparams=None):
     # flatten while preserving batch and time dimensions
     # shape: (None, None, None, 1792)
     # aka: (batch_size, num_notes, length, vec_size)
-    timbre_outputs = TimeDistributed(Reshape(
-        (-1, K.int_shape(filter_outputs)[3] * K.int_shape(filter_outputs)[4])))(
+    timbre_outputs = time_distributed_wrapper(Reshape(
+        (-1, K.int_shape(filter_outputs)[-2] * K.int_shape(filter_outputs)[-1])), hparams=hparams)(
         filter_outputs)
     K.print_tensor(timbre_outputs.shape, 'timbre_outputs')
 
     if hparams.timbre_lstm_units:
         # shape: (None, None, 256)
         # aka: (batch_size, num_notes, lstm_units)
-        timbre_outputs = lstm_layer(hparams.timbre_lstm_units,
-                                    stack_size=hparams.timbre_rnn_stack_size)(timbre_outputs)
+        timbre_outputs = lstm_layer(hparams=hparams)(timbre_outputs)
 
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
@@ -311,18 +322,24 @@ def timbre_prediction_model(hparams=None):
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 
     def flatten_loss(y_true, y_pred):
-        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[2]))
+        if hparams.timbre_coagulate_mini_batches:
+            return categorical_crossentropy(y_true, y_pred)
+        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
-        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[2]))
+        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
         return categorical_crossentropy(rebatched_true, rebatched_pred)
 
     def flatten_accuracy(y_true, y_pred):
-        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[2]))
+        print('true: {}'.format(y_true))
+        print('pred: {}'.format(y_pred))
+        if hparams.timbre_coagulate_mini_batches:
+            return categorical_accuracy(y_true, y_pred)
+        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
-        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[2]))
+        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
         return categorical_accuracy(rebatched_true, rebatched_pred)
 
-    losses = {'family_probs':  flatten_loss}
+    losses = {'family_probs': flatten_loss}
 
     accuracies = {'family_probs': flatten_accuracy}
 
