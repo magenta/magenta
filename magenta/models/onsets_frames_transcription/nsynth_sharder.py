@@ -30,7 +30,9 @@ def shard(argv):
     dataset = tf.data.TFRecordDataset(FLAGS.input_filename)
     for i in range(FLAGS.num_shards):
         sharded = dataset.shard(FLAGS.num_shards, i)
-        filename = tf.strings.join([FLAGS.output_directory, tf.strings.as_string(i), '.tfrecord'])
+        # completely shuffle them
+        sharded = sharded.shuffle(int(FLAGS.total_size / (FLAGS.num_shards - 1)))
+        filename = tf.strings.join([FLAGS.output_directory, tf.strings.as_string(i)])
         writer = tf.data.experimental.TFRecordWriter(filename)
         writer.write(sharded)
 

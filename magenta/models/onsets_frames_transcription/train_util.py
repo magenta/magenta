@@ -96,7 +96,7 @@ def train(data_fn,
         preprocess_examples=preprocess_examples,
         is_training=True,
         shuffle_examples=True,
-        skip_n_initial_records=40000)
+        skip_n_initial_records=0)
 
     model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
@@ -115,7 +115,7 @@ def train(data_fn,
     #model.load_model(0.0, id='901dcedede0e40898ba0daf790673b4c')
     #model.load_model(8.93, id='eadb12c34708460896a671a7a3dabf58')
     #model.load_model(78.67, id='temp')
-    model.load_model(50.00, id='temp-working')
+    model.load_model(37.50, id='training-time')
 
 
     for i in range(num_steps):

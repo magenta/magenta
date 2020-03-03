@@ -110,6 +110,7 @@ class ModelWrapper:
         #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
+            print(np.argmax(y[0], 1))
 
             '''foo = get_croppings_for_single_image(x[0][0], x[1][0], x[2][0], self.hparams)
             print(np.argmax(y[0], 1))
@@ -135,6 +136,7 @@ class ModelWrapper:
                                      fmin=constants.MIN_TIMBRE_PITCH,
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
             plt.show()'''
+            print('next batch...')
             new_metrics = self.model.train_on_batch(x, y)
             print(new_metrics)
         self.metrics.on_epoch_end(1, model=self.model)

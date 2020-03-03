@@ -173,11 +173,11 @@ def provide_batch(examples,
     input_dataset = read_examples(
         examples, is_training, shuffle_examples, skip_n_initial_records, hparams)
 
-    if shuffle_examples:
-        input_dataset = input_dataset.shuffle(hparams.nsynth_shuffle_buffer_size)
+    # if shuffle_examples:
+    #     input_dataset = input_dataset.shuffle(hparams.nsynth_shuffle_buffer_size)
 
-    if is_training:
-        input_dataset = input_dataset.repeat()
+    # if is_training:
+    #     input_dataset = input_dataset.repeat()
 
     input_dataset = input_dataset.map(parse_nsynth_example)
 

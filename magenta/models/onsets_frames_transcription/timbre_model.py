@@ -330,8 +330,6 @@ def timbre_prediction_model(hparams=None):
         return categorical_crossentropy(rebatched_true, rebatched_pred)
 
     def flatten_accuracy(y_true, y_pred):
-        print('true: {}'.format(y_true))
-        print('pred: {}'.format(y_pred))
         if hparams.timbre_coagulate_mini_batches:
             return categorical_accuracy(y_true, y_pred)
         rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
