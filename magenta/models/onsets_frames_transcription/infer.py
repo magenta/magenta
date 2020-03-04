@@ -57,6 +57,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values.')
+tf.app.flags.DEFINE_boolean(
+    'shuffle_examples', False, 'Whether to shuffle examples.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
@@ -74,7 +76,8 @@ def model_inference(model_fn,
                     output_dir,
                     summary_writer,
                     master,
-                    preprocess_examples):
+                    preprocess_examples,
+                    shuffle_examples):
   """Runs inference for the given examples."""
   tf.logging.info('model_dir=%s', model_dir)
   tf.logging.info('checkpoint_path=%s', checkpoint_path)
@@ -86,7 +89,8 @@ def model_inference(model_fn,
 
   transcription_data = functools.partial(
       data_fn, examples=examples_path, preprocess_examples=preprocess_examples,
-      is_training=False, shuffle_examples=False, skip_n_initial_records=0)
+      is_training=False, shuffle_examples=shuffle_examples,
+      skip_n_initial_records=0)
 
   input_fn = infer_util.labels_to_features_wrapper(transcription_data)
 
@@ -151,15 +155,22 @@ def model_inference(model_fn,
               predictions['frame_probs'],
               predictions['frame_labels']))
 
-    # Update histogram for metrics.
+    # Update histogram and current scalar for metrics.
     with tf.Graph().as_default(), tf.Session().as_default():
       for k, v in predictions.items():
         if not k.startswith('metrics/'):
           continue
         all_metrics[k].extend(v)
+        histogram_name = 'histogram/' + k
         metric_summary = tf.summary.histogram(
-            k,
-            tf.constant(all_metrics[k], name=k),
+            histogram_name,
+            tf.constant(all_metrics[k], name=histogram_name),
+            collections=[])
+        summary_writer.add_summary(metric_summary.eval(), global_step=file_num)
+        scalar_name = k
+        metric_summary = tf.summary.scalar(
+            scalar_name,
+            tf.constant(np.mean(all_metrics[k]), name=scalar_name),
             collections=[])
         summary_writer.add_summary(metric_summary.eval(), global_step=file_num)
       summary_writer.flush()
@@ -169,10 +180,10 @@ def model_inference(model_fn,
   # Write final mean values for all metrics.
   with tf.Graph().as_default(), tf.Session().as_default():
     for k, v in all_metrics.items():
-      name = 'final/' + k
+      final_scalar_name = 'final/' + k
       metric_summary = tf.summary.scalar(
-          name,
-          tf.constant(np.mean(all_metrics[k]), name=name),
+          final_scalar_name,
+          tf.constant(np.mean(all_metrics[k]), name=final_scalar_name),
           collections=[])
       summary_writer.add_summary(metric_summary.eval())
     summary_writer.flush()
@@ -220,4 +231,5 @@ def run(config_map, data_fn):
       output_dir=output_dir,
       summary_writer=summary_writer,
       preprocess_examples=FLAGS.preprocess_examples,
-      master=FLAGS.master)
+      master=FLAGS.master,
+      shuffle_examples=FLAGS.shuffle_examples)
