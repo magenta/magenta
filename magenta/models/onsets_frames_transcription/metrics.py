@@ -142,7 +142,9 @@ def calculate_frame_metrics(frame_labels, frame_predictions):
   }
 
 
-def _calculate_metrics_py(frame_predictions,
+def _calculate_metrics_py(frame_probs,
+                          onset_probs,
+                          frame_predictions,
                           onset_predictions,
                           offset_predictions,
                           velocity_values,
@@ -159,9 +161,14 @@ def _calculate_metrics_py(frame_predictions,
                   frame_labels.shape[0])
 
   sequence_prediction = infer_util.predict_sequence(
-      frame_predictions=frame_predictions, onset_predictions=onset_predictions,
-      offset_predictions=offset_predictions, velocity_values=velocity_values,
-      min_pitch=min_pitch, hparams=hparams,
+      frame_probs=frame_probs,
+      onset_probs=onset_probs,
+      frame_predictions=frame_predictions,
+      onset_predictions=onset_predictions,
+      offset_predictions=offset_predictions,
+      velocity_values=velocity_values,
+      min_pitch=min_pitch,
+      hparams=hparams,
       onsets_only=onsets_only)
 
   sequence_label = music_pb2.NoteSequence.FromString(sequence_label_str)
@@ -257,7 +264,9 @@ def _calculate_metrics_py(frame_predictions,
                                                ], [processed_frame_predictions])
 
 
-def calculate_metrics(frame_predictions,
+def calculate_metrics(frame_probs,
+                      onset_probs,
+                      frame_predictions,
                       onset_predictions,
                       offset_predictions,
                       velocity_values,
@@ -338,8 +347,9 @@ def calculate_metrics(frame_predictions,
            max_pitch=max_pitch,
            onsets_only=onsets_only),
        inp=[
-           frame_predictions, onset_predictions, offset_predictions,
-           velocity_values, sequence_label, frame_labels, sequence_id
+           frame_probs, onset_probs, frame_predictions, onset_predictions,
+           offset_predictions, velocity_values, sequence_label, frame_labels,
+           sequence_id
        ],
        Tout=([tf.float64] * 12) + [tf.float32],
        stateful=False)
@@ -376,8 +386,9 @@ def calculate_metrics(frame_predictions,
                onsets_only=onsets_only,
                restrict_to_pitch=pitch),
            inp=[
-               frame_predictions, onset_predictions, offset_predictions,
-               velocity_values, sequence_label, frame_labels, sequence_id + name
+               frame_probs, onset_probs, frame_predictions, onset_predictions,
+               offset_predictions, velocity_values, sequence_label,
+               frame_labels, sequence_id + name
            ],
            Tout=([tf.float64] * 12) + [tf.float32],
            stateful=False)
@@ -402,7 +413,9 @@ def calculate_metrics(frame_predictions,
   return metrics
 
 
-def define_metrics(frame_predictions,
+def define_metrics(frame_probs,
+                   onset_probs,
+                   frame_predictions,
                    onset_predictions,
                    offset_predictions,
                    velocity_values,
@@ -421,6 +434,8 @@ def define_metrics(frame_predictions,
     metrics = collections.defaultdict(list)
     for i in range(hparams.eval_batch_size):
       for k, v in calculate_metrics(
+          frame_probs=frame_probs[i][:length[i]],
+          onset_probs=onset_probs[i][:length[i]],
           frame_predictions=frame_predictions[i][:length[i]],
           onset_predictions=onset_predictions[i][:length[i]],
           offset_predictions=offset_predictions[i][:length[i]],

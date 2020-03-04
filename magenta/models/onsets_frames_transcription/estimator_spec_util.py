@@ -31,13 +31,15 @@ from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib import tpu as contrib_tpu
 
 
-def _drums_only_metric_ops(features, labels, frame_predictions,
-                           onset_predictions, offset_predictions,
-                           velocity_values, hparams):
+def _drums_only_metric_ops(features, labels, frame_probs, onset_probs,
+                           frame_predictions, onset_predictions,
+                           offset_predictions, velocity_values, hparams):
   """Generate drum metrics: offsets/frames are ignored."""
   del frame_predictions, offset_predictions  # unused
 
   metric_ops = metrics.define_metrics(
+      frame_probs=frame_probs,
+      onset_probs=onset_probs,
       frame_predictions=onset_predictions,
       onset_predictions=onset_predictions,
       offset_predictions=onset_predictions,
@@ -55,13 +57,16 @@ def _drums_only_metric_ops(features, labels, frame_predictions,
   return metric_ops
 
 
-def get_metrics(features, labels, frame_predictions, onset_predictions,
-                offset_predictions, velocity_values, hparams):
+def get_metrics(features, labels, frame_probs, onset_probs, frame_predictions,
+                onset_predictions, offset_predictions, velocity_values,
+                hparams):
   """Return metrics values ops."""
   if hparams.drums_only:
     return _drums_only_metric_ops(
         features=features,
         labels=labels,
+        frame_probs=frame_probs,
+        onset_probs=onset_probs,
         frame_predictions=frame_predictions,
         onset_predictions=onset_predictions,
         offset_predictions=offset_predictions,
@@ -69,6 +74,8 @@ def get_metrics(features, labels, frame_predictions, onset_predictions,
         hparams=hparams)
   else:
     return metrics.define_metrics(
+        frame_probs=frame_probs,
+        onset_probs=onset_probs,
         frame_predictions=frame_predictions,
         onset_predictions=onset_predictions,
         offset_predictions=offset_predictions,
@@ -80,14 +87,19 @@ def get_metrics(features, labels, frame_predictions, onset_predictions,
         hparams=hparams)
 
 
-def _predict_sequences(frame_predictions, onset_predictions, offset_predictions,
-                       velocity_values, hparams):
+def _predict_sequences(frame_probs, onset_probs, frame_predictions,
+                       onset_predictions, offset_predictions, velocity_values,
+                       hparams):
   """Predict a batch of sequences."""
-  def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
-                       velocity_values, hparams):
+
+  def predict_sequence(frame_probs, onset_probs, frame_predictions,
+                       onset_predictions, offset_predictions, velocity_values,
+                       hparams):
     """Predict a single sequence."""
     if hparams.drums_only:
       sequence_prediction = infer_util.predict_sequence(
+          frame_probs=frame_probs,
+          onset_probs=onset_probs,
           frame_predictions=onset_predictions,
           onset_predictions=onset_predictions,
           offset_predictions=onset_predictions,
@@ -99,11 +111,14 @@ def _predict_sequences(frame_predictions, onset_predictions, offset_predictions,
         note.is_drum = True
     else:
       sequence_prediction = infer_util.predict_sequence(
+          frame_probs=frame_probs,
+          onset_probs=onset_probs,
           frame_predictions=frame_predictions,
           onset_predictions=onset_predictions,
           offset_predictions=offset_predictions,
           velocity_values=velocity_values,
-          min_pitch=constants.MIN_MIDI_PITCH, hparams=hparams)
+          min_pitch=constants.MIN_MIDI_PITCH,
+          hparams=hparams)
     return sequence_prediction.SerializeToString()
 
   sequences = []
@@ -111,9 +126,15 @@ def _predict_sequences(frame_predictions, onset_predictions, offset_predictions,
     sequence = tf.py_func(
         functools.partial(predict_sequence, hparams=hparams),
         inp=[
-            frame_predictions[i], onset_predictions[i], offset_predictions[i],
+            frame_probs[i],
+            onset_probs[i],
+            frame_predictions[i],
+            onset_predictions[i],
+            offset_predictions[i],
             velocity_values[i],
-        ], Tout=tf.string, stateful=False)
+        ],
+        Tout=tf.string,
+        stateful=False)
     sequence.set_shape([])
     sequences.append(sequence)
   return tf.stack(sequences)
@@ -191,9 +212,9 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
           min_pitch=constants.MIN_MIDI_PITCH)
       velocity_values = tf.map_fn(map_values, velocity_values)
 
-    metrics_values = get_metrics(
-        features, labels, frame_predictions, onset_predictions,
-        offset_predictions, velocity_values, hparams)
+    metrics_values = get_metrics(features, labels, frame_probs, onset_probs,
+                                 frame_predictions, onset_predictions,
+                                 offset_predictions, velocity_values, hparams)
 
     for label, loss_collection in loss_metrics.items():
       loss_label = 'losses/' + label
@@ -222,22 +243,33 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
         mode=mode, loss=loss, eval_metric_ops=metric_ops)
   elif mode == tf.estimator.ModeKeys.PREDICT:
     predictions = {
-        'frame_probs': frame_probs,
-        'frame_predictions': frame_predictions,
-        'onset_predictions': onset_predictions,
-        'offset_predictions': offset_predictions,
-        'velocity_values': velocity_values,
-        'sequence_predictions': _predict_sequences(
-            frame_predictions=frame_predictions,
-            onset_predictions=onset_predictions,
-            offset_predictions=offset_predictions,
-            velocity_values=velocity_values,
-            hparams=hparams),
+        'frame_probs':
+            frame_probs,
+        'frame_predictions':
+            frame_predictions,
+        'onset_predictions':
+            onset_predictions,
+        'offset_predictions':
+            offset_predictions,
+        'velocity_values':
+            velocity_values,
+        'sequence_predictions':
+            _predict_sequences(
+                frame_probs=frame_probs,
+                onset_probs=onset_probs,
+                frame_predictions=frame_predictions,
+                onset_predictions=onset_predictions,
+                offset_predictions=offset_predictions,
+                velocity_values=velocity_values,
+                hparams=hparams),
         # Include some features and labels in output because Estimator 'predict'
         # API does not give access to them.
-        'sequence_ids': features.sequence_id,
-        'sequence_labels': labels.note_sequence,
-        'frame_labels': labels.labels,
+        'sequence_ids':
+            features.sequence_id,
+        'sequence_labels':
+            labels.note_sequence,
+        'frame_labels':
+            labels.labels,
     }
     for k, v in metrics_values.items():
       predictions[k] = tf.stack(v)

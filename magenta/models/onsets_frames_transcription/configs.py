@@ -57,7 +57,9 @@ DEFAULT_HPARAMS = tf_utils.merge_hparams(
         drum_data_map='',
         drum_prediction_map='',
         velocity_loss_weight=1.0,
-        splice_n_examples=0))
+        splice_n_examples=0,
+        viterbi_decoding=False,
+        viterbi_alpha=0.5))
 
 CONFIG_MAP = {}
 

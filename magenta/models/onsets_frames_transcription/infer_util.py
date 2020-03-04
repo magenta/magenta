@@ -25,8 +25,69 @@ from magenta.music import sequences_lib
 import numpy as np
 
 
-def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
-                     velocity_values, min_pitch, hparams,
+def probs_to_pianoroll_viterbi(frame_probs, onset_probs, alpha=0.5):
+  """Viterbi decoding of frame & onset probabilities to pianoroll.
+
+  Args:
+    frame_probs: A numpy array (num-frames-by-num-pitches) of frame
+      probabilities.
+    onset_probs: A numpy array (num-frames-by-num-pitches) of onset
+      probabilities.
+    alpha: Relative weight of onset and frame loss, a float between 0 and 1.
+      With alpha = 0, onset probabilities will be ignored. With alpha = 1, frame
+      probabilities will be ignored.
+
+  Returns:
+    A numpy array (num-frames-by-num-pitches) representing the boolean-valued
+    pianoroll.
+  """
+  n, d = onset_probs.shape
+
+  loss_matrix = np.zeros([n, d, 2], dtype=np.float)
+  path_matrix = np.zeros([n, d, 2], dtype=np.bool)
+
+  frame_losses = (1 - alpha) * -np.log(np.stack([1 - frame_probs,
+                                                 frame_probs], axis=-1))
+  onset_losses = alpha * -np.log(np.stack([1 - onset_probs,
+                                           onset_probs], axis=-1))
+
+  loss_matrix[0, :, :] = frame_losses[0, :, :] + onset_losses[0, :, :]
+
+  for i in range(1, n):
+    transition_loss = np.tile(loss_matrix[i - 1, :, :][:, :, np.newaxis],
+                              [1, 1, 2])
+
+    transition_loss[:, 0, 0] += onset_losses[i, :, 0]
+    transition_loss[:, 0, 1] += onset_losses[i, :, 1]
+    transition_loss[:, 1, 0] += onset_losses[i, :, 0]
+    transition_loss[:, 1, 1] += onset_losses[i, :, 0]
+
+    path_matrix[i, :, :] = np.argmin(transition_loss, axis=1)
+
+    loss_matrix[i, :, 0] = transition_loss[
+        np.arange(d), path_matrix[i, :, 0].astype(int), 0]
+    loss_matrix[i, :, 1] = transition_loss[
+        np.arange(d), path_matrix[i, :, 1].astype(int), 1]
+
+    loss_matrix[i, :, :] += frame_losses[i, :, :]
+
+  pianoroll = np.zeros([n, d], dtype=np.bool)
+  pianoroll[n - 1, :] = np.argmin(loss_matrix[n - 1, :, :], axis=-1)
+  for i in range(n - 2, -1, -1):
+    pianoroll[i, :] = path_matrix[
+        i + 1, np.arange(d), pianoroll[i + 1, :].astype(int)]
+
+  return pianoroll
+
+
+def predict_sequence(frame_probs,
+                     onset_probs,
+                     frame_predictions,
+                     onset_predictions,
+                     offset_predictions,
+                     velocity_values,
+                     min_pitch,
+                     hparams,
                      onsets_only=False):
   """Predict sequence given model output."""
   if not hparams.predict_onset_threshold:
@@ -47,16 +108,32 @@ def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
         velocity_scale=hparams.velocity_scale,
         velocity_bias=hparams.velocity_bias)
   else:
-    sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
-        frames=frame_predictions,
-        frames_per_second=data.hparams_frames_per_second(hparams),
-        min_duration_ms=0,
-        min_midi_pitch=min_pitch,
-        onset_predictions=onset_predictions,
-        offset_predictions=offset_predictions,
-        velocity_values=velocity_values,
-        velocity_scale=hparams.velocity_scale,
-        velocity_bias=hparams.velocity_bias)
+    if hparams.viterbi_decoding:
+      pianoroll = probs_to_pianoroll_viterbi(
+          frame_probs, onset_probs, alpha=hparams.viterbi_alpha)
+      onsets = np.concatenate([
+          pianoroll[:1, :], pianoroll[1:, :] & ~pianoroll[:-1, :]
+      ], axis=0)
+      sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
+          frames=pianoroll,
+          frames_per_second=data.hparams_frames_per_second(hparams),
+          min_duration_ms=0,
+          min_midi_pitch=min_pitch,
+          onset_predictions=onsets,
+          velocity_values=velocity_values,
+          velocity_scale=hparams.velocity_scale,
+          velocity_bias=hparams.velocity_bias)
+    else:
+      sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
+          frames=frame_predictions,
+          frames_per_second=data.hparams_frames_per_second(hparams),
+          min_duration_ms=0,
+          min_midi_pitch=min_pitch,
+          onset_predictions=onset_predictions,
+          offset_predictions=offset_predictions,
+          velocity_values=velocity_values,
+          velocity_scale=hparams.velocity_scale,
+          velocity_bias=hparams.velocity_bias)
 
   return sequence_prediction
 
