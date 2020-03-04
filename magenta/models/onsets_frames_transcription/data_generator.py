@@ -52,3 +52,41 @@ class DataGenerator(keras.utils.Sequence):
         'Updates indexes after each epoch'
         if self.shuffle:
             np.random.shuffle(np.arange(self.steps_per_epoch * self.batch_size))
+
+class threadsafe_iter:
+    """Takes an iterator/generator and makes it thread-safe by
+    serializing call to the `next` method of given iterator/generator.
+    """
+    def __init__(self, it):
+        self.it = it
+        self.lock = threading.Lock()
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        with self.lock:
+            return self.it.__next__()
+
+def threadsafe_generator(f):
+    """A decorator that takes a generator function and makes it thread-safe.
+    """
+    def g(*a, **kw):
+        return threadsafe_iter(f(*a, **kw))
+    return g
+
+class PythonDataGenerator(DataGenerator):
+    def __init__(self, dataset, batch_size, steps_per_epoch, shuffle=False, use_numpy=True,
+                 coagulate_mini_batches=False):
+        'Initialization'
+        super().__init__(dataset, batch_size, steps_per_epoch, shuffle, use_numpy,
+                         coagulate_mini_batches)
+
+    @threadsafe_generator
+    def gen(self):
+        print('generator initiated')
+        idx = 0
+        while True:
+            yield self.get()
+            print('generator yielded a batch %d' % idx)
+            idx += 1

@@ -17,7 +17,7 @@ from tensorflow.keras.initializers import he_normal, VarianceScaling
 from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D, \
     Dense, Dropout, \
     Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape, Bidirectional, LSTM, \
-    LeakyReLU, TimeDistributed, Cropping2D, Layer, Flatten, Masking
+    LeakyReLU, TimeDistributed, Cropping2D, Layer, Flatten, Masking, ELU
 from tensorflow.keras.models import Model
 from tensorflow.keras.regularizers import l2
 
@@ -27,15 +27,13 @@ from tensorflow.keras.metrics import categorical_accuracy
 
 def get_default_hparams():
     return {
-        'nsynth_batch_size': 8,
-        'timbre_training_max_instruments': 4,
         'timbre_learning_rate': 0.0006,
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 0.98,
         'timbre_clip_norm': 3.0,
         'timbre_l2_regularizer': 1e-5,
-        'timbre_filter_m_sizes': [5, 80],
-        'timbre_filter_n_sizes': [1, 3, 5],
+        'timbre_filter_frequency_sizes': [2, 20], # [5, 80],
+        'timbre_filter_temporal_sizes': [1, 3, 5],
         'timbre_num_filters': [128, 64, 32],
         'timbre_filters_pool_size': (32, int(constants.BINS_PER_OCTAVE / 2)),
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
@@ -50,9 +48,7 @@ def get_default_hparams():
         'timbre_lstm_units': 128,
         'timbre_rnn_stack_size': 2,
         'timbre_leaky_alpha': 0.33,  # per han et al 2016
-        'timbre_max_time': 256,
-        'timbre_max_start_offset': 4000,
-        'timbre_coagulate_mini_batches': True,
+        'timbre_sharing_conv': True
     }
 
 
@@ -64,30 +60,41 @@ def time_distributed_wrapper(x, hparams):
 
 
 def filters_layer(hparams, channel_axis):
+    if hparams.timbre_sharing_conv:
+        # if we are sharing the filters then we do this before cropping
+        # so adjust accordingly
+        time_distributed_double_wrapper = lambda x, hparams=None: x
+        # don't pool yet so we have more cropping accuracy
+        pool_size = (1, 1)
+    else:
+        time_distributed_double_wrapper = time_distributed_wrapper
+        pool_size = hparams.timbre_filters_pool_size
+
     def filters_layer_fn(inputs):
         parallel_layers = []
 
-        bn_elu_fn = lambda x: time_distributed_wrapper(
-            MaxPooling2D(pool_size=hparams.timbre_filters_pool_size), hparams=hparams) \
-            (LeakyReLU(hparams.timbre_leaky_alpha)
-             (time_distributed_wrapper(BatchNormalization(axis=channel_axis, scale=False),
-                                       hparams=hparams)
+        bn_elu_fn = lambda x: time_distributed_double_wrapper(
+            MaxPooling2D(pool_size=pool_size), hparams=hparams) \
+            (ELU(hparams.timbre_leaky_alpha)
+             (time_distributed_double_wrapper(BatchNormalization(axis=channel_axis, scale=False),
+                                              hparams=hparams)
               (x)))
-        conv_bn_elu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
+        conv_bn_elu_layer = lambda num_filters, conv_freq_size, conv_temporal_size: lambda \
                 x: bn_elu_fn(
-            time_distributed_wrapper(Conv2D(
+            time_distributed_double_wrapper(Conv2D(
                 num_filters,
-                [conv_temporal_size, conv_freq_size],
+                [conv_freq_size, conv_temporal_size],
                 padding='same',
                 use_bias=False,
                 kernel_regularizer=l2(hparams.timbre_l2_regularizer),
-                kernel_initializer=he_normal()
+                kernel_initializer=he_normal(),
+                name='parallel_conv_{}_{}_{}'.format(num_filters, conv_freq_size, conv_temporal_size)
             ), hparams=hparams)(x))
 
-        for m_i in hparams.timbre_filter_m_sizes:
-            for i, n_i in enumerate(hparams.timbre_filter_n_sizes):
+        for f_i in hparams.timbre_filter_frequency_sizes:
+            for i, t_i in enumerate(hparams.timbre_filter_temporal_sizes):
                 parallel_layers.append(
-                    conv_bn_elu_layer(hparams.timbre_num_filters[i], m_i, n_i)(inputs))
+                    conv_bn_elu_layer(hparams.timbre_num_filters[i], f_i, t_i)(inputs))
 
         K.print_tensor(parallel_layers[0], 'parallel')
         return concatenate(parallel_layers, axis=-1)
@@ -100,13 +107,13 @@ def lstm_layer(hparams,
     def lstm_layer_fn(inputs):
         lstm_stack = inputs
         for i in range(hparams.timbre_rnn_stack_size):
-            lstm_stack = time_distributed_wrapper(Bidirectional(LSTM(
+            lstm_stack = time_distributed_wrapper(LSTM(
                 hparams.timbre_lstm_units,
                 recurrent_activation='sigmoid',
                 implementation=implementation,
                 return_sequences=i < hparams.timbre_rnn_stack_size - 1,
                 recurrent_dropout=hparams.timbre_rnn_dropout_drop_amt,
-                kernel_initializer=VarianceScaling(2, distribution='uniform'))
+                kernel_initializer=VarianceScaling(2, distribution='uniform')
             ), hparams=hparams)(lstm_stack)
         return lstm_stack
 
@@ -118,10 +125,10 @@ def acoustic_model_layer(hparams, channel_axis):
         # inputs should be of type keras.layers.Input
         outputs = inputs
 
-        # batch norm, then leakyrelu activation, then maxpool
+        # batch norm, then elu activation, then maxpool
         bn_elu_fn = lambda x: MaxPooling2D(pool_size=hparams.timbre_pool_size,
                                            strides=hparams.timbre_pool_size) \
-            (LeakyReLU(hparams.timbre_leaky_alpha)
+            (ELU(hparams.timbre_leaky_alpha)
              (BatchNormalization(axis=channel_axis, scale=False)
               (x)))
         # conv2d, then above
@@ -144,20 +151,27 @@ def acoustic_model_layer(hparams, channel_axis):
 
     return acoustic_model_fn
 
-
-def instrument_prediction_layer(hparams):
-    def instrument_prediction_fn(inputs):
-        # inputs should be of type keras.layers.*
-        # outputs = Flatten()(inputs)
+def acoustic_dense_layer(hparams):
+    def acoustic_dense_fn(inputs):
         outputs = inputs
         outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_keep_amt),
                                            hparams=hparams)(outputs)
         outputs = time_distributed_wrapper(Dense(hparams.timbre_fc_size,
                                                  kernel_initializer=he_normal(),
                                                  kernel_regularizer=l2(
-                                                     hparams.timbre_l2_regularizer)),
+                                                     hparams.timbre_l2_regularizer),
+                                                 name='acoustic_dense'),
                                            hparams=hparams)(outputs)
-        outputs = LeakyReLU(hparams.timbre_leaky_alpha)(outputs)
+        outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
+        return outputs
+    return acoustic_dense_fn
+
+
+def instrument_prediction_layer(hparams):
+    def instrument_prediction_fn(inputs):
+        # inputs should be of type keras.layers.*
+        # outputs = Flatten()(inputs)
+        outputs = inputs
         outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_keep_amt),
                                            hparams=hparams)(outputs)
         outputs = time_distributed_wrapper(Dense(hparams.timbre_num_classes,
@@ -285,38 +299,59 @@ def timbre_prediction_model(hparams=None):
     acoustic_outputs = acoustic_model_layer(hparams, channel_axis)(inputs)
     K.print_tensor(acoustic_outputs.shape, 'acoustic_outputs')
 
+    if hparams.timbre_sharing_conv:
+        # filter_outputs shape: (None, None, 57, 448)
+        # aka: (batch_size, length, freq_range, num_channels)
+        filter_outputs = filters_layer(hparams, channel_axis)(acoustic_outputs)
+    else:
+        # if we aren't sharing the large filters, then just pass the simple conv output
+        filter_outputs = acoustic_outputs
+
+    K.print_tensor(filter_outputs.shape, 'filter_outputs')
+
     # cropped_outputs shape: (batch_size, None, None, 57, 128)
     # aka: (batch_size, num_notes, length, freq_range, num_channels)
     cropped_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams))(
-        [acoustic_outputs, note_croppings, num_notes])
+        [filter_outputs, note_croppings, num_notes])
     K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
+
+    if hparams.timbre_sharing_conv:
+        # pooled_outputs shape: (None, None, None, 19, 448)
+        # aka: (batch_size, num_notes, length, freq_range, num_channels)
+        pooled_outputs = time_distributed_wrapper(
+            MaxPooling2D(pool_size=hparams.timbre_filters_pool_size),
+            hparams=hparams)(cropped_outputs)
+    else:
+        pooled_outputs = filters_layer(hparams, channel_axis)(cropped_outputs)
 
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
     # last 3 independently (time, frequency, and number of channels/filters)
 
-    # filter_outputs shape: (None, None, None, 4, 448)
-    # aka: (batch_size, num_notes, length, freq_range, num_channels)
-    filter_outputs = filters_layer(hparams, channel_axis)(
-        cropped_outputs)
-    K.print_tensor(filter_outputs.shape, 'filter_outputs')
+    K.print_tensor(pooled_outputs.shape, 'pooled_outputs')
+
 
     # flatten while preserving batch and time dimensions
     # shape: (None, None, None, 1792)
     # aka: (batch_size, num_notes, length, vec_size)
-    timbre_outputs = time_distributed_wrapper(Reshape(
-        (-1, K.int_shape(filter_outputs)[-2] * K.int_shape(filter_outputs)[-1])), hparams=hparams)(
-        filter_outputs)
-    K.print_tensor(timbre_outputs.shape, 'timbre_outputs')
+    flattened_outputs = time_distributed_wrapper(Reshape(
+        (-1, K.int_shape(pooled_outputs)[-2] * K.int_shape(pooled_outputs)[-1])), hparams=hparams)(
+        pooled_outputs)
+    K.print_tensor(flattened_outputs.shape, 'flattened_outputs')
 
-    if hparams.timbre_lstm_units:
-        # shape: (None, None, 256)
-        # aka: (batch_size, num_notes, lstm_units)
-        timbre_outputs = lstm_layer(hparams=hparams)(timbre_outputs)
+    dense_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
+
+    K.print_tensor(dense_outputs.shape, 'dense_outputs')
+
+    # shape: (None, None, 512)
+    # aka: (batch_size, num_notes, lstm_units)
+    lstm_outputs = lstm_layer(hparams=hparams)(dense_outputs)
+    K.print_tensor(lstm_outputs.shape, 'lstm_outputs')
+
 
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
-    instrument_family_probs = instrument_prediction_layer(hparams)(timbre_outputs)
+    instrument_family_probs = instrument_prediction_layer(hparams)(lstm_outputs)
     K.print_tensor(instrument_family_probs.shape, 'instrument_family_probs')
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)

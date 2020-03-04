@@ -107,7 +107,7 @@ conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lam
         x: bn_relu_fn(
     Conv2D(
         num_filters,
-        [conv_temporal_size, conv_freq_size],
+        [conv_freq_size, conv_temporal_size],
         padding='same',
         use_bias=False,
         kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
@@ -141,7 +141,7 @@ def acoustic_model_layer(hparams):
             hparams.temporal_sizes, hparams.freq_sizes, hparams.num_filters,
             hparams.pool_sizes, hparams.dropout_drop_amts):
 
-            outputs = conv_bn_relu_layer(num_filters, conv_temporal_size, conv_freq_size)(outputs)
+            outputs = conv_bn_relu_layer(num_filters, conv_freq_size, conv_temporal_size)(outputs)
             if freq_pool_size > 1:
                 outputs = MaxPooling2D([1, freq_pool_size], strides=[1, freq_pool_size])(outputs)
             if dropout_amt > 0:
@@ -171,24 +171,24 @@ def midi_prediction_model(hparams=None):
 
     # Onset prediction model
     onset_conv = acoustic_model_layer(hparams)(inputs)
-    onset_outputs = acoustic_dense_layer(hparams,
-                                         0 if hparams.using_plaidml
-                                         else hparams.onset_lstm_units)(onset_conv)
+    K.print_tensor(onset_conv.shape, 'onset_conv')
+
+    onset_outputs = acoustic_dense_layer(hparams, hparams.onset_lstm_units)(onset_conv)
+    K.print_tensor(onset_outputs.shape, 'onset_outputs')
+
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
+    K.print_tensor(onset_probs.shape, 'onset_probs')
 
     # Offset prediction model
     offset_conv = acoustic_model_layer(hparams)(inputs)
-    offset_outputs = acoustic_dense_layer(hparams,
-                                          0 if hparams.using_plaidml
-                                          else hparams.offset_lstm_units)(offset_conv)
+    offset_outputs = acoustic_dense_layer(hparams, hparams.offset_lstm_units)(offset_conv)
+
     offset_probs = midi_pitches_layer('offsets')(offset_outputs)
 
     # Activation prediction model
     if not hparams.share_conv_features:
         activation_conv = acoustic_model_layer(hparams)(inputs)
-        activation_outputs = acoustic_dense_layer(hparams,
-                                                  0 if hparams.using_plaidml
-                                                  else hparams.frame_lstm_units)(activation_conv)
+        activation_outputs = acoustic_dense_layer(hparams, hparams.frame_lstm_units)(activation_conv)
     else:
         activation_outputs = onset_outputs
     activation_probs = midi_pitches_layer('activations')(activation_outputs)

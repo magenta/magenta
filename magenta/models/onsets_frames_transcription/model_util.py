@@ -1,5 +1,6 @@
 # load and save models
 import os
+import time
 from enum import Enum
 
 import librosa.display
@@ -110,7 +111,7 @@ class ModelWrapper:
         #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
-            print(np.argmax(y[0], 1))
+            print(np.argmax(y[0], -1))
 
             '''foo = get_croppings_for_single_image(x[0][0], x[1][0], x[2][0], self.hparams)
             print(np.argmax(y[0], 1))
@@ -137,7 +138,9 @@ class ModelWrapper:
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
             plt.show()'''
             print('next batch...')
+            start = time.perf_counter()
             new_metrics = self.model.train_on_batch(x, y)
+            print(f'Trained batch in {time.perf_counter() - start:0.4f} seconds')
             print(new_metrics)
         self.metrics.on_epoch_end(1, model=self.model)
 
@@ -192,3 +195,6 @@ class ModelWrapper:
                                metrics=accuracies, loss=losses)
         else:  # self.type == ModelType.FULL:
             pass
+
+        print(self.model.summary())
+
