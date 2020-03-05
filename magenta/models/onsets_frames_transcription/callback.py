@@ -81,14 +81,7 @@ class TimbrePredictionMetrics(MetricsCallback):
         self.metrics_history = [TimbrePredictionOutputMetrics(*x) for x in metrics_history]
     def predict(self, X, y):
         y_probs = self.model.predict_on_batch(X)
-        y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), tf.shape(y_probs)[-1],
-                                   dtype=tf.int32)
-        reshaped_y_true = K.reshape(y[0], (-1, y[0].shape[-1]))
-        precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true, y_predictions,
-                                                 average='micro')  # TODO maybe 'macro'
-        scores = {
-            'precision': K.constant(precision),
-            'recall': K.constant(recall),
-            'f1_score': K.constant(f1)
-        }
+        print(y_probs + K.cast_to_floatx(y[0]))
+        scores = flatten_f1(y, y_probs)
         return TimbrePredictionOutputMetrics(scores)
+

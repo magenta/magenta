@@ -107,7 +107,7 @@ conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lam
         x: bn_relu_fn(
     Conv2D(
         num_filters,
-        [conv_freq_size, conv_temporal_size],
+        [conv_temporal_size, conv_freq_size],
         padding='same',
         use_bias=False,
         kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')

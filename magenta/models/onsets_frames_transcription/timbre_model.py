@@ -10,6 +10,9 @@ from dotmap import DotMap
 from magenta.models.onsets_frames_transcription import constants
 from sklearn.metrics import f1_score
 
+from magenta.models.onsets_frames_transcription.accuracy_util import flatten_loss_wrapper, flatten_accuracy_wrapper, \
+    flatten_f1
+
 FLAGS = tf.compat.v1.app.flags.FLAGS
 
 from tensorflow.keras import backend as K
@@ -32,23 +35,37 @@ def get_default_hparams():
         'timbre_decay_rate': 0.98,
         'timbre_clip_norm': 3.0,
         'timbre_l2_regularizer': 1e-5,
-        'timbre_filter_frequency_sizes': [2, 20], # [5, 80],
+        'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 2)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
         'timbre_num_filters': [128, 64, 32],
-        'timbre_filters_pool_size': (32, int(constants.BINS_PER_OCTAVE / 2)),
+        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 12)),
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
-        'timbre_pool_size': (1, 2),
+        'timbre_pool_size': (2, 2),
         'timbre_num_layers': 2,
         'timbre_dropout_drop_amts': [0.0, 0.25, 0.25],
         'timbre_rnn_dropout_drop_amt': 0.0,
-        'timbre_fc_size': 256,
+        'timbre_fc_size': 512,
         'timbre_fc_dropout_keep_amt': 0.5,
         'timbre_input_shape': (None, constants.SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': 11,
         'timbre_lstm_units': 128,
         'timbre_rnn_stack_size': 2,
         'timbre_leaky_alpha': 0.33,  # per han et al 2016
-        'timbre_sharing_conv': True
+        'timbre_sharing_conv': True,
+        'timbre_label_smoothing': 0.1,
+        'timbre_class_weights': {
+            0: 6000 / 68955,
+            1: 6000 / 13830,
+            2: 6000 / 9423,
+            3: 6000 / 35423,
+            4: 6000 / 54991,
+            5: 6000 / 35066,
+            6: 6000 / 36577,
+            7: 6000 / 14866,
+            8: 6000 / 20594,
+            9: 6000 / 5501,
+            10: 6000 / 10753,
+        }
     }
 
 
@@ -79,25 +96,27 @@ def filters_layer(hparams, channel_axis):
              (time_distributed_double_wrapper(BatchNormalization(axis=channel_axis, scale=False),
                                               hparams=hparams)
               (x)))
-        conv_bn_elu_layer = lambda num_filters, conv_freq_size, conv_temporal_size: lambda \
+        conv_bn_elu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
                 x: bn_elu_fn(
             time_distributed_double_wrapper(Conv2D(
                 num_filters,
-                [conv_freq_size, conv_temporal_size],
+                [conv_temporal_size, conv_freq_size],
                 padding='same',
                 use_bias=False,
                 kernel_regularizer=l2(hparams.timbre_l2_regularizer),
                 kernel_initializer=he_normal(),
-                name='parallel_conv_{}_{}_{}'.format(num_filters, conv_freq_size, conv_temporal_size)
+                name='parallel_conv_{}_{}_{}'.format(num_filters, conv_temporal_size,
+                                                     conv_freq_size)
             ), hparams=hparams)(x))
 
+        bottleneck = Conv2D(32, (1, 1))(inputs)
         for f_i in hparams.timbre_filter_frequency_sizes:
             for i, t_i in enumerate(hparams.timbre_filter_temporal_sizes):
                 parallel_layers.append(
-                    conv_bn_elu_layer(hparams.timbre_num_filters[i], f_i, t_i)(inputs))
+                    conv_bn_elu_layer(hparams.timbre_num_filters[i], t_i, f_i)(bottleneck))
 
         K.print_tensor(parallel_layers[0], 'parallel')
-        return concatenate(parallel_layers, axis=-1)
+        return concatenate(parallel_layers, axis=channel_axis)
 
     return filters_layer_fn
 
@@ -151,6 +170,7 @@ def acoustic_model_layer(hparams, channel_axis):
 
     return acoustic_model_fn
 
+
 def acoustic_dense_layer(hparams):
     def acoustic_dense_fn(inputs):
         outputs = inputs
@@ -164,6 +184,7 @@ def acoustic_dense_layer(hparams):
                                            hparams=hparams)(outputs)
         outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
         return outputs
+
     return acoustic_dense_fn
 
 
@@ -193,6 +214,20 @@ def high_pass_filter(input_list):
     seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.SPEC_BANDS)), tf.float32)
     seq_mask = K.expand_dims(seq_mask, 3)
     return Multiply()([spec, seq_mask])
+
+
+def normalize_and_weigh(inputs, num_notes, pitches):
+    gradient_pitch_mask = 1 + K.int_shape(inputs)[-2] - K.arange(
+        K.int_shape(inputs)[-2])  # + K.int_shape(inputs)[-2]
+    gradient_pitch_mask = gradient_pitch_mask / K.max(gradient_pitch_mask)
+    gradient_pitch_mask = K.expand_dims(K.cast(gradient_pitch_mask, 'float64'), 0)
+    gradient_pitch_mask = tf.repeat(gradient_pitch_mask, axis=0, repeats=num_notes)
+    gradient_pitch_mask = gradient_pitch_mask + K.expand_dims(pitches / K.int_shape(inputs)[-2], -1)
+    gradient_pitch_mask = tf.minimum((gradient_pitch_mask) ** 12, 1.0)
+    gradient_pitch_mask = K.expand_dims(gradient_pitch_mask, 1)
+    gradient_pitch_mask = K.expand_dims(gradient_pitch_mask, -1)
+    gradient_product = Multiply()([inputs, gradient_pitch_mask])
+    return gradient_product
 
 
 # This increases dimensionality by duplicating our input spec image and getting differently
@@ -229,12 +264,13 @@ def get_croppings_for_single_image(conv_output, note_croppings,
                                    num_notes, hparams=None, temporal_scale=1.0):
     repeated_conv_output = tf.repeat(K.expand_dims(conv_output, axis=0),
                                      num_notes, axis=0)
+    gathered_pitches = tf.gather(note_croppings, indices=0, axis=1) \
+                       * K.int_shape(conv_output)[1] \
+                       / constants.SPEC_BANDS
     pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
         K.expand_dims(
             K.cast(
-                tf.gather(note_croppings, indices=0, axis=1)
-                * K.int_shape(conv_output)[1]
-                / constants.SPEC_BANDS, dtype='int32'
+                gathered_pitches, dtype='int32'
             ), 1), K.int_shape(conv_output)[1]
     )), tf.float32)
     end_mask = K.cast(tf.sequence_mask(
@@ -269,6 +305,8 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     mask = Multiply()([mask, pitch_mask])
     mask = Multiply()([mask, start_mask])
     mask = Multiply()([mask, end_mask])
+
+    mask = normalize_and_weigh(mask, num_notes, gathered_pitches)
     # Tell downstream layers to skip timesteps that are fully masked out
     return Masking(mask_value=0.0)(mask)
 
@@ -280,7 +318,7 @@ def timbre_prediction_model(hparams=None):
     input_shape = (
         hparams.timbre_input_shape[0], hparams.timbre_input_shape[1],
         hparams.timbre_input_shape[2],)
-    channel_axis = 3
+    channel_axis = -1
 
     inputs = Input(shape=input_shape, batch_size=hparams.nsynth_batch_size,
                    name='spec')
@@ -316,6 +354,9 @@ def timbre_prediction_model(hparams=None):
         [filter_outputs, note_croppings, num_notes])
     K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
 
+    cropped_outputs = time_distributed_wrapper(BatchNormalization(axis=-1, scale=False), hparams)(
+        cropped_outputs)
+
     if hparams.timbre_sharing_conv:
         # pooled_outputs shape: (None, None, None, 19, 448)
         # aka: (batch_size, num_notes, length, freq_range, num_channels)
@@ -329,7 +370,6 @@ def timbre_prediction_model(hparams=None):
     # last 3 independently (time, frequency, and number of channels/filters)
 
     K.print_tensor(pooled_outputs.shape, 'pooled_outputs')
-
 
     # flatten while preserving batch and time dimensions
     # shape: (None, None, None, 1792)
@@ -348,7 +388,6 @@ def timbre_prediction_model(hparams=None):
     lstm_outputs = lstm_layer(hparams=hparams)(dense_outputs)
     K.print_tensor(lstm_outputs.shape, 'lstm_outputs')
 
-
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
     instrument_family_probs = instrument_prediction_layer(hparams)(lstm_outputs)
@@ -356,25 +395,9 @@ def timbre_prediction_model(hparams=None):
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 
-    def flatten_loss(y_true, y_pred):
-        if hparams.timbre_coagulate_mini_batches:
-            return categorical_crossentropy(y_true, y_pred)
-        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
-        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
-        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
-        return categorical_crossentropy(rebatched_true, rebatched_pred)
+    losses = {'family_probs': flatten_loss_wrapper(hparams)}
 
-    def flatten_accuracy(y_true, y_pred):
-        if hparams.timbre_coagulate_mini_batches:
-            return categorical_accuracy(y_true, y_pred)
-        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
-        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
-        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
-        return categorical_accuracy(rebatched_true, rebatched_pred)
-
-    losses = {'family_probs': flatten_loss}
-
-    accuracies = {'family_probs': flatten_accuracy}
+    accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams), flatten_f1]}
 
     return Model(inputs=[inputs, note_croppings, num_notes],
                  outputs=instrument_family_probs), losses, accuracies

@@ -34,7 +34,7 @@ def create_spectrogram(audio, hparams):
     #                                         fmax=librosa.note_to_hz('C9'),
     #                                       n_mels=hparams.spec_n_bins,
     #                                       htk=hparams.spec_mel_htk).T)
-    return (librosa.core.cqt(
+    spec = (librosa.core.cqt(
         audio,
         hparams.sample_rate,
         hop_length=hparams.timbre_hop_length,
@@ -43,6 +43,14 @@ def create_spectrogram(audio, hparams):
         bins_per_octave=constants.BINS_PER_OCTAVE,
         pad_mode='constant'
     ).T)
+
+    # convert amplitude to power
+    spec = librosa.amplitude_to_db(np.abs(spec))
+    if hparams.spec_log_amplitude:
+        spec = spec - librosa.power_to_db(np.array([0]))[0]
+    else:
+        spec = librosa.db_to_power(spec)
+    return spec
 
 
 def get_cqt_index(pitch, hparams):

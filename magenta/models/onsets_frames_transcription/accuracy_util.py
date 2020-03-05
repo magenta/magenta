@@ -1,8 +1,13 @@
 from collections import namedtuple
 import tensorflow as tf
+import tensorflow.keras.backend as K
 
 # 'name' should be a string
 # 'method' should be a string or a function
+from keras.losses import categorical_crossentropy
+from keras.metrics import categorical_accuracy
+from sklearn.metrics import precision_recall_fscore_support
+
 from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
 from tensorflow.keras.metrics import binary_accuracy
 
@@ -34,3 +39,38 @@ def f1_wrapper(threshold):
 
 
     return f1
+
+def flatten_f1(y_true, y_probs):
+    y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), tf.shape(y_probs)[-1],
+                               dtype=tf.int32)
+    reshaped_y_true = K.reshape(y_true[0], (-1, y_true[0].shape[-1]))
+    precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true, y_predictions,
+                                                               average='macro')  # TODO maybe 'macro'
+    scores = {
+        'precision': K.constant(precision),
+        'recall': K.constant(recall),
+        'f1_score': K.constant(f1)
+    }
+    return scores
+
+def flatten_loss_wrapper(hparams):
+    def flatten_loss_fn(y_true, y_pred):
+        if hparams.timbre_coagulate_mini_batches:
+            return categorical_crossentropy(y_true, y_pred,
+                                            label_smoothing=hparams.timbre_label_smoothing)
+        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
+        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
+        return categorical_crossentropy(rebatched_true, rebatched_pred,
+                                        label_smoothing=hparams.timbre_label_smoothing)
+    return flatten_loss_fn
+
+def flatten_accuracy_wrapper(hparams):
+    def flatten_accuracy_fn(y_true, y_pred):
+        if hparams.timbre_coagulate_mini_batches:
+            return categorical_accuracy(y_true, y_pred)
+        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
+        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
+        return categorical_accuracy(rebatched_true, rebatched_pred)
+    return flatten_accuracy_fn

@@ -7,6 +7,8 @@ import librosa.display
 import numpy as np
 import uuid
 import matplotlib.pyplot as plt
+from sklearn.utils import class_weight
+from tensorflow.keras.layers import BatchNormalization
 
 from magenta.models.onsets_frames_transcription import infer_util, constants
 from magenta.models.onsets_frames_transcription.callback import MidiPredictionMetrics, \
@@ -58,12 +60,12 @@ class ModelWrapper:
         self.model_dir = model_dir
         self.type = type
 
-        self.model_save_format = '{}/Training {} Model Weights {} {:.2f} {:.2f}.hdf5' \
+        self.model_save_format = '{}/Training {} Model Weights {} {:.2f} {:.2f} {}.hdf5' \
             if type is ModelType.MIDI \
-            else '{}/Training {} Model Weights {} {:.2f}.hdf5'
-        self.history_save_format = '{}/Training {} History {} {:.2f} {:.2f}' \
+            else '{}/Training {} Model Weights {} {:.2f} {}.hdf5'
+        self.history_save_format = '{}/Training {} History {} {:.2f} {:.2f} {}' \
             if type is ModelType.MIDI \
-            else '{}/Training {} History {} {:.2f}.hdf5'
+            else '{}/Training {} History {} {:.2f} {}.hdf5'
         if id is None:
             self.id = uuid.uuid4().hex
         else:
@@ -86,20 +88,22 @@ class ModelWrapper:
                                              self.hparams) if type == ModelType.MIDI else TimbrePredictionMetrics(
             self.generator, self.hparams)
 
-    def save_model_with_metrics(self):
+    def save_model_with_metrics(self, epoch_num):
         if self.type == ModelType.MIDI:
             id_tup = (self.model_dir, self.type.name, self.id,
                       self.metrics.metrics_history[-1].frames['f1_score'].numpy() * 100,
-                      self.metrics.metrics_history[-1].onsets['f1_score'].numpy() * 100)
+                      self.metrics.metrics_history[-1].onsets['f1_score'].numpy() * 100,
+                      epoch_num)
         else:
             id_tup = (self.model_dir, self.type.name, self.id,
-                      self.metrics.metrics_history[-1].timbre_prediction['f1_score'].numpy() * 100)
+                      self.metrics.metrics_history[-1].timbre_prediction['f1_score'].numpy() * 100,
+                      epoch_num)
         print('Saving {} model...'.format(self.type.name))
         self.model.save_weights(self.model_save_format.format(*id_tup))
         np.save(self.history_save_format.format(*id_tup), [self.metrics.metrics_history])
         print('Model weights saved at: ' + self.model_save_format.format(*id_tup))
 
-    def train_and_save(self, epochs=1):
+    def train_and_save(self, epochs=1, epoch_num=0):
         if self.model is None:
             self.build_model()
 
@@ -111,40 +115,43 @@ class ModelWrapper:
         #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
+            if self.type == ModelType.MIDI:
+                class_weights = None #class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
+            else:
+                class_weights = self.hparams.timbre_class_weights
             print(np.argmax(y[0], -1))
 
-            '''foo = get_croppings_for_single_image(x[0][0], x[1][0], x[2][0], self.hparams)
+            # self.plot_spectrograms(x, y)
+            print('next batch...')
+            start = time.perf_counter()
+            new_metrics = self.model.train_on_batch(x, y, class_weight=class_weights)
+            print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
+            print(new_metrics)
+        self.metrics.on_epoch_end(1, model=self.model)
+
+        self.save_model_with_metrics(epoch_num)
+
+    def plot_spectrograms(self, x, y):
+        max_batches = 1
+        for batch_idx in range(max_batches):
+            croppings = get_croppings_for_single_image(x[0][batch_idx], x[1][batch_idx], x[2][batch_idx], self.hparams)
             print(np.argmax(y[0], 1))
-            print(x[1])
-            print('family: {}'.format(y[0]))
-            plt.figure(figsize=(12,8))
-            plt.subplot(3, 1, 1)
+            plt.figure(figsize=(12, 8))
+            num_crops = x[2][batch_idx]
+            plt.subplot(num_crops + 1, 1, 1)
             librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(x[0][0])).numpy()),
                                      y_axis='cqt_note',
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=constants.MIN_TIMBRE_PITCH,
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
-            plt.subplot(3, 1, 2)
-            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(foo[0])).numpy()),
-                                     y_axis='cqt_note',
-                                     hop_length=self.hparams.timbre_hop_length,
-                                     fmin=constants.MIN_TIMBRE_PITCH,
-                                     bins_per_octave=constants.BINS_PER_OCTAVE)
-            plt.subplot(3, 1, 3)
-            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(foo[1])).numpy()),
-                                     y_axis='cqt_note',
-                                     hop_length=self.hparams.timbre_hop_length,
-                                     fmin=constants.MIN_TIMBRE_PITCH,
-                                     bins_per_octave=constants.BINS_PER_OCTAVE)
-            plt.show()'''
-            print('next batch...')
-            start = time.perf_counter()
-            new_metrics = self.model.train_on_batch(x, y)
-            print(f'Trained batch in {time.perf_counter() - start:0.4f} seconds')
-            print(new_metrics)
-        self.metrics.on_epoch_end(1, model=self.model)
-
-        self.save_model_with_metrics()
+            for i in range(num_crops):
+                plt.subplot(num_crops + 1, 1, i + 1)
+                librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(croppings[i])).numpy()),
+                                         y_axis='cqt_note',
+                                         hop_length=self.hparams.timbre_hop_length,
+                                         fmin=constants.MIN_TIMBRE_PITCH,
+                                         bins_per_octave=constants.BINS_PER_OCTAVE)
+        plt.show()
 
     def predict_sequence(self, input):
 
@@ -164,14 +171,14 @@ class ModelWrapper:
             hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
         return sequence
 
-    def load_model(self, frames_f1, onsets_f1=-1, id=-1):
+    def load_model(self, frames_f1, onsets_f1=-1, id=-1, epoch_num=0):
         if not id:
             id = self.id
         self.build_model()
         if self.type == ModelType.MIDI:
-            id_tup = (self.model_dir, self.type.name, id, frames_f1, onsets_f1)
+            id_tup = (self.model_dir, self.type.name, id, frames_f1, onsets_f1, epoch_num)
         else:
-            id_tup = (self.model_dir, self.type.name, id, frames_f1)
+            id_tup = (self.model_dir, self.type.name, id, frames_f1, epoch_num)
         if os.path.exists(self.model_save_format.format(*id_tup)) \
                 and os.path.exists(self.history_save_format.format(*id_tup) + '.npy'):
             self.metrics.load_metrics(
