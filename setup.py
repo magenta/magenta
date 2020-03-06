@@ -40,6 +40,7 @@ REQUIRED_PACKAGES = [
     # a version of cloudpickle that is incompatible with tensorflow-probability
     # 0.7.0.
     'gym < 0.16.0',
+    'imageio',
     'intervaltree >= 2.1.0',
     'joblib >= 0.12',
     'librosa >= 0.6.2',

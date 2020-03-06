@@ -245,6 +245,8 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
     predictions = {
         'frame_probs':
             frame_probs,
+        'onset_probs':
+            onset_probs,
         'frame_predictions':
             frame_predictions,
         'onset_predictions':
@@ -270,6 +272,8 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
             labels.note_sequence,
         'frame_labels':
             labels.labels,
+        'onset_labels':
+            labels.onsets,
     }
     for k, v in metrics_values.items():
       predictions[k] = tf.stack(v)

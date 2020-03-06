@@ -159,23 +159,24 @@ def labels_to_features_wrapper(data_fn):
   return wrapper
 
 
-def posterior_pianoroll_image(frame_probs, frame_labels):
+def posterior_pianoroll_image(onset_probs, onset_labels, frame_probs,
+                              frame_labels, sequence_frame_predictions):
   """Create a pianoroll image showing frame posteriors, predictions & labels."""
-  # TODO(fjord): Add back support for visualizing final predicted sequence.
-  pianoroll_img = np.zeros([len(frame_probs), 2 * len(frame_probs[0]), 3])
+  def probs_and_labels_image(probs, labels, max_length):
+    pianoroll_img = np.zeros([max_length, labels.shape[1], 3])
 
-  # Show overlap in yellow
-  pianoroll_img[:, :, 0] = np.concatenate(
-      [np.array(frame_labels),
-       np.array(frame_probs)],
-      axis=1)
-  pianoroll_img[:, :, 1] = np.concatenate(
-      [np.array(frame_labels),
-       np.array(frame_labels)],
-      axis=1)
-  pianoroll_img[:, :, 2] = np.concatenate(
-      [np.array(frame_labels),
-       np.zeros_like(np.array(frame_probs))],
-      axis=1)
+    # Show overlap in yellow
+    pianoroll_img[:probs.shape[0], :, 0] = probs
+    pianoroll_img[:labels.shape[0], :, 1] = labels
+    return pianoroll_img
+  max_length = np.max([onset_probs.shape[0], onset_labels.shape[0],
+                       frame_probs.shape[0], frame_labels.shape[0],
+                       sequence_frame_predictions.shape[0]])
+  pianoroll_img = np.concatenate([
+      probs_and_labels_image(onset_probs, onset_labels, max_length),
+      probs_and_labels_image(frame_probs, frame_labels, max_length),
+      probs_and_labels_image(sequence_frame_predictions, frame_labels,
+                             max_length),
+  ], axis=1)
 
   return np.flipud(np.transpose(pianoroll_img, [1, 0, 2]))

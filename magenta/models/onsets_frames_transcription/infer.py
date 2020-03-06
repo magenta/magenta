@@ -27,14 +27,15 @@ import collections
 import functools
 import os
 import time
-
+import imageio
+from magenta.models.onsets_frames_transcription import constants
+from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
+from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
-
 import numpy as np
-import scipy
 import tensorflow.compat.v1 as tf
 
 
@@ -148,12 +149,24 @@ def model_inference(model_fn,
         output_dir, filename_safe + '_pianoroll.png')
     tf.logging.info('Writing acoustic logit/label file to %s',
                     pianoroll_output_file)
+    # Calculate frames based on the sequence. Includes any postprocessing done
+    # to turn raw onsets/frames predictions into the final sequence.
+    # TODO(fjord): This work is duplicated in metrics.py.
+    sequence_frame_predictions = sequences_lib.sequence_to_pianoroll(
+        sequence_prediction,
+        frames_per_second=data.hparams_frames_per_second(hparams),
+        min_pitch=constants.MIN_MIDI_PITCH,
+        max_pitch=constants.MAX_MIDI_PITCH).active
     with tf.gfile.GFile(pianoroll_output_file, mode='w') as f:
-      scipy.misc.imsave(
+      imageio.imwrite(
           f,
           infer_util.posterior_pianoroll_image(
+              predictions['onset_probs'],
+              predictions['onset_labels'],
               predictions['frame_probs'],
-              predictions['frame_labels']))
+              predictions['frame_labels'],
+              sequence_frame_predictions),
+          format='png')
 
     # Update histogram and current scalar for metrics.
     with tf.Graph().as_default(), tf.Session().as_default():
@@ -161,17 +174,11 @@ def model_inference(model_fn,
         if not k.startswith('metrics/'):
           continue
         all_metrics[k].extend(v)
-        histogram_name = 'histogram/' + k
-        metric_summary = tf.summary.histogram(
-            histogram_name,
-            tf.constant(all_metrics[k], name=histogram_name),
-            collections=[])
+        histogram_name = k + '_histogram'
+        metric_summary = tf.summary.histogram(histogram_name, all_metrics[k])
         summary_writer.add_summary(metric_summary.eval(), global_step=file_num)
         scalar_name = k
-        metric_summary = tf.summary.scalar(
-            scalar_name,
-            tf.constant(np.mean(all_metrics[k]), name=scalar_name),
-            collections=[])
+        metric_summary = tf.summary.scalar(scalar_name, np.mean(all_metrics[k]))
         summary_writer.add_summary(metric_summary.eval(), global_step=file_num)
       summary_writer.flush()
 
@@ -182,13 +189,9 @@ def model_inference(model_fn,
     for k, v in all_metrics.items():
       final_scalar_name = 'final/' + k
       metric_summary = tf.summary.scalar(
-          final_scalar_name,
-          tf.constant(np.mean(all_metrics[k]), name=final_scalar_name),
-          collections=[])
+          final_scalar_name, np.mean(all_metrics[k]))
       summary_writer.add_summary(metric_summary.eval())
     summary_writer.flush()
-
-  start_time = time.time()
 
 
 def run(config_map, data_fn):
