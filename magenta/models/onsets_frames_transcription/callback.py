@@ -1,11 +1,10 @@
 import collections
 from abc import abstractmethod
 
-import numpy as np
-
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
-from sklearn.metrics import f1_score, precision_recall_fscore_support
+
+from magenta.models.onsets_frames_transcription.accuracy_util import flatten_f1_wrapper
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -14,8 +13,7 @@ if FLAGS.using_plaidml:
 else:
     from tensorflow.keras.callbacks import Callback
 
-from magenta.models.onsets_frames_transcription.metrics import define_metrics, \
-    calculate_frame_metrics
+from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
 
 MidiPredictionOutputMetrics = collections.namedtuple('MidiPredictionOutputMetrics',
                                                      ('frames', 'onsets', 'offsets'))
@@ -82,6 +80,6 @@ class TimbrePredictionMetrics(MetricsCallback):
     def predict(self, X, y):
         y_probs = self.model.predict_on_batch(X)
         print(y_probs + K.cast_to_floatx(y[0]))
-        scores = flatten_f1(y, y_probs)
+        scores = flatten_f1_wrapper(self.hparams)(y[0], y_probs)
         return TimbrePredictionOutputMetrics(scores)
 

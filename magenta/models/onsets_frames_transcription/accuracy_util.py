@@ -6,7 +6,7 @@ import tensorflow.keras.backend as K
 # 'method' should be a string or a function
 from keras.losses import categorical_crossentropy
 from keras.metrics import categorical_accuracy
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import precision_recall_fscore_support, classification_report
 
 from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
 from tensorflow.keras.metrics import binary_accuracy
@@ -40,18 +40,26 @@ def f1_wrapper(threshold):
 
     return f1
 
-def flatten_f1(y_true, y_probs):
-    y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), tf.shape(y_probs)[-1],
-                               dtype=tf.int32)
-    reshaped_y_true = K.reshape(y_true[0], (-1, y_true[0].shape[-1]))
-    precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true, y_predictions,
-                                                               average='macro')  # TODO maybe 'macro'
-    scores = {
-        'precision': K.constant(precision),
-        'recall': K.constant(recall),
-        'f1_score': K.constant(f1)
-    }
-    return scores
+def flatten_f1_wrapper(hparams):
+    def flatten_f1_fn(y_true, y_probs):
+
+        y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1],
+                                   dtype=tf.int32)
+
+        reshaped_y_true = K.reshape(y_true, (-1, y_predictions.shape[-1]))
+
+        print(classification_report(reshaped_y_true, y_predictions))
+
+        precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true,
+                                                                   y_predictions,
+                                                                   average='weighted')  # TODO maybe 'macro'
+        scores = {
+            'precision': K.constant(precision),
+            'recall': K.constant(recall),
+            'f1_score': K.constant(f1)
+        }
+        return scores
+    return flatten_f1_fn
 
 def flatten_loss_wrapper(hparams):
     def flatten_loss_fn(y_true, y_pred):

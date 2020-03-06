@@ -10,8 +10,9 @@ from dotmap import DotMap
 from magenta.models.onsets_frames_transcription import constants
 from sklearn.metrics import f1_score
 
-from magenta.models.onsets_frames_transcription.accuracy_util import flatten_loss_wrapper, flatten_accuracy_wrapper, \
-    flatten_f1
+from magenta.models.onsets_frames_transcription.accuracy_util import flatten_loss_wrapper, \
+    flatten_accuracy_wrapper, \
+    flatten_f1_wrapper
 
 FLAGS = tf.compat.v1.app.flags.FLAGS
 
@@ -35,10 +36,10 @@ def get_default_hparams():
         'timbre_decay_rate': 0.98,
         'timbre_clip_norm': 3.0,
         'timbre_l2_regularizer': 1e-5,
-        'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 2)],  # [5, 80],
+        'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
         'timbre_num_filters': [128, 64, 32],
-        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 12)),
+        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 6)),
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_pool_size': (2, 2),
         'timbre_num_layers': 2,
@@ -397,7 +398,7 @@ def timbre_prediction_model(hparams=None):
 
     losses = {'family_probs': flatten_loss_wrapper(hparams)}
 
-    accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams), flatten_f1]}
+    accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
 
     return Model(inputs=[inputs, note_croppings, num_notes],
                  outputs=instrument_family_probs), losses, accuracies
