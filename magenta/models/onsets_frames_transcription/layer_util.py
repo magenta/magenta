@@ -4,12 +4,23 @@ from intervaltree.node import l2
 from magenta.models.onsets_frames_transcription import constants
 
 FLAGS = tf.compat.v1.app.flags.FLAGS
+if FLAGS.using_plaidml:
+    import plaidml.keras
 
-from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, MaxPooling2D, TimeDistributed, \
-    GlobalMaxPooling1D
-from tensorflow.keras.regularizers import l2
-from tensorflow.keras.initializers import he_normal
+    plaidml.keras.install_backend()
+    from keras import backend as K
+    from keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
+        MaxPooling2D, TimeDistributed, \
+        GlobalMaxPooling1D
+    from keras.regularizers import l2
+    from keras.initializers import he_normal
+
+else:
+    from tensorflow.keras import backend as K
+    from tensorflow.keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, MaxPooling2D, TimeDistributed, \
+        GlobalMaxPooling1D
+    from tensorflow.keras.regularizers import l2
+    from tensorflow.keras.initializers import he_normal
 
 
 # if we aren't coagulating the cropped mini-batches, then we use TimeDistributed

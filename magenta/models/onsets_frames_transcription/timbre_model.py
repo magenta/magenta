@@ -8,28 +8,34 @@ import tensorflow as tf
 from dotmap import DotMap
 
 from magenta.models.onsets_frames_transcription import constants
-from sklearn.metrics import f1_score
-
-from magenta.models.onsets_frames_transcription.accuracy_util import flatten_loss_wrapper, \
-    flatten_accuracy_wrapper, \
-    flatten_f1_wrapper
-from magenta.models.onsets_frames_transcription.layer_util import get_time_distributed_wrapper, \
-    conv_bn_elu_layer, time_distributed_wrapper, get_all_croppings
+from magenta.models.onsets_frames_transcription.accuracy_util import flatten_accuracy_wrapper, \
+    flatten_loss_wrapper
+from magenta.models.onsets_frames_transcription.layer_util import conv_bn_elu_layer, \
+    get_all_croppings, time_distributed_wrapper
 
 FLAGS = tf.compat.v1.app.flags.FLAGS
+if FLAGS.using_plaidml:
+    import plaidml.keras
 
-from tensorflow.keras import backend as K
-from tensorflow.keras.initializers import he_normal, VarianceScaling
-from tensorflow.keras.layers import Activation, BatchNormalization, Conv2D, \
-    Dense, Dropout, \
-    Input, MaxPooling2D, concatenate, Lambda, Multiply, Reshape, Bidirectional, LSTM, \
-    LeakyReLU, TimeDistributed, Cropping2D, Layer, Flatten, Masking, ELU, AveragePooling2D, \
-    ConvLSTM2D, GlobalMaxPooling2D, GlobalMaxPooling1D
-from tensorflow.keras.models import Model
-from tensorflow.keras.regularizers import l2
+    plaidml.keras.install_backend()
 
-from tensorflow.keras.losses import categorical_crossentropy
-from tensorflow.keras.metrics import categorical_accuracy
+    from keras import backend as K
+    from keras.initializers import he_normal, VarianceScaling
+    from keras.layers import BatchNormalization, Conv2D, \
+        Dense, Dropout, \
+        Input, concatenate, Lambda, Reshape, LSTM, \
+        Flatten, ELU, GlobalMaxPooling2D
+    from keras.models import Model
+    from keras.regularizers import l2
+else:
+    from tensorflow.keras import backend as K
+    from tensorflow.keras.initializers import he_normal, VarianceScaling
+    from tensorflow.keras.layers import BatchNormalization, Conv2D, \
+        Dense, Dropout, \
+        Input, concatenate, Lambda, Reshape, LSTM, \
+        Flatten, ELU, GlobalMaxPooling2D
+    from tensorflow.keras.models import Model
+    from tensorflow.keras.regularizers import l2
 
 
 def get_default_hparams():
@@ -93,7 +99,7 @@ def filters_layer(hparams):
                     conv_bn_elu_layer(hparams.timbre_num_filters[i], t_i, f_i, pool_size, True,
                                       hparams)(inputs))
 
-        K.print_tensor(parallel_layers[0], 'parallel')
+        # K.print_tensor(parallel_layers[0], 'parallel')
         return concatenate(parallel_layers, axis=-1)
 
     return filters_layer_fn
@@ -191,22 +197,22 @@ def timbre_prediction_model(hparams=None):
         hparams.timbre_input_shape[0], hparams.timbre_input_shape[1],
         hparams.timbre_input_shape[2],)
 
-    inputs = Input(shape=input_shape, batch_size=hparams.nsynth_batch_size,
+    inputs = Input(shape=input_shape,
                    name='spec')
 
     # batched dimensions for cropping like:
     # ((top_crop, bottom_crop), (left_crop, right_crop))
     # with a high pass, top_crop will always be 0, bottom crop is relative to pitch
-    note_croppings = Input(shape=(None, 3), batch_size=hparams.nsynth_batch_size,
+    note_croppings = Input(shape=(None, 3),
                            name='note_croppings', dtype='int64')
 
-    num_notes = Input(shape=(1,), batch_size=hparams.nsynth_batch_size,
+    num_notes = Input(shape=(1,),
                       name='num_notes', dtype='int64')
 
     # acoustic_outputs shape: (None, None, 57, 128)
     # aka: (batch_size, length, freq_range, num_channels)
     acoustic_outputs = acoustic_model_layer(hparams)(inputs)
-    K.print_tensor(acoustic_outputs.shape, 'acoustic_outputs')
+    # K.print_tensor(acoustic_outputs.shape, 'acoustic_outputs')
 
     if hparams.timbre_sharing_conv:
         # filter_outputs shape: (None, None, 57, 448)
@@ -216,7 +222,7 @@ def timbre_prediction_model(hparams=None):
         # if we aren't sharing the large filters, then just pass the simple conv output
         filter_outputs = acoustic_outputs
 
-    K.print_tensor(filter_outputs.shape, 'filter_outputs')
+    # K.print_tensor(filter_outputs.shape, 'filter_outputs')
 
     # simplify to save memory
     if hparams.timbre_bottleneck_filter_num:
@@ -227,7 +233,7 @@ def timbre_prediction_model(hparams=None):
     cropped_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams))(
         [filter_outputs, note_croppings, num_notes])
-    K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
+    # K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
 
     # cropped_outputs = time_distributed_wrapper(ConvLSTM2D(128, (3, 3), activation='elu', return_sequences=True),
     #                                            hparams=hparams)(K.expand_dims(cropped_outputs, -1)) #TODO maybe -2
@@ -245,7 +251,7 @@ def timbre_prediction_model(hparams=None):
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
     # last 3 independently (time, frequency, and number of channels/filters)
 
-    K.print_tensor(pooled_outputs.shape, 'pooled_outputs')
+    # K.print_tensor(pooled_outputs.shape, 'pooled_outputs')
 
     if hparams.timbre_extra_conv:
         pooled_outputs = acoustic_model_layer(hparams, pre_crop=False)(pooled_outputs)
@@ -270,16 +276,16 @@ def timbre_prediction_model(hparams=None):
 
         dense_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
 
-        K.print_tensor(dense_outputs.shape, 'dense_outputs')
+        # K.print_tensor(dense_outputs.shape, 'dense_outputs')
         # shape: (None, None, 512)
         # aka: (batch_size, num_notes, lstm_units)
         timeless_outputs = lstm_layer(hparams=hparams)(dense_outputs)
-        K.print_tensor(timeless_outputs.shape, 'lstm_outputs')
+        # K.print_tensor(timeless_outputs.shape, 'lstm_outputs')
 
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
     instrument_family_probs = instrument_prediction_layer(hparams)(timeless_outputs)
-    K.print_tensor(instrument_family_probs.shape, 'instrument_family_probs')
+    # K.print_tensor(instrument_family_probs.shape, 'instrument_family_probs')
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 

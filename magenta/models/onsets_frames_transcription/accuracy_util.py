@@ -4,12 +4,11 @@ import tensorflow.keras.backend as K
 
 # 'name' should be a string
 # 'method' should be a string or a function
-from keras.losses import categorical_crossentropy
-from keras.metrics import categorical_accuracy
+from tensorflow.keras.losses import categorical_crossentropy
+from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
 
 from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
-from tensorflow.keras.metrics import binary_accuracy
 
 AccuracyMetric = namedtuple('AccuracyMetric', ('name', 'method'))
 

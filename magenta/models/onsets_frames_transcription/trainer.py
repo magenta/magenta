@@ -84,6 +84,12 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'TIMBRE', 'FULL'],
                          'type of model to train')
 
+if FLAGS.using_plaidml:
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+    import plaidml.keras
+
+    plaidml.keras.install_backend()
+
 from magenta.models.onsets_frames_transcription import data, train_util, configs, nsynth_reader, model_util
 
 

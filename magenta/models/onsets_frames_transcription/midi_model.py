@@ -42,7 +42,7 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'batch_size': 8,
+        'batch_size': 4,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 0.98,
@@ -51,7 +51,7 @@ def get_default_hparams():
         'onset_lstm_units': 256,
         'offset_lstm_units': 256,
         'velocity_lstm_units': 0,
-        'frame_lstm_units': 0,
+        'frame_lstm_units': 256,
         'combined_lstm_units': 256,
         'acoustic_rnn_stack_size': 1,
         'combined_rnn_stack_size': 1,

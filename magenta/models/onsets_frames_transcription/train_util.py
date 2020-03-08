@@ -96,11 +96,11 @@ def train(data_fn,
         preprocess_examples=preprocess_examples,
         is_training=True,
         shuffle_examples=True,
-        skip_n_initial_records=0)
+        skip_n_initial_records=random.randint(0, 1048))
 
     model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
-                              batch_size=hparams.batch_size, steps_per_epoch=5, hparams=hparams)
+                              batch_size=hparams.batch_size, steps_per_epoch=20, hparams=hparams)
     # midi_model.load_model(71.85, 74.98)
     # midi_model.load_model(74.27, 70.17)
     # midi_model.load_model(91.46, 92.58, 'no-weight')
@@ -122,6 +122,9 @@ def train(data_fn,
     #model.load_model(0, id='long', epoch_num=6)
     # model.load_model(20.64, id='2-glob', epoch_num=38)
     #model.load_model(17.81, id='2-glob', epoch_num=27)
+    model.load_model(23.81, id='96er', epoch_num=19)
+    model.load_model(28.10, id='96er', epoch_num=102)
+
 
 
     for i in range(num_steps):
