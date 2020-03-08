@@ -41,10 +41,10 @@ def get_default_hparams():
         'timbre_l2_regularizer': 1e-5,
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
-        'timbre_num_filters': [128, 64, 32],
+        'timbre_num_filters': [96, 64, 32],
         'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 6)),
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
-        'timbre_pool_size': (2, 2),
+        'timbre_pool_size': (4, 2),
         'timbre_num_layers': 2,
         'timbre_dropout_drop_amts': [0.0, 0.0, 0.0],
         'timbre_rnn_dropout_drop_amt': 0.0,
@@ -60,7 +60,7 @@ def get_default_hparams():
         'timbre_extra_conv': False,
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
-        'timbre_bottleneck_filter_num': 32,
+        'timbre_bottleneck_filter_num': 0,
         'timbre_class_weights': {
             0: 16000 / 68955,
             1: 16000 / 13830,
@@ -90,7 +90,7 @@ def filters_layer(hparams):
         for f_i in hparams.timbre_filter_frequency_sizes:
             for i, t_i in enumerate(hparams.timbre_filter_temporal_sizes):
                 parallel_layers.append(
-                    conv_bn_elu_layer(hparams.timbre_num_filters[i], t_i, f_i, pool_size, False,
+                    conv_bn_elu_layer(hparams.timbre_num_filters[i], t_i, f_i, pool_size, True,
                                       hparams)(inputs))
 
         K.print_tensor(parallel_layers[0], 'parallel')
@@ -219,13 +219,14 @@ def timbre_prediction_model(hparams=None):
     K.print_tensor(filter_outputs.shape, 'filter_outputs')
 
     # simplify to save memory
-    bottleneck = Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1))(filter_outputs)
+    if hparams.timbre_bottleneck_filter_num:
+        filter_outputs = Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1))(filter_outputs)
 
     # cropped_outputs shape: (batch_size, None, None, 57, 128)
     # aka: (batch_size, num_notes, length, freq_range, num_channels)
     cropped_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams))(
-        [bottleneck, note_croppings, num_notes])
+        [filter_outputs, note_croppings, num_notes])
     K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
 
     # cropped_outputs = time_distributed_wrapper(ConvLSTM2D(128, (3, 3), activation='elu', return_sequences=True),
@@ -252,10 +253,10 @@ def timbre_prediction_model(hparams=None):
     # flatten while preserving batch and time dimensions
     # shape: (None, None, None, 1792)
     # aka: (batch_size, num_notes, length, vec_size)
-    if hparams.timbre_global_pool and hparams.timbre_coagulate_mini_batches:
+    if hparams.timbre_global_pool:
         if hparams.timbre_global_pool == 2:
-            pooled_outputs = time_distributed_wrapper(GlobalMaxPooling1D(),
-                                                      hparams=hparams)(pooled_outputs)
+            pooled_outputs = time_distributed_wrapper(GlobalMaxPooling2D(),
+                                                             hparams=hparams)(pooled_outputs)
 
         flattened_outputs = time_distributed_wrapper(Flatten(), hparams=hparams)(
             pooled_outputs)

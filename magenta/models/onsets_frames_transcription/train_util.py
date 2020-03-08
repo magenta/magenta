@@ -100,7 +100,7 @@ def train(data_fn,
 
     model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
-                              batch_size=hparams.batch_size, steps_per_epoch=20, hparams=hparams)
+                              batch_size=hparams.batch_size, steps_per_epoch=5, hparams=hparams)
     # midi_model.load_model(71.85, 74.98)
     # midi_model.load_model(74.27, 70.17)
     # midi_model.load_model(91.46, 92.58, 'no-weight')

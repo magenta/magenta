@@ -100,7 +100,14 @@ def get_all_croppings(input_list, hparams):
                                              note_croppings_list[batch_idx],
                                              num_notes_list[batch_idx],
                                              hparams=hparams,
-                                             temporal_scale=4)
+                                             temporal_scale=max(1, hparams.timbre_pool_size[0]
+                                                                * hparams.timbre_num_layers))
+
+        if hparams.timbre_sharing_conv:
+            out = MaxPooling2D(pool_size=hparams.timbre_filters_pool_size)(out)
+        if hparams.timbre_global_pool:
+            out = TimeDistributed(GlobalMaxPooling1D())(
+                K.permute_dimensions(out, (0, 2, 1, 3)))
         all_outputs.append(out)
 
     if hparams.timbre_coagulate_mini_batches:
@@ -154,15 +161,9 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     # constant pitch for left mask
     start_mask = K.expand_dims(start_mask, 2)
     mask = Multiply()([repeated_conv_output, pitch_mask])
-    mask = Multiply()([mask, pitch_mask])
     mask = Multiply()([mask, start_mask])
     mask = Multiply()([mask, end_mask])
 
     mask = normalize_and_weigh(mask, num_notes, gathered_pitches)
-    if hparams.timbre_sharing_conv:
-            mask = MaxPooling2D(pool_size=hparams.timbre_filters_pool_size)(mask)
-    if hparams.timbre_global_pool:
-        return TimeDistributed(GlobalMaxPooling1D())(
-            K.permute_dimensions(mask, (0, 2, 1, 3)))
     # Tell downstream layers to skip timesteps that are fully masked out
     return Masking(mask_value=0.0)(mask)

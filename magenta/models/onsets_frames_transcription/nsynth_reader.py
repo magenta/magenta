@@ -114,7 +114,8 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
         pitch = tf.py_function(functools.partial(get_cqt_index, hparams=hparams),
                        [pitch],
                        tf.int64)
-        start_idx = random.randint(0, hparams.timbre_max_start_offset)
+        start_idx = tf.random.uniform((), minval=0, maxval=hparams.timbre_max_start_offset,
+                                              dtype='int64')
         audio = K.concatenate([tf.zeros(start_idx), tf.sparse.to_dense(tensor['audio'])[i]])
         audios.append(audio)
 
@@ -137,6 +138,10 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
     audios = list(map(lambda x: tf.pad(x, [[0, max_length - len(x)]]), audios))
 
     combined_audio = tf.reduce_sum(tf.convert_to_tensor(audios), axis=0) / instrument_count
+
+    # ensure all audios in batches are the same length
+    pad_length = hparams.timbre_max_start_offset + 5 * hparams.sample_rate
+    combined_audio = tf.pad(combined_audio, [[0, pad_length - tf.shape(combined_audio)[0]]])
     note_croppings = tf.convert_to_tensor(note_croppping_list, dtype=tf.int32)
     instrument_families = tf.convert_to_tensor(instrument_family_list, dtype=tf.int32)
 
@@ -189,13 +194,14 @@ def provide_batch(examples,
 
     input_dataset = input_dataset.map(parse_nsynth_example)
 
+    # foo = next(iter(input_dataset.batch(hparams.timbre_training_max_instruments)))
+    # reduce_batch_fn(foo, hparams, is_training)
+
     reduced_dataset = input_dataset.batch(hparams.timbre_training_max_instruments).map(
         functools.partial(reduce_batch_fn, hparams=hparams, is_training=is_training))
 
     # input_map_fn = functools.partial(
     #     preprocess_nsynth_example, hparams=hparams, is_training=is_training)
-    # # foo = next(iter(input_dataset.batch(hparams.timbre_training_max_instruments)))
-    # # reduce_batch_fn(foo, hparams, is_training)
     # input_tensors = reduced_dataset.map(input_map_fn)
 
     model_input = reduced_dataset.map(

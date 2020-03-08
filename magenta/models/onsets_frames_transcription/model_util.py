@@ -7,6 +7,7 @@ import librosa.display
 import numpy as np
 import uuid
 import matplotlib.pyplot as plt
+from keras.layers import Conv2D
 from sklearn.utils import class_weight
 from tensorflow.keras.layers import BatchNormalization
 
@@ -18,7 +19,8 @@ import tensorflow.compat.v1 as tf
 
 from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
-from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model
+from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model, \
+    acoustic_model_layer
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -122,9 +124,10 @@ class ModelWrapper:
                 class_weights = self.hparams.timbre_class_weights
             print(np.argmax(y[0], -1))
 
-            self.plot_spectrograms(x, y)
+            #self.plot_spectrograms(x, y)
             print('next batch...')
             start = time.perf_counter()
+            # new_metrics = self.model.predict(x)
             new_metrics = self.model.train_on_batch(x, y, class_weight=class_weights)
             print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
             print(new_metrics)
@@ -135,17 +138,19 @@ class ModelWrapper:
     def plot_spectrograms(self, x, y):
         max_batches = 1
         for batch_idx in range(max_batches):
-            croppings = get_croppings_for_single_image(x[0][batch_idx], x[1][batch_idx], x[2][batch_idx], self.hparams)
+            #spec = acoustic_model_layer(self.hparams)(x[0])
+            spec = K.pool2d(x[0], (16, 4), (16, 4))
+            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx], x[2][batch_idx], self.hparams, 16)
             plt.figure(figsize=(16, 12))
-            num_crops = min(8, x[2][batch_idx].numpy())
-            plt.subplot(int(num_crops/3 + 1), 3, 1)
-            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(x[0][0])).numpy()),
+            num_crops = min(3, x[2][batch_idx].numpy())
+            plt.subplot(int(num_crops/2 + 1), 2, 1)
+            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(spec[batch_idx])).numpy()),
                                      y_axis='cqt_note',
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=constants.MIN_TIMBRE_PITCH,
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
             for i in range(num_crops):
-                plt.subplot(int(num_crops/3 + 1), 3, i + 2)
+                plt.subplot(int(num_crops/2 + 1), 2, i + 2)
                 db = librosa.power_to_db(tf.transpose(tf.squeeze(croppings[i])).numpy())
                 librosa.display.specshow(db,
                                          y_axis='cqt_note',

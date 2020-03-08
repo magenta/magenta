@@ -189,7 +189,8 @@ def midi_prediction_model(hparams=None):
     # Activation prediction model
     if not hparams.share_conv_features:
         activation_conv = acoustic_model_layer(hparams)(inputs)
-        activation_outputs = acoustic_dense_layer(hparams, hparams.frame_lstm_units)(activation_conv)
+        activation_outputs = acoustic_dense_layer(hparams, hparams.frame_lstm_units)(
+            activation_conv)
     else:
         activation_outputs = onset_outputs
     activation_probs = midi_pitches_layer('activations')(activation_outputs)
@@ -201,8 +202,14 @@ def midi_prediction_model(hparams=None):
 
     combined_probs = concatenate(probs, 2)
 
+    if hparams.combined_lstm_units > 0:
+        outputs = lstm_layer(hparams.combined_lstm_units,
+                             stack_size=hparams.acoustic_rnn_stack_size)(combined_probs)
+    else:
+        outputs = combined_probs
+
     # Frame prediction
-    frame_probs = midi_pitches_layer('frames')(combined_probs)
+    frame_probs = midi_pitches_layer('frames')(outputs)
 
     # use class_weighing to care more about correctly identifying actual notes instead of false positives
     losses = {
