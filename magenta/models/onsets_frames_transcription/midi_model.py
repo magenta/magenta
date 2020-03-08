@@ -118,6 +118,7 @@ def acoustic_dense_layer(hparams, lstm_units):
     def acoustic_dense_fn(inputs):
         # shape: (None, None, 57, 96)
         outputs = bn_relu_fn(Dense(hparams.fc_size, use_bias=False,
+                                   activation='sigmoid',
                                    kernel_initializer=VarianceScaling(scale=2, mode='fan_avg',
                                                                       distribution='uniform'))(
             # Flatten while preserving batch and time dimensions.

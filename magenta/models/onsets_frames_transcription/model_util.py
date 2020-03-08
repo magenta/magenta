@@ -15,9 +15,10 @@ from magenta.models.onsets_frames_transcription.callback import MidiPredictionMe
     TimbrePredictionMetrics
 
 import tensorflow.compat.v1 as tf
+
+from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
-from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model, \
-    high_pass_filter, get_croppings_for_single_image
+from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -121,7 +122,7 @@ class ModelWrapper:
                 class_weights = self.hparams.timbre_class_weights
             print(np.argmax(y[0], -1))
 
-            # self.plot_spectrograms(x, y)
+            self.plot_spectrograms(x, y)
             print('next batch...')
             start = time.perf_counter()
             new_metrics = self.model.train_on_batch(x, y, class_weight=class_weights)
@@ -135,18 +136,18 @@ class ModelWrapper:
         max_batches = 1
         for batch_idx in range(max_batches):
             croppings = get_croppings_for_single_image(x[0][batch_idx], x[1][batch_idx], x[2][batch_idx], self.hparams)
-            print(np.argmax(y[0], 1))
-            plt.figure(figsize=(12, 8))
-            num_crops = x[2][batch_idx]
-            plt.subplot(num_crops + 1, 1, 1)
+            plt.figure(figsize=(16, 12))
+            num_crops = min(8, x[2][batch_idx].numpy())
+            plt.subplot(int(num_crops/3 + 1), 3, 1)
             librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(x[0][0])).numpy()),
                                      y_axis='cqt_note',
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=constants.MIN_TIMBRE_PITCH,
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
             for i in range(num_crops):
-                plt.subplot(num_crops + 1, 1, i + 1)
-                librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(croppings[i])).numpy()),
+                plt.subplot(int(num_crops/3 + 1), 3, i + 2)
+                db = librosa.power_to_db(tf.transpose(tf.squeeze(croppings[i])).numpy())
+                librosa.display.specshow(db,
                                          y_axis='cqt_note',
                                          hop_length=self.hparams.timbre_hop_length,
                                          fmin=constants.MIN_TIMBRE_PITCH,
@@ -181,11 +182,15 @@ class ModelWrapper:
             id_tup = (self.model_dir, self.type.name, id, frames_f1, epoch_num)
         if os.path.exists(self.model_save_format.format(*id_tup)) \
                 and os.path.exists(self.history_save_format.format(*id_tup) + '.npy'):
-            self.metrics.load_metrics(
-                np.load(self.history_save_format.format(*id_tup) + '.npy',
-                        allow_pickle=True)[0])
-            print('Loading pre-trained {} model...'.format(self.type.name))
-            self.model.load_weights(self.model_save_format.format(*id_tup))
+            try:
+                self.metrics.load_metrics(
+                    np.load(self.history_save_format.format(*id_tup) + '.npy',
+                            allow_pickle=True)[0])
+                print('Loading pre-trained {} model...'.format(self.type.name))
+                self.model.load_weights(self.model_save_format.format(*id_tup))
+                print('Model loaded successfully')
+            except:
+                print(f'Couldn\'t load model weights')
         else:
             print('Couldn\'t find pre-trained model: {}'
                   .format(self.model_save_format.format(*id_tup)))
