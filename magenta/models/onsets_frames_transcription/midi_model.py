@@ -45,7 +45,7 @@ def get_default_hparams():
         'batch_size': 4,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
-        'decay_rate': 0.98,
+        'decay_rate': 1e-4,
         'clip_norm': 3.0,
         'transform_audio': False,
         'onset_lstm_units': 256,

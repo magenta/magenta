@@ -28,25 +28,30 @@ def parse_nsynth_example(example_proto):
 
 def create_spectrogram(audio, hparams):
     audio = audio.numpy()
-    # return librosa.power_to_db(librosa.feature.melspectrogram(audio, hparams.sample_rate,
-    #                                       hop_length=hparams.spec_hop_length,
-    #                                       fmin=librosa.note_to_hz('A0'),
-    #                                         fmax=librosa.note_to_hz('C9'),
-    #                                       n_mels=hparams.spec_n_bins,
-    #                                       htk=hparams.spec_mel_htk).T)
-    spec = (librosa.core.cqt(
-        audio,
-        hparams.sample_rate,
-        hop_length=hparams.timbre_hop_length,
-        fmin=constants.MIN_TIMBRE_PITCH,
-        n_bins=constants.SPEC_BANDS,
-        bins_per_octave=constants.BINS_PER_OCTAVE,
-        pad_mode='constant'
-    ).T)
+    if hparams.spec_type == 'mel':
+        spec = librosa.feature.melspectrogram(
+            audio,
+            hparams.sample_rate,
+            hop_length=hparams.timbre_hop_length,
+            fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
+            fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
+            n_mels=hparams.spec_n_bins,
+            pad_mode='constant',
+            htk=hparams.spec_mel_htk).T
+    else:
+        spec = librosa.core.cqt(
+            audio,
+            hparams.sample_rate,
+            hop_length=hparams.timbre_hop_length,
+            fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
+            n_bins=constants.SPEC_BANDS,
+            bins_per_octave=constants.BINS_PER_OCTAVE,
+            pad_mode='constant'
+        ).T
 
     # convert amplitude to power
     spec = librosa.amplitude_to_db(np.abs(spec))
-    if hparams.spec_log_amplitude:
+    if hparams.timbre_spec_log_amplitude:
         spec = spec - librosa.power_to_db(np.array([0]))[0]
     else:
         spec = librosa.db_to_power(spec)
@@ -54,17 +59,21 @@ def create_spectrogram(audio, hparams):
 
 
 def get_cqt_index(pitch, hparams):
-    frequencies = librosa.cqt_frequencies(hparams.spec_n_bins, fmin=constants.MIN_TIMBRE_PITCH,
+    frequencies = librosa.cqt_frequencies(hparams.spec_n_bins,
+                                          fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
                                           bins_per_octave=constants.BINS_PER_OCTAVE)
 
     return np.abs(frequencies - librosa.midi_to_hz(pitch.numpy() - 1)).argmin()
 
 
 def get_mel_index(pitch, hparams):
-    frequencies = librosa.mel_frequencies(hparams.spec_n_bins, fmin=librosa.note_to_hz('A0'),
-                                          fmax=librosa.note_to_hz('C9'), htk=hparams.spec_mel_htk)
+    frequencies = librosa.mel_frequencies(hparams.spec_n_bins,
+                                          fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
+                                          fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
+                                          htk=hparams.spec_mel_htk)
 
     return np.abs(frequencies - librosa.midi_to_hz(pitch.numpy())).argmin()
+
 
 FeatureTensors = collections.namedtuple('FeatureTensors', ('spec', 'note_croppings', 'num_notes'))
 
@@ -78,12 +87,12 @@ NoteLabel = collections.namedtuple('NoteLabel', ('instrument_family'))
 def nsynth_input_tensors_to_model_input(
         input_tensors, hparams, is_training):
     """Processes an InputTensor into FeatureTensors and LabelTensors."""
-    #length = tf.cast(input_tensors['length'], tf.int32)
+    # length = tf.cast(input_tensors['length'], tf.int32)
     spec = tf.reshape(input_tensors['spec'], (-1, hparams_frame_size(hparams), 1))
     note_croppings = input_tensors['note_croppings']
     instrument_families = input_tensors['instrument_families']
     num_notes = input_tensors['num_notes']
-    #instrument_family = input_tensors['instrument_family']
+    # instrument_family = input_tensors['instrument_family']
     # tf.print(instrument_family)
 
     features = FeatureTensors(
@@ -108,20 +117,25 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
     instrument_family_list = []
     audios = []
     max_length = 0
+    pitch_idx_fn = get_cqt_index if hparams.spec_type == 'cqt' else get_mel_index
     for i in range(instrument_count):
         # otherwise move the audio so diff attack times
         pitch = tensor['pitch'][i]
-        pitch = tf.py_function(functools.partial(get_cqt_index, hparams=hparams),
-                       [pitch],
-                       tf.int64)
+        pitch = tf.py_function(functools.partial(pitch_idx_fn, hparams=hparams),
+                               [pitch],
+                               tf.int64)
         start_idx = tf.random.uniform((), minval=0, maxval=hparams.timbre_max_start_offset,
-                                              dtype='int64')
+                                      dtype='int64')
         audio = K.concatenate([tf.zeros(start_idx), tf.sparse.to_dense(tensor['audio'])[i]])
-        audios.append(audio)
 
         end_idx = len(audio)
+        if hparams.timbre_max_len and end_idx > hparams.timbre_max_len:
+            audio = tf.slice(audio, begin=[0], size=[hparams.timbre_max_len])
+            end_idx = hparams.timbre_max_len
         if end_idx > max_length:
             max_length = end_idx
+
+        audios.append(audio)
 
         instrument = tensor['instrument'][i]
         instrument_family = tensor['instrument_family'][i]
@@ -132,7 +146,7 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
             end_idx=end_idx
         ))
         instrument_family_list.append(tf.one_hot(tf.cast(instrument_family, tf.int32),
-                                   hparams.timbre_num_classes))
+                                                 hparams.timbre_num_classes))
 
     # pad the end of the shorter audio clips
     audios = list(map(lambda x: tf.pad(x, [[0, max_length - len(x)]]), audios))
@@ -140,11 +154,13 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
     combined_audio = tf.reduce_sum(tf.convert_to_tensor(audios), axis=0) / instrument_count
 
     # ensure all audios in batches are the same length
-    pad_length = hparams.timbre_max_start_offset + 5 * hparams.sample_rate
+    if hparams.timbre_max_len:
+        pad_length = hparams.timbre_max_len
+    else:
+        pad_length = hparams.timbre_max_start_offset + 5 * hparams.sample_rate
     combined_audio = tf.pad(combined_audio, [[0, pad_length - tf.shape(combined_audio)[0]]])
     note_croppings = tf.convert_to_tensor(note_croppping_list, dtype=tf.int32)
     instrument_families = tf.convert_to_tensor(instrument_family_list, dtype=tf.int32)
-
 
     # Transpose so that the data is in [frame, bins] format.
     spec = tf.py_function(

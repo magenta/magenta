@@ -122,10 +122,10 @@ class ModelWrapper:
                 class_weights = None #class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
                 class_weights = self.hparams.timbre_class_weights
-            print(np.argmax(y[0], -1))
+            #print(np.argmax(y[0], -1))
 
-            #self.plot_spectrograms(x, y)
-            print('next batch...')
+            # self.plot_spectrograms(x)
+            #print('next batch...')
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
             new_metrics = self.model.train_on_batch(x, y, class_weight=class_weights)
@@ -135,28 +135,29 @@ class ModelWrapper:
 
         self.save_model_with_metrics(epoch_num)
 
-    def plot_spectrograms(self, x, y):
-        max_batches = 1
+    def plot_spectrograms(self, x, temporal_ds=16, freq_ds=4, max_batches=1):
         for batch_idx in range(max_batches):
-            #spec = acoustic_model_layer(self.hparams)(x[0])
-            spec = K.pool2d(x[0], (16, 4), (16, 4))
-            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx], x[2][batch_idx], self.hparams, 16)
+            spec = K.pool2d(x[0], (temporal_ds, freq_ds), (temporal_ds, freq_ds), padding='same')
+            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx], x[2][batch_idx], self.hparams, temporal_ds)
             plt.figure(figsize=(16, 12))
             num_crops = min(3, x[2][batch_idx].numpy())
             plt.subplot(int(num_crops/2 + 1), 2, 1)
-            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.squeeze(spec[batch_idx])).numpy()),
-                                     y_axis='cqt_note',
+            y_axis = 'cqt_note' if self.hparams.spec_type == 'cqt' else 'mel'
+            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.reshape(x[0][batch_idx], x[0][batch_idx].shape[0:-1])).numpy()),
+                                     y_axis=y_axis,
                                      hop_length=self.hparams.timbre_hop_length,
-                                     fmin=constants.MIN_TIMBRE_PITCH,
+                                     fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
+                                     fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
             for i in range(num_crops):
                 plt.subplot(int(num_crops/2 + 1), 2, i + 2)
-                db = librosa.power_to_db(tf.transpose(tf.squeeze(croppings[i])).numpy())
+                db = librosa.power_to_db(tf.transpose(tf.reshape(croppings[i], croppings[i].shape[0:-1])).numpy())
                 librosa.display.specshow(db,
-                                         y_axis='cqt_note',
+                                         y_axis=y_axis,
                                          hop_length=self.hparams.timbre_hop_length,
-                                         fmin=constants.MIN_TIMBRE_PITCH,
-                                         bins_per_octave=constants.BINS_PER_OCTAVE)
+                                         fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
+                                         fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
+                                         bins_per_octave=constants.BINS_PER_OCTAVE / freq_ds)
         plt.show()
 
     def predict_sequence(self, input):
@@ -204,11 +205,15 @@ class ModelWrapper:
     def build_model(self):
         if self.type == ModelType.MIDI:
             self.model, losses, accuracies = midi_prediction_model(self.hparams)
-            self.model.compile(Adam(self.hparams.learning_rate),
+            self.model.compile(Adam(self.hparams.learning_rate,
+                                    decay=self.hparams.decay_rate,
+                                    clipnorm=self.hparams.clip_norm),
                                metrics=accuracies, loss=losses)
         elif self.type == ModelType.TIMBRE:
             self.model, losses, accuracies = timbre_prediction_model(self.hparams)
-            self.model.compile(Adam(self.hparams.learning_rate),
+            self.model.compile(Adam(self.hparams.timbre_learning_rate,
+                                    decay=self.hparams.timbre_decay_rate,
+                                    clipnorm=self.hparams.timbre_clip_norm),
                                metrics=accuracies, loss=losses)
         else:  # self.type == ModelType.FULL:
             pass

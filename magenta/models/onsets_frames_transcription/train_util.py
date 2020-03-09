@@ -100,7 +100,7 @@ def train(data_fn,
 
     model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                               dataset=transcription_data(params=hparams),
-                              batch_size=hparams.batch_size, steps_per_epoch=20, hparams=hparams)
+                              batch_size=hparams.batch_size, steps_per_epoch=hparams.epochs_per_save, hparams=hparams)
     # midi_model.load_model(71.85, 74.98)
     # midi_model.load_model(74.27, 70.17)
     # midi_model.load_model(91.46, 92.58, 'no-weight')
@@ -122,13 +122,23 @@ def train(data_fn,
     #model.load_model(0, id='long', epoch_num=6)
     # model.load_model(20.64, id='2-glob', epoch_num=38)
     #model.load_model(17.81, id='2-glob', epoch_num=27)
-    model.load_model(23.81, id='96er', epoch_num=19)
-    model.load_model(28.10, id='96er', epoch_num=102)
+
+    if model_type == ModelType.MIDI:
+        model.load_model(43.15, 58.60, id='big-lstm', epoch_num=98)
+        model.load_model(69.12, 82.47, id='big-lstm-precise', epoch_num=66)
+    else:
+        # model.load_model(23.81, id='96er', epoch_num=19)
+        # model.load_model(24.22, id='96er', epoch_num=352)
+        # model.load_model(30.56, id='96er', epoch_num=163)
+        #model.load_model(12.31, id='96er', epoch_num=88)
+        pass
+
+
 
 
 
     for i in range(num_steps):
-        model.train_and_save(epochs=hparams.epochs_per_save, epoch_num=i)
+        model.train_and_save(epochs=1, epoch_num=i)
 
     # estimator.train(input_fn=transcription_data, max_steps=num_steps)
 

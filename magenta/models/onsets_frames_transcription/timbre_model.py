@@ -40,14 +40,14 @@ else:
 
 def get_default_hparams():
     return {
-        'timbre_learning_rate': 0.0006,
+        'timbre_learning_rate': 0.0003,
         'timbre_decay_steps': 10000,
-        'timbre_decay_rate': 0.98,
+        'timbre_decay_rate': 1e-3,
         'timbre_clip_norm': 3.0,
         'timbre_l2_regularizer': 1e-5,
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
-        'timbre_filter_temporal_sizes': [1, 3, 5],
-        'timbre_num_filters': [96, 64, 32],
+        'timbre_filter_temporal_sizes': [1, 3],#, 5],
+        'timbre_num_filters': [128, 64],#, 32],
         'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 6)),
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_pool_size': (4, 2),
@@ -66,7 +66,8 @@ def get_default_hparams():
         'timbre_extra_conv': False,
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
-        'timbre_bottleneck_filter_num': 0,
+        'timbre_bottleneck_filter_num': 64,
+        'timbre_gradient_exp': 16,
         'timbre_class_weights': {
             0: 16000 / 68955,
             1: 16000 / 13830,
