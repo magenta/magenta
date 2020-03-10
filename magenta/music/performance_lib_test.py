@@ -416,6 +416,11 @@ class PerformanceLibTest(tf.test.TestCase):
       performance.append(event)
     self.assertListEqual([100, 100, 100, 200, 200], performance.steps)
 
+  def testPeEqAndHash(self):
+    pe = performance_lib.PerformanceEvent
+    self.assertEqual(pe(pe.NOTE_ON, 60), pe(pe.NOTE_ON, 60))
+    self.assertEqual(1, len(set([pe(pe.NOTE_ON, 60), pe(pe.NOTE_ON, 60)])))
+
 
 if __name__ == '__main__':
   tf.test.main()

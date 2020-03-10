@@ -20,6 +20,7 @@ import abc
 import collections
 import math
 
+import attr
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
@@ -41,8 +42,11 @@ DEFAULT_MAX_SHIFT_QUARTERS = 4
 DEFAULT_PROGRAM = 0
 
 
+@attr.s(frozen=True)
 class PerformanceEvent(object):
   """Class for storing events in a performance."""
+  event_type = attr.ib()
+  event_value = attr.ib()
 
   # Start of a new note.
   NOTE_ON = 1
@@ -56,33 +60,24 @@ class PerformanceEvent(object):
   # For Note-based encoding, used instead of NOTE_OFF events.
   DURATION = 5
 
-  def __init__(self, event_type, event_value):
-    if event_type in (PerformanceEvent.NOTE_ON, PerformanceEvent.NOTE_OFF):
-      if not MIN_MIDI_PITCH <= event_value <= MAX_MIDI_PITCH:
-        raise ValueError('Invalid pitch value: %s' % event_value)
-    elif event_type == PerformanceEvent.TIME_SHIFT:
-      if not 0 <= event_value:
-        raise ValueError('Invalid time shift value: %s' % event_value)
-    elif event_type == PerformanceEvent.DURATION:
-      if not 1 <= event_value:
-        raise ValueError('Invalid duration value: %s' % event_value)
-    elif event_type == PerformanceEvent.VELOCITY:
-      if not 1 <= event_value <= MAX_NUM_VELOCITY_BINS:
-        raise ValueError('Invalid velocity value: %s' % event_value)
+  @event_type.validator
+  def _check_event(self, attribute, value):
+    """Validate event contents."""
+    del attribute, value  # This checks the whole object.
+    if self.event_type in (PerformanceEvent.NOTE_ON, PerformanceEvent.NOTE_OFF):
+      if not MIN_MIDI_PITCH <= self.event_value <= MAX_MIDI_PITCH:
+        raise ValueError('Invalid pitch value: %s' % self.event_value)
+    elif self.event_type == PerformanceEvent.TIME_SHIFT:
+      if not 0 <= self.event_value:
+        raise ValueError('Invalid time shift value: %s' % self.event_value)
+    elif self.event_type == PerformanceEvent.DURATION:
+      if not 1 <= self.event_value:
+        raise ValueError('Invalid duration value: %s' % self.event_value)
+    elif self.event_type == PerformanceEvent.VELOCITY:
+      if not 1 <= self.event_value <= MAX_NUM_VELOCITY_BINS:
+        raise ValueError('Invalid velocity value: %s' % self.event_value)
     else:
-      raise ValueError('Invalid event type: %s' % event_type)
-
-    self.event_type = event_type
-    self.event_value = event_value
-
-  def __repr__(self):
-    return 'PerformanceEvent(%r, %r)' % (self.event_type, self.event_value)
-
-  def __eq__(self, other):
-    if not isinstance(other, PerformanceEvent):
-      return False
-    return (self.event_type == other.event_type and
-            self.event_value == other.event_value)
+      raise ValueError('Invalid event type: %s' % self.event_type)
 
 
 def _velocity_bin_size(num_velocity_bins):
