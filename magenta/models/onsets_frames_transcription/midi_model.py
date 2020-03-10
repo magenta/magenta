@@ -25,7 +25,7 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import VarianceScaling
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-        Input, MaxPooling2D, Reshape, concatenate
+    Input, MaxPooling2D, Reshape, concatenate, ELU
     from keras.models import Model
 else:
     # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
@@ -34,7 +34,7 @@ else:
     from tensorflow.keras.initializers import VarianceScaling
     from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, \
         Dense, Dropout, \
-        Input, LSTM, MaxPooling2D, Reshape, concatenate
+        Input, LSTM, MaxPooling2D, Reshape, concatenate, ELU
     from tensorflow.keras.models import Model
 
 from magenta.models.onsets_frames_transcription import constants
@@ -102,28 +102,17 @@ def lstm_layer(num_units,
     return lstm_layer_fn
 
 
-bn_relu_fn = lambda x: Activation('relu')(BatchNormalization(scale=False)(x))
-conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
-        x: bn_relu_fn(
-    Conv2D(
-        num_filters,
-        [conv_temporal_size, conv_freq_size],
-        padding='same',
-        use_bias=False,
-        kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
-    )(x))
-
-
 def acoustic_dense_layer(hparams, lstm_units):
     def acoustic_dense_fn(inputs):
         # shape: (None, None, 57, 96)
-        outputs = bn_relu_fn(Dense(hparams.fc_size, use_bias=False,
+        outputs = Dense(hparams.fc_size, use_bias=False,
                                    activation='sigmoid',
                                    kernel_initializer=VarianceScaling(scale=2, mode='fan_avg',
                                                                       distribution='uniform'))(
             # Flatten while preserving batch and time dimensions.
             Reshape((-1, K.int_shape(inputs)[2] * K.int_shape(inputs)[3]))(
-                inputs)))
+                inputs))
+        outputs = Dropout(hparams.fc_dropout_drop_amt)(outputs)
 
         if lstm_units:
             outputs = lstm_layer(lstm_units, stack_size=hparams.acoustic_rnn_stack_size)(outputs)
@@ -133,6 +122,17 @@ def acoustic_dense_layer(hparams, lstm_units):
 
 
 def acoustic_model_layer(hparams):
+    bn_relu_fn = lambda x: ELU(hparams.timbre_leaky_alpha)(BatchNormalization(scale=False)(x))
+    conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
+            x: bn_relu_fn(
+        Conv2D(
+            num_filters,
+            [conv_temporal_size, conv_freq_size],
+            padding='same',
+            use_bias=False,
+            kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
+        )(x))
+
     def acoustic_model_fn(inputs):
         # inputs should be of type keras.layers.Input
         outputs = inputs

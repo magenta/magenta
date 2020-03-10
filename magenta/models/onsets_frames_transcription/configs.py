@@ -46,9 +46,9 @@ DEFAULT_HPARAMS = {
         'sample_rate': 16000,
         'spec_type': 'cqt',
         'spec_mel_htk': True,
-        'spec_log_amplitude': False,
-        'timbre_spec_log_amplitude': False,
-        'spec_hop_length': 256,#512,
+        'spec_log_amplitude': True,
+        'timbre_spec_log_amplitude': True,
+        'spec_hop_length': 512,#512,
         'timbre_hop_length': 256,
         'spec_n_bins': constants.SPEC_BANDS,
         'spec_fmin': librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),#30.0,  # A0

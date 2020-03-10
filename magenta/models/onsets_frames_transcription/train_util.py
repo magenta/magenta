@@ -33,7 +33,8 @@ import tensorflow.keras.backend as K
 from magenta.models.onsets_frames_transcription import audio_label_data_utils, constants
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
-from magenta.music import midi_io
+from magenta.models.onsets_frames_transcription.nsynth_reader import create_spectrogram
+from magenta.music import midi_io, audio_io
 from magenta.music.protobuf import music_pb2
 
 
@@ -176,16 +177,22 @@ def transcribe(data_fn,
 
     for filename in filenames:
         wav_data = tf.io.gfile.GFile(filename, 'rb').read()
-        spec = wav_to_spec_op(wav_data, hparams=hparams)
 
-        # add "batch" and channel dims
-        spec = tf.reshape(spec, (1, *spec.shape, 1))
+
 
         if model_type == ModelType.MIDI:
+            spec = wav_to_spec_op(wav_data, hparams=hparams)
+
+            # add "batch" and channel dims
+            spec = tf.reshape(spec, (1, *spec.shape, 1))
             sequence_prediction = midi_model.predict_from_spec(spec)
             midi_filename = filename + file_suffix + '.midi'
             midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
         elif model_type == ModelType.TIMBRE:
+            y = audio_io.wav_data_to_samples(wav_data, hparams.sample_rate)
+            spec = create_spectrogram(K.constant(y), hparams)
+            # add "batch" and channel dims
+            spec = tf.reshape(spec, (1, *spec.shape, 1))
             timbre_prediction = K.get_value(timbre_model.predict_from_spec(spec))[0]
             print(f'File: {filename}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
 

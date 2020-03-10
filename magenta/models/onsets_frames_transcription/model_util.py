@@ -112,22 +112,14 @@ class ModelWrapper:
         if self.model is None:
             self.build_model()
 
-        # self.model.fit_generator(self.generator, steps_per_epoch=self.steps_per_epoch,
-        #                          epochs=epochs, workers=2, max_queue_size=8,
-        #                          callbacks=[self.metrics])
-        # self.model.fit(self.dataset, steps_per_epoch=self.steps_per_epoch,
-        #                epochs=epochs, workers=2, max_queue_size=8,
-        #                callbacks=[self.metrics])
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
             if self.type == ModelType.MIDI:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
                 class_weights = self.hparams.timbre_class_weights
-            # print(np.argmax(y[0], -1))
+                # self.plot_spectrograms(x)
 
-            # self.plot_spectrograms(x)
-            # print('next batch...')
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
             new_metrics = self.model.train_on_batch(x, y, class_weight=class_weights)
@@ -147,8 +139,7 @@ class ModelWrapper:
             num_crops = min(3, x[2][batch_idx].numpy())
             plt.subplot(int(num_crops / 2 + 1), 2, 1)
             y_axis = 'cqt_note' if self.hparams.spec_type == 'cqt' else 'mel'
-            librosa.display.specshow(librosa.power_to_db(
-                tf.transpose(tf.reshape(x[0][batch_idx], x[0][batch_idx].shape[0:-1])).numpy()),
+            librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
                 y_axis=y_axis,
                 hop_length=self.hparams.timbre_hop_length,
                 fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
@@ -156,8 +147,7 @@ class ModelWrapper:
                 bins_per_octave=constants.BINS_PER_OCTAVE)
             for i in range(num_crops):
                 plt.subplot(int(num_crops / 2 + 1), 2, i + 2)
-                db = librosa.power_to_db(
-                    tf.transpose(tf.reshape(croppings[i], croppings[i].shape[0:-1])).numpy())
+                db = self.spec_to_db(croppings, i)
                 librosa.display.specshow(db,
                                          y_axis=y_axis,
                                          hop_length=self.hparams.timbre_hop_length,
@@ -165,6 +155,15 @@ class ModelWrapper:
                                          fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
                                          bins_per_octave=constants.BINS_PER_OCTAVE / freq_ds)
         plt.show()
+
+    def spec_to_db(self, spec_batch, i):
+        if self.hparams.timbre_spec_log_amplitude:
+            db = tf.transpose(tf.reshape(spec_batch[i], spec_batch[i].shape[0:-1]) +
+                              librosa.power_to_db(np.array([0]))[0]).numpy()
+        else:
+            db = librosa.power_to_db(
+                tf.transpose(tf.reshape(spec_batch[i], spec_batch[i].shape[0:-1])).numpy())
+        return db
 
     def _predict_timbre(self, spec):
         pitch = get_cqt_index(K.constant(librosa.note_to_midi('C3')), self.hparams)
@@ -205,13 +204,13 @@ class ModelWrapper:
         elif self.type == ModelType.TIMBRE:
             return self._predict_timbre(spec)
 
-    def load_newest(self):
+    def load_newest(self, id=''):
         try:
             model_weights = \
-            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} Model Weights *.hdf5'),
+            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} Model Weights {id}*.hdf5'),
                    key=os.path.getmtime)[-1]
             model_history = \
-            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} History *.npy'),
+            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} History {id}*.npy'),
                    key=os.path.getmtime)[-1]
             self.metrics.load_metrics(
                 np.load(model_history,

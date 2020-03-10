@@ -37,7 +37,11 @@ def create_spectrogram(audio, hparams):
             fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
             n_mels=hparams.spec_n_bins,
             pad_mode='constant',
-            htk=hparams.spec_mel_htk).T
+            htk=hparams.spec_mel_htk,
+            power=2
+        ).T
+        spec = librosa.power_to_db(spec)
+
     else:
         spec = librosa.core.cqt(
             audio,
@@ -48,9 +52,9 @@ def create_spectrogram(audio, hparams):
             bins_per_octave=constants.BINS_PER_OCTAVE,
             pad_mode='constant'
         ).T
+        spec = librosa.amplitude_to_db(np.abs(spec))
 
     # convert amplitude to power
-    spec = librosa.amplitude_to_db(np.abs(spec))
     if hparams.timbre_spec_log_amplitude:
         spec = spec - librosa.power_to_db(np.array([0]))[0]
     else:

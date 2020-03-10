@@ -46,8 +46,8 @@ def get_default_hparams():
         'timbre_clip_norm': 3.0,
         'timbre_l2_regularizer': 1e-5,
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
-        'timbre_filter_temporal_sizes': [1, 3],#, 5],
-        'timbre_num_filters': [128, 64],#, 32],
+        'timbre_filter_temporal_sizes': [1, 3],  # , 5],
+        'timbre_num_filters': [128, 64],  # , 32],
         'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 6)),
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_pool_size': (4, 2),
@@ -67,7 +67,7 @@ def get_default_hparams():
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
         'timbre_bottleneck_filter_num': 0,
-        'timbre_gradient_exp': 16,
+        'timbre_gradient_exp': 16, # 16 for cqt no-log
         'timbre_class_weights': {
             0: 16000 / 68955,
             1: 16000 / 13830,
@@ -158,13 +158,15 @@ def acoustic_dense_layer(hparams):
         for i in range(hparams.timbre_fc_num_layers):
             outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_drop_amt),
                                                hparams=hparams)(outputs)
-            outputs = bn_elu_fn(time_distributed_wrapper(Dense(hparams.timbre_fc_size,
-                                                               activation='sigmoid',
-                                                               kernel_initializer=he_normal(),
-                                                               kernel_regularizer=l2(
-                                                                   hparams.timbre_l2_regularizer),
-                                                               name=f'acoustic_dense_{i}'),
-                                                         hparams=hparams)(outputs))
+            outputs = time_distributed_wrapper(Dense(hparams.timbre_fc_size,
+                                                     kernel_initializer=he_normal(),
+                                                     kernel_regularizer=l2(
+                                                         hparams.timbre_l2_regularizer),
+                                                     bias_regularizer=l2(
+                                                         hparams.timbre_l2_regularizer),
+                                                     name=f'acoustic_dense_{i}'),
+                                               hparams=hparams)(outputs)
+            outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
         return outputs
 
     return acoustic_dense_fn
@@ -182,7 +184,9 @@ def instrument_prediction_layer(hparams):
                                                  name='timbre_prediction',
                                                  kernel_initializer=he_normal(),
                                                  kernel_regularizer=l2(
-                                                     hparams.timbre_l2_regularizer)
+                                                     hparams.timbre_l2_regularizer),
+                                                 bias_regularizer=l2(
+                                                     hparams.timbre_l2_regularizer),
                                                  ),
                                            hparams=hparams)(outputs)
         return outputs
@@ -263,7 +267,7 @@ def timbre_prediction_model(hparams=None):
     if hparams.timbre_global_pool:
         if hparams.timbre_global_pool == 2:
             pooled_outputs = time_distributed_wrapper(GlobalMaxPooling2D(),
-                                                             hparams=hparams)(pooled_outputs)
+                                                      hparams=hparams)(pooled_outputs)
 
         flattened_outputs = time_distributed_wrapper(Flatten(), hparams=hparams)(
             pooled_outputs)
