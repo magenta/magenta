@@ -10,15 +10,15 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
     from keras import backend as K
     from keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
-        MaxPooling2D, TimeDistributed, \
-        GlobalMaxPooling1D
+    MaxPooling2D, TimeDistributed, \
+    GlobalMaxPooling1D, GlobalAveragePooling1D
     from keras.regularizers import l2
     from keras.initializers import he_normal
 
 else:
     from tensorflow.keras import backend as K
     from tensorflow.keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, MaxPooling2D, TimeDistributed, \
-        GlobalMaxPooling1D
+        GlobalMaxPooling1D, GlobalAveragePooling1D
     from tensorflow.keras.regularizers import l2
     from tensorflow.keras.initializers import he_normal
 
@@ -118,7 +118,8 @@ def get_all_croppings(input_list, hparams):
             out = MaxPooling2D(pool_size=hparams.timbre_filters_pool_size,
                                padding='same')(out)
         if hparams.timbre_global_pool:
-            out = TimeDistributed(GlobalMaxPooling1D())(
+            # GlobalAveragePooling1D supports masking
+            out = TimeDistributed(GlobalAveragePooling1D())(
                 K.permute_dimensions(out, (0, 2, 1, 3)))
         all_outputs.append(out)
 

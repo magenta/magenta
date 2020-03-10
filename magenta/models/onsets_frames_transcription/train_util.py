@@ -131,9 +131,10 @@ def train(data_fn,
         # model.load_model(43.15, 58.60, id='big-lstm', epoch_num=98)
         # model.load_model(69.12, 82.47, id='big-lstm-precise', epoch_num=66)
         # model.load_model(82.94, 80.47, id='big-lstm-for-f1', epoch_num=149)
-        model.load_model(38.89, 38.22, id='cqt-no-log-256', epoch_num=11)
-        model.load_model(28.68, 9.22, id='cqt-no-log-256', epoch_num=0)
-        pass
+        # model.load_model(38.89, 38.22, id='cqt-no-log-256', epoch_num=11)
+        # model.load_model(28.68, 9.22, id='cqt-no-log-256', epoch_num=0)
+        model.build_model()
+        model.load_newest()
     else:
         # model.load_model(23.81, id='96er', epoch_num=19)
         # model.load_model(24.22, id='96er', epoch_num=352)

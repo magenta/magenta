@@ -20,7 +20,7 @@ import tensorflow.compat.v1 as tf
 
 from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
-from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping
+from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping, get_cqt_index
 from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model, \
     acoustic_model_layer
 
@@ -167,7 +167,7 @@ class ModelWrapper:
         plt.show()
 
     def _predict_timbre(self, spec):
-        pitch = constants.MIN_TIMBRE_PITCH
+        pitch = get_cqt_index(K.constant(librosa.note_to_midi('C3')), self.hparams)
         start_idx = 0
         end_idx = self.hparams.timbre_hop_length * spec.shape[1]
         note_croppings = [NoteCropping(pitch=pitch,
@@ -175,6 +175,8 @@ class ModelWrapper:
                                        end_idx=end_idx)]
         note_croppings = tf.reshape(note_croppings, (1, 1, 3))
         num_notes = tf.expand_dims(1, axis=0)
+
+        self.plot_spectrograms([spec, note_croppings, num_notes])
 
         timbre_probs = self.model.predict([spec, note_croppings, num_notes])
         print(timbre_probs)
