@@ -84,6 +84,10 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'TIMBRE', 'FULL'],
                          'type of model to train')
 
+tf.app.flags.DEFINE_string(
+    'transcribed_file_suffix', 'predicted',
+    'Optional suffix to add to transcribed files.')
+
 if FLAGS.using_plaidml:
     os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
     import plaidml.keras
@@ -119,8 +123,10 @@ def run(config_map, data_fn, additional_trial_info):
             num_steps=FLAGS.num_steps)
     elif FLAGS.mode == 'predict':
         train_util.transcribe(data_fn=data_fn,
-                              filename=FLAGS.audio_filename,
-                              model_dir='./out',
+                              model_dir=model_dir,
+                              model_type=model_util.ModelType[FLAGS.model_type],
+                              path=FLAGS.audio_filename,
+                              file_suffix=FLAGS.transcribed_file_suffix,
                               hparams=hparams
                               )
     elif FLAGS.mode == 'eval':

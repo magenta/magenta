@@ -29,6 +29,20 @@ MIN_TIMBRE_PITCH = librosa.note_to_midi('A0')
 MAX_TIMBRE_PITCH = librosa.note_to_midi('C9')
 TIMBRE_PITCHES = MAX_TIMBRE_PITCH - MIN_TIMBRE_PITCH + 1
 
+FAMILY_IDX_STRINGS = {
+    0: 'bass',
+    1: 'brass',
+    2: 'flute',
+    3: 'guitar',
+    4: 'keyboard',
+    5: 'mallet',
+    6: 'organ',
+    7: 'reed',
+    8: 'string',
+    9: 'synth_lead',
+    10: 'vocal'
+}
+
 
 SPEC_BANDS = 229
 

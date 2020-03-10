@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import librosa
 
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import audio_transform, midi_model, timbre_model, \
@@ -37,9 +38,9 @@ DEFAULT_HPARAMS = {
         'shuffle_buffer_size': 64,
         'nsynth_shuffle_buffer_size': 1048,
         'timbre_coagulate_mini_batches': True,
-        'nsynth_batch_size': 1,
-        'timbre_training_max_instruments': 512,
-        'timbre_max_start_offset': 1600000, #320000 goes to 800 when cropping
+        'nsynth_batch_size': 8,
+        'timbre_training_max_instruments': 8,
+        'timbre_max_start_offset': 32000, #320000 goes to 800 when cropping
         'timbre_min_len': 8000,
         'timbre_max_len': 0,
         'sample_rate': 16000,
@@ -47,10 +48,10 @@ DEFAULT_HPARAMS = {
         'spec_mel_htk': True,
         'spec_log_amplitude': False,
         'timbre_spec_log_amplitude': False,
-        'spec_hop_length': 512,#512,
+        'spec_hop_length': 256,#512,
         'timbre_hop_length': 256,
         'spec_n_bins': constants.SPEC_BANDS,
-        'spec_fmin': constants.MIN_TIMBRE_PITCH,#30.0,  # A0
+        'spec_fmin': librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),#30.0,  # A0
         'cqt_bins_per_octave': constants.BINS_PER_OCTAVE,#36,
         'truncated_length_secs': 0.0,
         'max_expected_train_example_len': 0,

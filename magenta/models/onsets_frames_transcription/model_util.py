@@ -1,4 +1,5 @@
 # load and save models
+import glob
 import os
 import time
 from enum import Enum
@@ -19,6 +20,7 @@ import tensorflow.compat.v1 as tf
 
 from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
+from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping
 from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model, \
     acoustic_model_layer
 
@@ -119,16 +121,17 @@ class ModelWrapper:
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
             if self.type == ModelType.MIDI:
-                class_weights = None #class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
+                class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
                 class_weights = self.hparams.timbre_class_weights
-            #print(np.argmax(y[0], -1))
+            # print(np.argmax(y[0], -1))
 
             # self.plot_spectrograms(x)
-            #print('next batch...')
+            # print('next batch...')
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
             new_metrics = self.model.train_on_batch(x, y, class_weight=class_weights)
+            # self.model.evaluate(x, y)
             print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
             print(new_metrics)
         self.metrics.on_epoch_end(1, model=self.model)
@@ -138,20 +141,23 @@ class ModelWrapper:
     def plot_spectrograms(self, x, temporal_ds=16, freq_ds=4, max_batches=1):
         for batch_idx in range(max_batches):
             spec = K.pool2d(x[0], (temporal_ds, freq_ds), (temporal_ds, freq_ds), padding='same')
-            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx], x[2][batch_idx], self.hparams, temporal_ds)
+            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
+                                                       x[2][batch_idx], self.hparams, temporal_ds)
             plt.figure(figsize=(16, 12))
             num_crops = min(3, x[2][batch_idx].numpy())
-            plt.subplot(int(num_crops/2 + 1), 2, 1)
+            plt.subplot(int(num_crops / 2 + 1), 2, 1)
             y_axis = 'cqt_note' if self.hparams.spec_type == 'cqt' else 'mel'
-            librosa.display.specshow(librosa.power_to_db(tf.transpose(tf.reshape(x[0][batch_idx], x[0][batch_idx].shape[0:-1])).numpy()),
-                                     y_axis=y_axis,
-                                     hop_length=self.hparams.timbre_hop_length,
-                                     fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
-                                     fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
-                                     bins_per_octave=constants.BINS_PER_OCTAVE)
+            librosa.display.specshow(librosa.power_to_db(
+                tf.transpose(tf.reshape(x[0][batch_idx], x[0][batch_idx].shape[0:-1])).numpy()),
+                y_axis=y_axis,
+                hop_length=self.hparams.timbre_hop_length,
+                fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
+                fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
+                bins_per_octave=constants.BINS_PER_OCTAVE)
             for i in range(num_crops):
-                plt.subplot(int(num_crops/2 + 1), 2, i + 2)
-                db = librosa.power_to_db(tf.transpose(tf.reshape(croppings[i], croppings[i].shape[0:-1])).numpy())
+                plt.subplot(int(num_crops / 2 + 1), 2, i + 2)
+                db = librosa.power_to_db(
+                    tf.transpose(tf.reshape(croppings[i], croppings[i].shape[0:-1])).numpy())
                 librosa.display.specshow(db,
                                          y_axis=y_axis,
                                          hop_length=self.hparams.timbre_hop_length,
@@ -160,9 +166,22 @@ class ModelWrapper:
                                          bins_per_octave=constants.BINS_PER_OCTAVE / freq_ds)
         plt.show()
 
-    def predict_sequence(self, input):
+    def _predict_timbre(self, spec):
+        pitch = constants.MIN_TIMBRE_PITCH
+        start_idx = 0
+        end_idx = self.hparams.timbre_hop_length * spec.shape[1]
+        note_croppings = [NoteCropping(pitch=pitch,
+                                       start_idx=start_idx,
+                                       end_idx=end_idx)]
+        note_croppings = tf.reshape(note_croppings, (1, 1, 3))
+        num_notes = tf.expand_dims(1, axis=0)
 
-        y_pred = self.model.predict(input)
+        timbre_probs = self.model.predict([spec, note_croppings, num_notes])
+        print(timbre_probs)
+        return K.flatten(tf.nn.top_k(timbre_probs).indices)
+
+    def _predict_sequence(self, spec):
+        y_pred = self.model.predict(spec)
         frame_predictions = y_pred[0][0] > self.hparams.predict_frame_threshold
         onset_predictions = y_pred[1][0] > self.hparams.predict_onset_threshold
         offset_predictions = y_pred[2][0] > self.hparams.predict_offset_threshold
@@ -177,6 +196,29 @@ class ModelWrapper:
             velocity_values=None,
             hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
         return sequence
+
+    def predict_from_spec(self, spec):
+        if self.type == ModelType.MIDI:
+            return self._predict_sequence(spec)
+        elif self.type == ModelType.TIMBRE:
+            return self._predict_timbre(spec)
+
+    def load_newest(self):
+        try:
+            model_weights = \
+            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} Model Weights *.hdf5'),
+                   key=os.path.getmtime)[-1]
+            model_history = \
+            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} History *.npy'),
+                   key=os.path.getmtime)[-1]
+            self.metrics.load_metrics(
+                np.load(model_history,
+                        allow_pickle=True)[0])
+            print('Loading pre-trained model: {}'.format(model_weights))
+            self.model.load_weights(model_weights)
+            print('Model loaded successfully')
+        except:
+            print(f'Couldn\'t load model weights')
 
     def load_model(self, frames_f1, onsets_f1=-1, id=-1, epoch_num=0):
         if not id:
@@ -219,4 +261,3 @@ class ModelWrapper:
             pass
 
         print(self.model.summary())
-

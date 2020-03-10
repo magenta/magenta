@@ -30,6 +30,15 @@ def binary_accuracy_wrapper(threshold):
 
     return acc
 
+def true_positive_wrapper(threshold):
+    def pos(labels, probs):
+        # return binary_accuracy(labels, probs, threshold)
+
+        return calculate_frame_metrics(labels, probs > threshold)['true_positives']
+
+
+    return pos
+
 def f1_wrapper(threshold):
     def f1(labels, probs):
         # return binary_accuracy(labels, probs, threshold)

@@ -77,6 +77,7 @@ class TimbrePredictionMetrics(MetricsCallback):
     def load_metrics(self, metrics_history):
         # convert to list of namedtuples
         self.metrics_history = [TimbrePredictionOutputMetrics(*x) for x in metrics_history]
+
     def predict(self, X, y):
         y_probs = self.model.predict_on_batch(X)
         print(y_probs + K.cast_to_floatx(y[0]))

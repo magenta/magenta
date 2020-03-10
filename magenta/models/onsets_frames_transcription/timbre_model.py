@@ -66,7 +66,7 @@ def get_default_hparams():
         'timbre_extra_conv': False,
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
-        'timbre_bottleneck_filter_num': 64,
+        'timbre_bottleneck_filter_num': 0,
         'timbre_gradient_exp': 16,
         'timbre_class_weights': {
             0: 16000 / 68955,

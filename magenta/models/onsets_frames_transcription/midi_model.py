@@ -10,7 +10,7 @@ from dotmap import DotMap
 import tensorflow.compat.v1 as tf
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper, \
-    f1_wrapper
+    f1_wrapper, true_positive_wrapper
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper, \
     log_loss_flattener
 from sklearn.metrics import f1_score
@@ -42,7 +42,7 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'batch_size': 4,
+        'batch_size': 8,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 1e-4,
@@ -67,7 +67,7 @@ def get_default_hparams():
         'pool_sizes': [1, 2, 2],
         'dropout_drop_amts': [0.0, 0.25, 0.25],
         'fc_size': 768,
-        'fc_dropout_drop_amt': 0.5,
+        'fc_dropout_drop_amt': 0.25,
         'use_lengths': False,
         'use_cudnn': True,
         'rnn_dropout_drop_amt': 0.0,
@@ -172,13 +172,10 @@ def midi_prediction_model(hparams=None):
 
     # Onset prediction model
     onset_conv = acoustic_model_layer(hparams)(inputs)
-    K.print_tensor(onset_conv.shape, 'onset_conv')
 
     onset_outputs = acoustic_dense_layer(hparams, hparams.onset_lstm_units)(onset_conv)
-    K.print_tensor(onset_outputs.shape, 'onset_outputs')
 
     onset_probs = midi_pitches_layer('onsets')(onset_outputs)
-    K.print_tensor(onset_probs.shape, 'onset_probs')
 
     # Offset prediction model
     offset_conv = acoustic_model_layer(hparams)(inputs)
