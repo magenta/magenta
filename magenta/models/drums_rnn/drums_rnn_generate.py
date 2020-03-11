@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Generate drum tracks from a trained checkpoint of a drums RNN model.
 
 Uses flags to define operation.
 """
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import ast
 import os

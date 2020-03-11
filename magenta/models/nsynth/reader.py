@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Module to load the Dataset."""
 
 from __future__ import absolute_import
@@ -23,6 +24,7 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 # FFT Specgram Shapes
+# pylint:disable=g-complex-comprehension
 SPECGRAM_REGISTRY = {
     (nfft, hop): shape for nfft, hop, shape in zip(
         [256, 256, 512, 512, 1024, 1024],
@@ -30,6 +32,7 @@ SPECGRAM_REGISTRY = {
         [[129, 1001, 2], [129, 501, 2], [257, 501, 2],
          [257, 251, 2], [513, 251, 2], [513, 126, 2]])
 }
+# pylint:enable=g-complex-comprehension
 
 
 class NSynthDataset(object):

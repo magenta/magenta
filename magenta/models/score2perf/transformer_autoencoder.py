@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Variations of Transformer autoencoder models for conditional music generation.
 
 The Transformer autoencoder consists of an encoder and a decoder. The models
@@ -22,6 +23,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import six
 from tensor2tensor.data_generators import text_encoder
 from tensor2tensor.layers import common_attention
 from tensor2tensor.layers import common_layers
@@ -459,7 +461,8 @@ class MelodyPerformanceTransformer(Transformer):
           recurrent_memory_by_layer=self.recurrent_memory_by_layer,
           chunk_number=chunk_number_each_example,
           )
-    decoder_output = self.decode(
+    decoder_output = six.ensure_text(
+        self,
         decoder_input,
         encoder_output,
         encoder_decoder_attention_bias,
@@ -467,8 +470,7 @@ class MelodyPerformanceTransformer(Transformer):
         hparams,
         nonpadding=features_to_nonpadding(features, "targets"),
         losses=losses,
-        **decode_kwargs
-        )
+        **decode_kwargs)
     expected_attentions = features.get("expected_attentions")
     if expected_attentions is not None:
       attention_loss = common_attention.encoder_decoder_attention_loss(
@@ -755,7 +757,8 @@ class BaselineMelodyTransformer(MelodyPerformanceTransformer):
           recurrent_memory_by_layer=self.recurrent_memory_by_layer,
           chunk_number=chunk_number_each_example,
           )
-    decoder_output = self.decode(
+    decoder_output = six.ensure_text(
+        self,
         decoder_input,
         encoder_output,
         encoder_decoder_attention_bias,
@@ -763,8 +766,7 @@ class BaselineMelodyTransformer(MelodyPerformanceTransformer):
         hparams,
         nonpadding=features_to_nonpadding(features, "targets"),
         losses=losses,
-        **decode_kwargs
-        )
+        **decode_kwargs)
     expected_attentions = features.get("expected_attentions")
     if expected_attentions is not None:
       attention_loss = common_attention.encoder_decoder_attention_loss(

@@ -12,10 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Transform one or multiple video in a set of frames.
 
 Files are prefixed by a f followed by the frame number.
 """
+from __future__ import absolute_import
+from __future__ import division
 from __future__ import print_function
 
 import argparse
@@ -23,6 +26,7 @@ import glob
 import os
 
 from PIL import Image
+import six
 import skvideo.io
 
 PARSER = argparse.ArgumentParser(description="""
@@ -136,7 +140,7 @@ def main(_):
   for video_filename in glob.glob(ARGS.video_in):
     print('start parsing', video_filename)
     data = skvideo.io.ffprobe(video_filename)['video']
-    rate_str = data['@r_frame_rate'].split('/')
+    rate_str = six.ensure_str(data['@r_frame_rate']).split('/')
     rate = float(rate_str[0]) / float(rate_str[1])
     print('detected frame rate:', rate)
 

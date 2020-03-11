@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """A MIDI interface to the sequence generators.
 
 Captures monophonic input MIDI sequences and plays back responses from the
@@ -34,6 +35,7 @@ from magenta.models.performance_rnn import performance_sequence_generator
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_generator
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
 from magenta.models.shared import sequence_generator_bundle
+import six
 from six.moves import input  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
 
@@ -195,7 +197,7 @@ class CCMapper(object):
 
   def __init__(self, cc_map, midi_hub_):
     self._cc_map = cc_map
-    self._signals = cc_map.keys()
+    self._signals = list(cc_map.keys())
     self._midi_hub = midi_hub_
     self._update_event = threading.Event()
 
@@ -216,7 +218,7 @@ class CCMapper(object):
       signal: The name of the signal to update the control change for.
       msg: The mido.Message whose control change the signal should be set to.
     """
-    if msg.control in self._cc_map.values():
+    if msg.control in list(self._cc_map.values()):
       print('Control number %d is already assigned. Ignoring.' % msg.control)
     else:
       self._cc_map[signal] = msg.control
@@ -329,8 +331,10 @@ def main(unused_argv):
                          playback_channel=FLAGS.playback_channel,
                          playback_offset=FLAGS.playback_offset)
 
-  control_map = {re.sub('_control_number$', '', f): FLAGS.__getattr__(f)
-                 for f in _CONTROL_FLAGS}
+  control_map = {
+      re.sub('_control_number$', '', six.ensure_str(f)): FLAGS.__getattr__(f)
+      for f in _CONTROL_FLAGS
+  }
   if FLAGS.learn_controls:
     CCMapper(control_map, hub).update_map()
 
