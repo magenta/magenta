@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Train a progressive GAN model.
 
 See https://arxiv.org/abs/1710.10196 for details about the model.
@@ -66,7 +67,7 @@ def get_stage_ids(**kwargs):
   # stage, i.e. start_stage_id = n - 1.
   start_stage_id = max(0, len(train_sub_dirs) - 1)
 
-  return range(start_stage_id, get_total_num_stages(**kwargs))
+  return list(range(start_stage_id, get_total_num_stages(**kwargs)))
 
 
 def get_total_num_stages(**kwargs):

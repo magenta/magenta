@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Image-related functions for style transfer."""
 
 from __future__ import absolute_import
@@ -28,8 +29,6 @@ import scipy
 import scipy.misc
 import tensorflow.compat.v1 as tf
 from tensorflow.contrib import slim as contrib_slim
-from tensorflow.python.framework import dtypes
-from tensorflow.python.ops import random_ops
 
 slim = contrib_slim
 
@@ -335,11 +334,11 @@ def arbitrary_style_image_inputs(style_dataset_file,
           image = tf.image.random_hue(image, max_delta=0.2)
           image = tf.image.random_flip_left_right(image)
           image = tf.image.random_flip_up_down(image)
-          random_larger_image_size = random_ops.random_uniform(
+          random_larger_image_size = tf.random_uniform(
               [],
               minval=image_size + 2,
               maxval=image_size + 200,
-              dtype=dtypes.int32)
+              dtype=tf.int32)
           image = _aspect_preserving_resize(image, random_larger_image_size)
           image = tf.random_crop(
               image, size=[image_size, image_size, image_channels])
@@ -370,11 +369,11 @@ def arbitrary_style_image_inputs(style_dataset_file,
         # Selects a random size for the style images and resizes all the images
         # in the batch to that size.
         image = _aspect_preserving_resize(image,
-                                          random_ops.random_uniform(
+                                          tf.random_uniform(
                                               [],
                                               minval=min_rand_image_size,
                                               maxval=max_rand_image_size,
-                                              dtype=dtypes.int32))
+                                              dtype=tf.int32))
 
       return image, label, image_orig
 

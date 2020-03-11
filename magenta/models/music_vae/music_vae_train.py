@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """MusicVAE training script."""
 
 from __future__ import absolute_import
@@ -176,7 +177,7 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      grads, var_list = zip(*optimizer.compute_gradients(model.loss))
+      grads, var_list = list(zip(*optimizer.compute_gradients(model.loss)))
       global_norm = tf.global_norm(grads)
       tf.summary.scalar('global_norm', global_norm)
 
@@ -193,7 +194,8 @@ def train(train_dir,
         raise ValueError(
             'Unknown clip_mode: {}'.format(config.hparams.clip_mode))
       train_op = optimizer.apply_gradients(
-          zip(clipped_grads, var_list), global_step=model.global_step,
+          list(zip(clipped_grads, var_list)),
+          global_step=model.global_step,
           name='train_step')
 
       logging_dict = {'global_step': model.global_step,

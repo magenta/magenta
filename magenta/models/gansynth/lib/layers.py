@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Layers for a progressive GAN model.
 
 This module contains basic building blocks to build a progressive GAN model.

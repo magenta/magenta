@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """LSTM-based encoders and decoders for MusicVAE."""
 
 from __future__ import absolute_import
@@ -30,9 +31,6 @@ import tensorflow_probability as tfp
 from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import seq2seq as contrib_seq2seq
 from tensorflow.contrib import training as contrib_training
-from tensorflow.python.framework import tensor_util
-from tensorflow.python.layers import core as layers_core
-from tensorflow.python.util import nest
 
 rnn = contrib_rnn
 seq2seq = contrib_seq2seq
@@ -298,7 +296,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._sampling_probability = lstm_utils.get_sampling_probability(
         hparams, is_training)
     self._output_depth = output_depth
-    self._output_layer = layers_core.Dense(
+    self._output_layer = tf.layers.Dense(
         output_depth, name='output_projection')
     self._dec_cell = lstm_utils.rnn_cell(
         hparams.dec_rnn_size, hparams.dropout_keep_prob,
@@ -434,8 +432,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     if c_input is None:
       c_input = tf.zeros([batch_size, tf.shape(x_input)[1], 0])
 
-    sampling_probability_static = tensor_util.constant_value(
-        self._sampling_probability)
+    sampling_probability_static = tf.constant(self._sampling_probability)
     if sampling_probability_static == 0.0:
       # Use teacher forcing.
       x_input = tf.concat([x_input, repeated_z, c_input], axis=2)
@@ -674,7 +671,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
         rnn_input=rnn_input,
         rnn_output=None,
         samples=samples,
-        final_state=nest.map_structure(
+        final_state=tf.nest.map_structure(
             lambda x: x[:, 0], final_state.cell_state),
         final_sequence_lengths=final_lengths[:, 0])
     return samples, results
@@ -693,6 +690,7 @@ class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):
   """
 
   def __init__(self, output_depths):
+    super(MultiOutCategoricalLstmDecoder, self).__init__()
     self._output_depths = output_depths
 
   def build(self, hparams, output_depth, is_training=True):
@@ -761,7 +759,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
 
   @property
   def state_size(self):
-    return nest.map_structure(
+    return tf.nest.map_structure(
         lambda *x: sum(x), *(cd.state_size for cd in self._core_decoders))
 
   def build(self, hparams, output_depth, is_training=True):
@@ -780,7 +778,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
     """Merge in the output dimension."""
     output_axis = -1
     assert decode_results
-    zipped_results = lstm_utils.LstmDecodeResults(*zip(*decode_results))
+    zipped_results = lstm_utils.LstmDecodeResults(*list(zip(*decode_results)))
     with tf.control_dependencies([
         tf.assert_equal(
             zipped_results.final_sequence_lengths, self.hparams.max_seq_len,
@@ -789,7 +787,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
       if zipped_results.final_state[0] is None:
         final_state = None
       else:
-        final_state = nest.map_structure(
+        final_state = tf.nest.map_structure(
             lambda x: tf.concat(x, axis=output_axis),
             zipped_results.final_state)
 
@@ -815,7 +813,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
             cd.reconstruction_loss(
                 split_x_input[i], split_x_target[i], x_length, z, c_input))
 
-    r_losses, metric_maps, decode_results = zip(*loss_outputs)
+    r_losses, metric_maps, decode_results = list(zip(*loss_outputs))
 
     # Merge the metric maps by passing through renamed values and taking the
     # mean across the splits.
@@ -862,7 +860,7 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
             start_inputs=split_start_inputs[i],
             **core_sampler_kwargs))
 
-    sample_ids, decode_results = zip(*sample_results)
+    sample_ids, decode_results = list(zip(*sample_results))
     return (tf.concat(sample_ids, axis=-1),
             self._merge_decode_results(decode_results))
 
@@ -876,7 +874,7 @@ class MultiLabelRnnNadeDecoder(BaseLstmDecoder):
     super(MultiLabelRnnNadeDecoder, self).build(
         hparams, output_depth, is_training)
     # Overwrite output layer for NADE parameterization.
-    self._output_layer = layers_core.Dense(
+    self._output_layer = tf.layers.Dense(
         self._nade.num_hidden + output_depth, name='output_projection')
 
   def _flat_reconstruction_loss(self, flat_x_target, flat_rnn_output):
@@ -961,7 +959,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     """
     # Check for explicit True/False since lists may be given.
     if disable_autoregression is True:  # pylint:disable=g-bool-id-comparison
-      disable_autoregression = range(len(level_lengths))
+      disable_autoregression = list(range(len(level_lengths)))
     elif disable_autoregression is False:  # pylint:disable=g-bool-id-comparison
       disable_autoregression = []
     if (hierarchical_encoder and
@@ -1009,7 +1007,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
     """Merge across time."""
     assert decode_results
     time_axis = 1
-    zipped_results = lstm_utils.LstmDecodeResults(*zip(*decode_results))
+    zipped_results = lstm_utils.LstmDecodeResults(*list(zip(*decode_results)))
     if zipped_results.rnn_output[0] is None:
       rnn_output = None
       rnn_input = None
@@ -1054,9 +1052,10 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
         if self._hierarchical_encoder:
           input_size = self._hierarchical_encoder.level(0).output_depth
         elif level == num_levels - 1:
-          input_size = sum(nest.flatten(self._core_decoder.state_size))
+          input_size = sum(tf.nest.flatten(self._core_decoder.state_size))
         else:
-          input_size = sum(nest.flatten(self._hier_cells[level + 1].state_size))
+          input_size = sum(
+              tf.nest.flatten(self._hier_cells[level + 1].state_size))
         next_input = tf.zeros([batch_size, input_size])
       lower_level_embeddings = []
       for i in range(num_steps):
@@ -1077,7 +1076,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
             sequence_length=tf.fill([batch_size], num_steps))
       else:
         # Return the final state.
-        return tf.concat(nest.flatten(state), axis=-1)
+        return tf.concat(tf.nest.flatten(state), axis=-1)
 
     return recursive_decode(z)
 
@@ -1183,13 +1182,13 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       elif self._disable_autoregression:
         return None
       else:
-        return tf.concat(nest.flatten(decode_results.final_state), axis=-1)
+        return tf.concat(tf.nest.flatten(decode_results.final_state), axis=-1)
 
     z = tf.zeros([batch_size, 0]) if z is None else z
     self._hierarchical_decode(z, base_train_fn)
 
     # Accumulate the split sequence losses.
-    r_losses, metric_maps, decode_results = zip(*loss_outputs)
+    r_losses, metric_maps, decode_results = list(zip(*loss_outputs))
 
     # Merge the metric maps by passing through renamed values and taking the
     # mean across the splits.
@@ -1271,7 +1270,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
             samples,
             decode_results.final_sequence_lengths)
       else:
-        return tf.concat(nest.flatten(decode_results.final_state), axis=-1)
+        return tf.concat(tf.nest.flatten(decode_results.final_state), axis=-1)
 
     # Populate `all_sample_ids`.
     self._hierarchical_decode(z, base_sample_fn)

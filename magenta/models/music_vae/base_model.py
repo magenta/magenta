@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Base Music Variational Autoencoder (MusicVAE) model."""
 
 from __future__ import absolute_import
@@ -20,6 +21,7 @@ from __future__ import print_function
 
 import abc
 
+import six
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from tensorflow.contrib import metrics as contrib_metrics
@@ -28,14 +30,13 @@ from tensorflow.contrib import training as contrib_training
 ds = tfp.distributions
 
 
-class BaseEncoder(object):
+class BaseEncoder(six.with_metaclass(abc.ABCMeta, object)):
   """Abstract encoder class.
 
     Implementations must define the following abstract methods:
      -`build`
      -`encode`
   """
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractproperty
   def output_depth(self):
@@ -67,7 +68,7 @@ class BaseEncoder(object):
     pass
 
 
-class BaseDecoder(object):
+class BaseDecoder(six.with_metaclass(abc.ABCMeta, object)):
   """Abstract decoder class.
 
   Implementations must define the following abstract methods:
@@ -75,8 +76,6 @@ class BaseDecoder(object):
      -`reconstruction_loss`
      -`sample`
   """
-
-  __metaclass__ = abc.ABCMeta
 
   @abc.abstractmethod
   def build(self, hparams, output_depth, is_training=True):
@@ -156,8 +155,7 @@ class MusicVAE(object):
     """
     tf.logging.info('Building MusicVAE model with %s, %s, and hparams:\n%s',
                     self.encoder.__class__.__name__,
-                    self.decoder.__class__.__name__,
-                    hparams.values())
+                    self.decoder.__class__.__name__, hparams.values())
     self.global_step = tf.train.get_or_create_global_step()
     self._hparams = hparams
     self._encoder.build(hparams, is_training)

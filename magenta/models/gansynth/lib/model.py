@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """GANSynth Model class definition.
 
 Exposes external API for generating samples and evaluation.

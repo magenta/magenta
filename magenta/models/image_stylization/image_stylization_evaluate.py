@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Evaluates the N-styles style transfer model."""
 
 from __future__ import absolute_import
@@ -182,7 +183,7 @@ def main(_):
         summary_op = tf.summary.scalar(name, value, [])
         print_op = tf.Print(summary_op, [value], name)
         tf.add_to_collection(tf.GraphKeys.SUMMARIES, print_op)
-      eval_op = names_updates.values()
+      eval_op = list(names_updates.values())
       num_evals = FLAGS.num_evals
     else:
       eval_op = None
