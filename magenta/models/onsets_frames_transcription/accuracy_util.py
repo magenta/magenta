@@ -1,10 +1,12 @@
 from collections import namedtuple
+from itertools import product
+
 import tensorflow as tf
 import tensorflow.keras.backend as K
 
 # 'name' should be a string
 # 'method' should be a string or a function
-from tensorflow.keras.losses import categorical_crossentropy
+from tensorflow.keras.losses import categorical_crossentropy, CategoricalCrossentropy, Reduction
 from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
 
@@ -60,7 +62,7 @@ def flatten_f1_wrapper(hparams):
 
         precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true,
                                                                    y_predictions,
-                                                                   average='weighted')  # TODO maybe 'macro'
+                                                                   average='macro')  # TODO maybe 'macro'
         scores = {
             'precision': K.constant(precision),
             'recall': K.constant(recall),
@@ -90,3 +92,36 @@ def flatten_accuracy_wrapper(hparams):
         rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
         return categorical_accuracy(rebatched_true, rebatched_pred)
     return flatten_accuracy_fn
+
+class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
+
+    def __init__(
+            self,
+            weights,
+            from_logits=False,
+            label_smoothing=0,
+            reduction=Reduction.SUM_OVER_BATCH_SIZE,
+            name='categorical_crossentropy',
+    ):
+        super().__init__(
+            from_logits, label_smoothing, reduction, name=f"weighted_{name}"
+        )
+        self.weights = weights
+
+    def call(self, y_true_unshaped, y_pred_unshaped):
+        y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
+        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_pred_unshaped.shape[-1]))
+
+        weights = self.weights
+        nb_cl = len(weights)
+        final_mask = K.zeros_like(y_pred[:, 0])
+        y_pred_max = K.max(y_pred, axis=1)
+        y_pred_max = K.reshape(
+            y_pred_max, (K.shape(y_pred)[0], 1))
+        y_pred_max_mat = K.cast(
+            K.equal(y_pred, y_pred_max), K.floatx())
+        for c_p, c_t in product(range(nb_cl), range(nb_cl)):
+            final_mask += (
+                    weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
+        return super().call(y_true, y_pred) * final_mask

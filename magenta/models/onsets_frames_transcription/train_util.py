@@ -28,6 +28,7 @@ import sys
 import six
 import tensorflow as tf
 import tensorflow.keras.backend as K
+import numpy as np
 
 # Should not be called from within the graph to avoid redundant summaries.
 from magenta.models.onsets_frames_transcription import audio_label_data_utils, constants
@@ -146,6 +147,8 @@ def train(data_fn,
         # model.load_model(15.49, id='no-bot', epoch_num=78)
         model.build_model()
         model.load_newest()
+        #model.load_model(5.17, id=hparams.model_id, epoch_num=8)
+
 
     for i in range(num_steps):
         model.train_and_save(epochs=1, epoch_num=i)
@@ -159,42 +162,61 @@ def transcribe(data_fn,
                path,
                file_suffix,
                hparams):
+    if data_fn:
+        transcription_data = data_fn(preprocess_examples=True,
+                                     is_training=False,
+                                     shuffle_examples=True,
+                                     skip_n_initial_records=0,
+                                     params=hparams)
+    else:
+        transcription_data = None
 
     if model_type == ModelType.MIDI:
-        midi_model = ModelWrapper(model_dir, ModelType.MIDI, id=hparams.model_id, hparams=hparams)
+        midi_model = ModelWrapper(model_dir, ModelType.MIDI, dataset=transcription_data,
+                                  batch_size=1, id=hparams.model_id, hparams=hparams)
         # midi_model.load_model(74.87, 82.45, 'weights-zero')
         # midi_model.load_model(82.94, 80.47, id='big-lstm-for-f1', epoch_num=149)
         midi_model.build_model()
         midi_model.load_newest()
     elif model_type == ModelType.TIMBRE:
-        hparams.nsynth_batch_size = 1
         timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, id=hparams.model_id,
+                                    dataset=transcription_data, batch_size=1,
                                     hparams=hparams)
         timbre_model.build_model()
         timbre_model.load_newest()
 
-    filenames = glob.glob(path)
+    if data_fn:
+        while True:
+            if model_type == ModelType.MIDI:
+                x, _ = midi_model.generator.get()
+                sequence_prediction = midi_model.predict_from_spec(x[0])
+                midi_filename = path + file_suffix + '.midi'
+                midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
+            elif model_type == ModelType.TIMBRE:
+                x, y = timbre_model.generator.get()
+                timbre_prediction = K.get_value(timbre_model.predict_from_spec(*x))[0]
+                print(f'True: {x[1][0][0]}{constants.FAMILY_IDX_STRINGS[np.argmax(y[0][0])]}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
+    else:
+        filenames = glob.glob(path)
 
-    for filename in filenames:
-        wav_data = tf.io.gfile.GFile(filename, 'rb').read()
+        for filename in filenames:
+            wav_data = tf.io.gfile.GFile(filename, 'rb').read()
 
+            if model_type == ModelType.MIDI:
+                spec = wav_to_spec_op(wav_data, hparams=hparams)
 
-
-        if model_type == ModelType.MIDI:
-            spec = wav_to_spec_op(wav_data, hparams=hparams)
-
-            # add "batch" and channel dims
-            spec = tf.reshape(spec, (1, *spec.shape, 1))
-            sequence_prediction = midi_model.predict_from_spec(spec)
-            midi_filename = filename + file_suffix + '.midi'
-            midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
-        elif model_type == ModelType.TIMBRE:
-            y = audio_io.wav_data_to_samples(wav_data, hparams.sample_rate)
-            spec = create_spectrogram(K.constant(y), hparams)
-            # add "batch" and channel dims
-            spec = tf.reshape(spec, (1, *spec.shape, 1))
-            timbre_prediction = K.get_value(timbre_model.predict_from_spec(spec))[0]
-            print(f'File: {filename}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
+                # add "batch" and channel dims
+                spec = tf.reshape(spec, (1, *spec.shape, 1))
+                sequence_prediction = midi_model.predict_from_spec(spec)
+                midi_filename = filename + file_suffix + '.midi'
+                midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
+            elif model_type == ModelType.TIMBRE:
+                y = audio_io.wav_data_to_samples(wav_data, hparams.sample_rate)
+                spec = create_spectrogram(K.constant(y), hparams)
+                # add "batch" and channel dims
+                spec = tf.reshape(spec, (1, *spec.shape, 1))
+                timbre_prediction = K.get_value(timbre_model.predict_from_spec(spec))[0]
+                print(f'File: {filename}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
 
 
 def evaluate(data_fn,

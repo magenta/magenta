@@ -94,7 +94,8 @@ if FLAGS.using_plaidml:
 
     plaidml.keras.install_backend()
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs, nsynth_reader, model_util
+from magenta.models.onsets_frames_transcription import data, train_util, configs, nsynth_reader, \
+    model_util
 
 
 def run(config_map, data_fn, additional_trial_info):
@@ -147,9 +148,11 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    provide_batch_fn = data.provide_batch if model_util.ModelType[FLAGS.model_type] == model_util.ModelType.MIDI \
+    provide_batch_fn = data.provide_batch if model_util.ModelType[
+                                                 FLAGS.model_type] == model_util.ModelType.MIDI \
         else nsynth_reader.provide_batch
-    data_fn = functools.partial(provide_batch_fn, examples=FLAGS.examples_path)
+    data_fn = functools.partial(provide_batch_fn, examples=FLAGS.examples_path) \
+        if FLAGS.examples_path else None
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)

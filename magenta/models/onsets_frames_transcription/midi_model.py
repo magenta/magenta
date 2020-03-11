@@ -51,7 +51,7 @@ def get_default_hparams():
         'onset_lstm_units': 256,
         'offset_lstm_units': 256,
         'velocity_lstm_units': 0,
-        'frame_lstm_units': 256,
+        'frame_lstm_units': 0,
         'combined_lstm_units': 256,
         'acoustic_rnn_stack_size': 1,
         'combined_rnn_stack_size': 1,
@@ -201,7 +201,7 @@ def midi_prediction_model(hparams=None):
 
     if hparams.combined_lstm_units > 0:
         outputs = lstm_layer(hparams.combined_lstm_units,
-                             stack_size=hparams.acoustic_rnn_stack_size)(combined_probs)
+                             stack_size=hparams.combined_rnn_stack_size)(combined_probs)
     else:
         outputs = combined_probs
 

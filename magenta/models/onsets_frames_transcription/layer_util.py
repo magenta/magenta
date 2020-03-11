@@ -76,7 +76,7 @@ def high_pass_filter(input_list):
     spec = input_list[0]
     hp = input_list[1]
 
-    seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.SPEC_BANDS)), tf.float32)
+    seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.TIMBRE_SPEC_BANDS)), tf.float32)
     seq_mask = K.expand_dims(seq_mask, 3)
     return Multiply()([spec, seq_mask])
 
@@ -141,7 +141,7 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     broadcasted_spec = K.expand_dims(conv_output, axis=0)
     gathered_pitches = tf.gather(note_croppings, indices=0, axis=1) \
                        * K.int_shape(conv_output)[1] \
-                       / constants.SPEC_BANDS
+                       / constants.TIMBRE_SPEC_BANDS
     pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
         K.expand_dims(
             K.cast(

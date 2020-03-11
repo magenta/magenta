@@ -114,7 +114,7 @@ class ModelWrapper:
 
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
-            if self.type == ModelType.MIDI:
+            if self.type == ModelType.MIDI or not self.hparams.timbre_coagulate_mini_batches:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
                 class_weights = self.hparams.timbre_class_weights
@@ -135,10 +135,10 @@ class ModelWrapper:
             spec = K.pool2d(x[0], (temporal_ds, freq_ds), (temporal_ds, freq_ds), padding='same')
             croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
                                                        x[2][batch_idx], self.hparams, temporal_ds)
-            plt.figure(figsize=(16, 12))
+            plt.figure(figsize=(12, 8))
             num_crops = min(3, x[2][batch_idx].numpy())
             plt.subplot(int(num_crops / 2 + 1), 2, 1)
-            y_axis = 'cqt_note' if self.hparams.spec_type == 'cqt' else 'mel'
+            y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
             librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
                 y_axis=y_axis,
                 hop_length=self.hparams.timbre_hop_length,
@@ -165,15 +165,20 @@ class ModelWrapper:
                 tf.transpose(tf.reshape(spec_batch[i], spec_batch[i].shape[0:-1])).numpy())
         return db
 
-    def _predict_timbre(self, spec):
-        pitch = get_cqt_index(K.constant(librosa.note_to_midi('C3')), self.hparams)
-        start_idx = 0
-        end_idx = self.hparams.timbre_hop_length * spec.shape[1]
-        note_croppings = [NoteCropping(pitch=pitch,
-                                       start_idx=start_idx,
-                                       end_idx=end_idx)]
-        note_croppings = tf.reshape(note_croppings, (1, 1, 3))
-        num_notes = tf.expand_dims(1, axis=0)
+    def predict_next(self):
+        x, _ = self.generator.get()
+        return self.predict_from_spec(*x)
+
+    def _predict_timbre(self, spec, note_croppings=None, num_notes=None):
+        if note_croppings is None or num_notes is None:
+            pitch = get_cqt_index(K.constant(librosa.note_to_midi('C3')), self.hparams)
+            start_idx = 0
+            end_idx = self.hparams.timbre_hop_length * spec.shape[1]
+            note_croppings = [NoteCropping(pitch=pitch,
+                                           start_idx=start_idx,
+                                           end_idx=end_idx)]
+            note_croppings = tf.reshape(note_croppings, (1, 1, 3))
+            num_notes = tf.expand_dims(1, axis=0)
 
         self.plot_spectrograms([spec, note_croppings, num_notes])
 
@@ -198,11 +203,11 @@ class ModelWrapper:
             hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
         return sequence
 
-    def predict_from_spec(self, spec):
+    def predict_from_spec(self, spec, num_croppings=None, num_notes=None, *args):
         if self.type == ModelType.MIDI:
             return self._predict_sequence(spec)
         elif self.type == ModelType.TIMBRE:
-            return self._predict_timbre(spec)
+            return self._predict_timbre(spec, num_croppings, num_notes)
 
     def load_newest(self, id=''):
         try:
