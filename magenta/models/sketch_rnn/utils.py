@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """SketchRNN data loading and image manipulation utilities."""
 
 from __future__ import absolute_import
@@ -303,7 +304,8 @@ class DataLoader(object):
 
   def random_batch(self):
     """Return a randomised portion of the training data."""
-    idx = np.random.permutation(range(0, len(self.strokes)))[0:self.batch_size]
+    idx = np.random.permutation(
+        list(range(0, len(self.strokes))))[0:self.batch_size]
     return self._get_batch_from_indices(idx)
 
   def get_batch(self, idx):
@@ -311,7 +313,7 @@ class DataLoader(object):
     assert idx >= 0, "idx must be non negative"
     assert idx < self.num_batches, "idx must be less than the number of batches"
     start_idx = idx * self.batch_size
-    indices = range(start_idx, start_idx + self.batch_size)
+    indices = list(range(start_idx, start_idx + self.batch_size))
     return self._get_batch_from_indices(indices)
 
   def pad_batch(self, batch, max_len):

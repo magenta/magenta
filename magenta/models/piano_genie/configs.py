@@ -12,11 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Hyperparameter configurations for Piano Genie."""
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+import six
 
 
 class BasePianoGenieConfig(object):
@@ -433,7 +435,7 @@ def get_named_config(name, overrides=None):
   cfg = _named_configs[name]
 
   if overrides is not None and overrides.strip():
-    overrides = [p.split("=") for p in overrides.split(",")]
+    overrides = [p.split("=") for p in six.ensure_str(overrides).split(",")]
     for key, val in overrides:
       val_type = type(getattr(cfg, key))
       if val_type == bool:
@@ -445,7 +447,7 @@ def get_named_config(name, overrides=None):
 
   summary = "\n".join([
       "{},{}".format(k, v)
-      for k, v in sorted(vars(cfg).items(), key=lambda x: x[0])
+      for k, v in sorted(list(vars(cfg).items()), key=lambda x: x[0])
   ])
 
   return cfg, summary

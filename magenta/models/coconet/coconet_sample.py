@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Generate from trained model from scratch or condition on a partial score."""
 
 from __future__ import absolute_import
@@ -658,7 +659,7 @@ def parse_art_to_pianoroll(art, tt=None):
       assert match.group("octave")
       klass = match.group("class")
       octave = int(match.group("octave"))
-      cycle = reversed(list(it.product(range(octave + 1), klasses)))
+      cycle = reversed(list(it.product(list(range(octave + 1)), klasses)))
       cycle = list(cycle)
       print(cycle)
       cycle = it.dropwhile(lambda ok: ok[1] != match.group("class"), cycle)  # pylint: disable=cell-var-from-loop

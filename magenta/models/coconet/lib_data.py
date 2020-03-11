@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Classes for datasets and batches."""
 from __future__ import absolute_import
 from __future__ import division
@@ -172,7 +173,8 @@ class Batch(object):
     """
     assert set(kwargs.keys()) == self.keys
     assert all(
-        len(value) == len(kwargs.values()[0]) for value in kwargs.values())
+        len(value) == len(list(kwargs.values())[0])
+        for value in kwargs.values())
     self.features = kwargs
 
   def get_feed_dict(self, placeholders):

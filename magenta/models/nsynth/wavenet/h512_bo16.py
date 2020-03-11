@@ -21,7 +21,6 @@ from __future__ import print_function
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet import masked
-from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
 
 

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """SketchRNN training."""
 
 from __future__ import absolute_import
@@ -432,7 +433,7 @@ def trainer(model_params):
 
   tf.logging.info('sketch-rnn')
   tf.logging.info('Hyperparams:')
-  for key, val in six.iteritems(model_params.values()):
+  for key, val in six.iteritems(list(model_params.values())):
     tf.logging.info('%s = %s', key, str(val))
   tf.logging.info('Loading data files.')
   datasets = load_dataset(FLAGS.data_dir, model_params)
@@ -457,7 +458,7 @@ def trainer(model_params):
   tf.gfile.MakeDirs(FLAGS.log_root)
   with tf.gfile.Open(
       os.path.join(FLAGS.log_root, 'model_config.json'), 'w') as f:
-    json.dump(model_params.values(), f, indent=True)
+    json.dump(list(model_params.values()), f, indent=True)
 
   train(sess, model, eval_model, train_set, valid_set, test_set)
 

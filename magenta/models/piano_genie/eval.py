@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Piano Genie continuous eval script."""
 
 from __future__ import absolute_import
@@ -246,7 +247,7 @@ def main(unused_argv):
       print("-" * 80)
       print("Ckpt: {}".format(FLAGS.ckpt_fp))
       print("Step: {}".format(ckpt_step))
-      for n, l in sorted(ckpt_summaries.items(), key=lambda x: x[0]):
+      for n, l in sorted(list(ckpt_summaries.items()), key=lambda x: x[0]):
         print("{}: {}".format(n, np.mean(l)))
 
 
