@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Provides function to build an RNN-NADE model's graph."""
 
 import collections
@@ -23,9 +24,6 @@ import tensorflow.compat.v1 as tf
 from tensorflow.contrib import metrics as contrib_metrics
 from tensorflow.contrib import seq2seq as contrib_seq2seq
 from tensorflow.contrib import slim as contrib_slim
-from tensorflow.python.layers import base as tf_layers_base
-from tensorflow.python.layers import core as tf_layers_core
-from tensorflow.python.util import nest as tf_nest
 
 _RnnNadeStateTuple = collections.namedtuple(
     'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
@@ -68,14 +66,14 @@ class RnnNade(object):
   def __init__(self, rnn_cell, num_dims, num_hidden):
     self._num_dims = num_dims
     self._rnn_cell = rnn_cell
-    self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
+    self._fc_layer = tf.layers.Dense(units=num_dims + num_hidden)
     self._nade = Nade(num_dims, num_hidden)
 
   def _get_rnn_zero_state(self, batch_size):
     """Return a tensor or tuple of tensors for an initial rnn state."""
     return self._rnn_cell.zero_state(batch_size, tf.float32)
 
-  class SampleNadeLayer(tf_layers_base.Layer):
+  class SampleNadeLayer(tf.layers.Layer):
     """Layer that computes samples from a NADE."""
 
     def __init__(self, nade, name=None, **kwargs):
@@ -338,9 +336,9 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       tf.add_to_collection('log_prob', log_prob)
 
       # Flatten state tuples for metagraph compatibility.
-      for state in tf_nest.flatten(initial_state):
+      for state in tf.nest.flatten(initial_state):
         tf.add_to_collection('initial_state', state)
-      for state in tf_nest.flatten(final_state):
+      for state in tf.nest.flatten(final_state):
         tf.add_to_collection('final_state', state)
 
   return build

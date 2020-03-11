@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Evaluates a real-time arbitrary image stylization model.
 
 For example of usage see README.md.
@@ -115,13 +116,13 @@ def main(_):
                      stylized_noise, 3)
 
     metrics = {}
-    for key, value in loss_dict.iteritems():
+    for key, value in loss_dict.items():
       metrics[key] = tf.metrics.mean(value)
 
     names_values, names_updates = slim.metrics.aggregate_metric_map(metrics)
-    for name, value in names_values.iteritems():
+    for name, value in names_values.items():
       slim.summaries.add_scalar_summary(value, name, print_summary=True)
-    eval_op = names_updates.values()
+    eval_op = list(names_updates.values())
     num_evals = FLAGS.num_evaluation_styles / FLAGS.batch_size
 
     slim.evaluation.evaluation_loop(

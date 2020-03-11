@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Trains a real-time arbitrary image stylization model.
 
 For example of usage see start_training_locally.sh and start_training_on_borg.sh
@@ -113,7 +114,7 @@ def main(unused_argv=None):
           total_variation_weight=FLAGS.total_variation_weight)
 
       # Adding scalar summaries to the tensorboard.
-      for key, value in loss_dict.iteritems():
+      for key, value in loss_dict.items():
         tf.summary.scalar(key, value)
 
       # Adding Image summaries to the tensorboard.

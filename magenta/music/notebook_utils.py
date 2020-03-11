@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Python functions which run only within a Jupyter or Colab notebook."""
 
 from __future__ import absolute_import
@@ -30,6 +31,7 @@ from magenta.music import midi_synth
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
+import six
 from six.moves import urllib
 import tensorflow.compat.v1 as tf
 
@@ -65,7 +67,8 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
             </audio>"""
   html = html.format(
       autoplay='autoplay' if autoplay else '',
-      base64_wavfile=base64.b64encode(memfile.getvalue()).decode('ascii'))
+      base64_wavfile=six.ensure_text(
+          base64.b64encode(memfile.getvalue()), 'ascii'))
   memfile.close()
   global _play_id
   _play_id += 1

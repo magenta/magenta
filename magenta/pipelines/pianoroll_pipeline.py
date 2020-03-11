@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Pipeline to create Pianoroll dataset."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import magenta.music as mm
 from magenta.music import PianorollSequence
@@ -59,7 +64,7 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
     A pipeline.Pipeline instance.
   """
   # Transpose up to a major third in either direction.
-  transposition_range = range(-4, 5)
+  transposition_range = list(range(-4, 5))
 
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
@@ -146,7 +151,7 @@ def extract_pianoroll_sequences(
     programs.add(note.program)
   if len(programs) > 1:
     stats['pianoroll_tracks_discarded_more_than_1_program'].increment()
-    return [], stats.values()
+    return [], list(stats.values())
 
   # Translate the quantized sequence into a PianorollSequence.
   pianoroll_seq = PianorollSequence(quantized_sequence=quantized_sequence,
@@ -166,4 +171,4 @@ def extract_pianoroll_sequences(
     pianoroll_seqs.append(pianoroll_seq)
     stats['pianoroll_track_lengths_in_bars'].increment(
         num_steps // steps_per_bar)
-  return pianoroll_seqs, stats.values()
+  return pianoroll_seqs, list(stats.values())

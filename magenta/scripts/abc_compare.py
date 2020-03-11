@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Compare a directory of abc and midi files.
 
 Assumes a directory of abc files converted with something like:

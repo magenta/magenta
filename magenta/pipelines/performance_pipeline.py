@@ -12,7 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Pipeline to create Performance dataset."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import magenta
 from magenta.music import MetricPerformance
@@ -55,15 +60,15 @@ class EncoderPipeline(pipeline.Pipeline):
       control_sequences = []
       for control in self._control_signals:
         control_sequences.append(control.extract(performance))
-      control_sequence = zip(*control_sequences)
+      control_sequence = list(zip(*control_sequences))
       if self._optional_conditioning:
         # Create two copies, one with and one without conditioning.
         # pylint: disable=g-complex-comprehension
         encoded = [
             self._encoder_decoder.encode(
-                zip([disable] * len(control_sequence), control_sequence),
-                performance)
-            for disable in [False, True]]
+                list(zip([disable] * len(control_sequence), control_sequence)),
+                performance) for disable in [False, True]
+        ]
         # pylint: enable=g-complex-comprehension
       else:
         encoded = [self._encoder_decoder.encode(
@@ -115,7 +120,7 @@ def get_pipeline(config, min_events, max_events, eval_ratio):
   stretch_factors = [0.95, 0.975, 1.0, 1.025, 1.05]
 
   # Transpose no more than a major third.
-  transposition_range = range(-3, 4)
+  transposition_range = list(range(-3, 4))
 
   partitioner = pipelines_common.RandomPartition(
       music_pb2.NoteSequence,
@@ -218,7 +223,7 @@ def extract_performances(
       programs.add(note.program)
     if len(programs) > 1:
       stats['performances_discarded_more_than_1_program'].increment()
-      return [], stats.values()
+      return [], list(stats.values())
 
   performances = []
 
@@ -265,4 +270,4 @@ def extract_performances(
         stats['performance_lengths_in_bars'].increment(
             performance.num_steps // steps_per_bar)
 
-  return performances, stats.values()
+  return performances, list(stats.values())
