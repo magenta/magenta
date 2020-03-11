@@ -1260,10 +1260,11 @@ def get_dataset(
 
   if note_sequence_augmenter is not None:
     dataset = dataset.map(note_sequence_augmenter.tf_augment)
+
   dataset = (dataset
              .map(data_converter.tf_to_tensors,
                   num_parallel_calls=tf.data.experimental.AUTOTUNE)
-             .flat_map(lambda *t: tf.data.Dataset.from_tensor_slices(t))
+             .unbatch()
              .map(_remove_pad_fn,
                   num_parallel_calls=tf.data.experimental.AUTOTUNE))
   if cache_dataset:
