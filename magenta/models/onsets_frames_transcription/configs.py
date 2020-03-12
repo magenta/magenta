@@ -104,3 +104,12 @@ DATASET_CONFIG_MAP['maestro'] = [
         num_mixes=None,
         process_for_training=False),
 ]
+
+DATASET_CONFIG_MAP['slakh'] = [
+    DatasetConfig(
+        'train',
+        'E:/Datasets/slakh'
+        'train.tfrecord@20',
+        num_mixes=None,
+        process_for_training=True),
+]
