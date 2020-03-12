@@ -1,3 +1,5 @@
+import math
+
 import tensorflow as tf
 from intervaltree.node import l2
 
@@ -74,7 +76,7 @@ def high_pass_filter(input_list):
     spec = input_list[0]
     hp = input_list[1]
 
-    seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.SPEC_BANDS)), tf.float32)
+    seq_mask = K.cast(tf.math.logical_not(tf.sequence_mask(hp, constants.TIMBRE_SPEC_BANDS)), tf.float32)
     seq_mask = K.expand_dims(seq_mask, 3)
     return Multiply()([spec, seq_mask])
 
@@ -86,7 +88,9 @@ def normalize_and_weigh(inputs, num_notes, pitches, hparams):
     gradient_pitch_mask = K.expand_dims(K.cast(gradient_pitch_mask, 'float64'), 0)
     gradient_pitch_mask = tf.repeat(gradient_pitch_mask, axis=0, repeats=num_notes)
     gradient_pitch_mask = gradient_pitch_mask + K.expand_dims(pitches / K.int_shape(inputs)[-2], -1)
-    gradient_pitch_mask = tf.minimum(gradient_pitch_mask ** hparams.timbre_gradient_exp, 1.0)
+    exp = math.log(hparams.timbre_gradient_exp) if hparams.timbre_spec_log_amplitude \
+        else hparams.timbre_gradient_exp
+    gradient_pitch_mask = tf.minimum(gradient_pitch_mask ** exp, 1.0)
     gradient_pitch_mask = K.expand_dims(gradient_pitch_mask, 1)
     gradient_pitch_mask = K.expand_dims(gradient_pitch_mask, -1)
     gradient_product = Multiply()([inputs, gradient_pitch_mask])
@@ -134,11 +138,10 @@ def get_all_croppings(input_list, hparams):
 # num notes tells us how many crops to make
 def get_croppings_for_single_image(conv_output, note_croppings,
                                    num_notes, hparams=None, temporal_scale=1.0):
-    repeated_conv_output = tf.repeat(K.expand_dims(conv_output, axis=0),
-                                     num_notes, axis=0)
+    broadcasted_spec = K.expand_dims(conv_output, axis=0)
     gathered_pitches = tf.gather(note_croppings, indices=0, axis=1) \
                        * K.int_shape(conv_output)[1] \
-                       / constants.SPEC_BANDS
+                       / constants.TIMBRE_SPEC_BANDS
     pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
         K.expand_dims(
             K.cast(
@@ -173,10 +176,22 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     start_mask = K.permute_dimensions(start_mask, (0, 2, 1))
     # constant pitch for left mask
     start_mask = K.expand_dims(start_mask, 2)
-    mask = Multiply()([repeated_conv_output, pitch_mask])
+
+    # expand dims so we can multiply different batch sizes
+    broadcasted_spec = K.expand_dims(broadcasted_spec, 0)
+    pitch_mask = K.expand_dims(pitch_mask, 0)
+    start_mask = K.expand_dims(start_mask, 0)
+    end_mask = K.expand_dims(end_mask, 0)
+
+    # do the masking
+    mask = Multiply()([broadcasted_spec, pitch_mask])
     mask = Multiply()([mask, start_mask])
     mask = Multiply()([mask, end_mask])
 
+    # remove the extra fake batch dimension
+    mask = tf.reshape(mask, K.shape(mask)[1:])
+
     mask = normalize_and_weigh(mask, num_notes, gathered_pitches, hparams)
+
     # Tell downstream layers to skip timesteps that are fully masked out
     return Masking(mask_value=0.0)(mask)

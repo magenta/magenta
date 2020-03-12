@@ -28,29 +28,33 @@ def parse_nsynth_example(example_proto):
 
 def create_spectrogram(audio, hparams):
     audio = audio.numpy()
-    if hparams.spec_type == 'mel':
+    if hparams.timbre_spec_type == 'mel':
         spec = librosa.feature.melspectrogram(
             audio,
             hparams.sample_rate,
             hop_length=hparams.timbre_hop_length,
             fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
             fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
-            n_mels=hparams.spec_n_bins,
-            pad_mode='constant',
-            htk=hparams.spec_mel_htk).T
+            n_mels=constants.TIMBRE_SPEC_BANDS,
+            pad_mode='symmetric',
+            htk=hparams.spec_mel_htk,
+            power=2
+        ).T
+        spec = librosa.power_to_db(spec)
+
     else:
         spec = librosa.core.cqt(
             audio,
             hparams.sample_rate,
             hop_length=hparams.timbre_hop_length,
             fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
-            n_bins=constants.SPEC_BANDS,
+            n_bins=constants.TIMBRE_SPEC_BANDS,
             bins_per_octave=constants.BINS_PER_OCTAVE,
-            pad_mode='constant'
+            pad_mode='symmetric'
         ).T
+        spec = librosa.amplitude_to_db(np.abs(spec))
 
     # convert amplitude to power
-    spec = librosa.amplitude_to_db(np.abs(spec))
     if hparams.timbre_spec_log_amplitude:
         spec = spec - librosa.power_to_db(np.array([0]))[0]
     else:
@@ -59,7 +63,7 @@ def create_spectrogram(audio, hparams):
 
 
 def get_cqt_index(pitch, hparams):
-    frequencies = librosa.cqt_frequencies(hparams.spec_n_bins,
+    frequencies = librosa.cqt_frequencies(constants.TIMBRE_SPEC_BANDS,
                                           fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
                                           bins_per_octave=constants.BINS_PER_OCTAVE)
 
@@ -67,7 +71,7 @@ def get_cqt_index(pitch, hparams):
 
 
 def get_mel_index(pitch, hparams):
-    frequencies = librosa.mel_frequencies(hparams.spec_n_bins,
+    frequencies = librosa.mel_frequencies(constants.TIMBRE_SPEC_BANDS,
                                           fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
                                           fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
                                           htk=hparams.spec_mel_htk)
@@ -88,7 +92,7 @@ def nsynth_input_tensors_to_model_input(
         input_tensors, hparams, is_training):
     """Processes an InputTensor into FeatureTensors and LabelTensors."""
     # length = tf.cast(input_tensors['length'], tf.int32)
-    spec = tf.reshape(input_tensors['spec'], (-1, hparams_frame_size(hparams), 1))
+    spec = tf.reshape(input_tensors['spec'], (-1, constants.TIMBRE_SPEC_BANDS, 1))
     note_croppings = input_tensors['note_croppings']
     instrument_families = input_tensors['instrument_families']
     num_notes = input_tensors['num_notes']
@@ -117,7 +121,7 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
     instrument_family_list = []
     audios = []
     max_length = 0
-    pitch_idx_fn = get_cqt_index if hparams.spec_type == 'cqt' else get_mel_index
+    pitch_idx_fn = get_cqt_index if hparams.timbre_spec_type == 'cqt' else get_mel_index
     for i in range(instrument_count):
         # otherwise move the audio so diff attack times
         pitch = tensor['pitch'][i]
