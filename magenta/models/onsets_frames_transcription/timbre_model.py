@@ -22,9 +22,9 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import he_normal, VarianceScaling
     from keras.layers import BatchNormalization, Conv2D, \
-        Dense, Dropout, \
-        Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional
+    Dense, Dropout, \
+    Input, concatenate, Lambda, Reshape, LSTM, \
+    Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -33,7 +33,7 @@ else:
     from tensorflow.keras.layers import BatchNormalization, Conv2D, \
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
@@ -60,6 +60,7 @@ def get_default_hparams():
         'timbre_dropout_drop_amts': [0.0, 0.0, 0.0],
         'timbre_rnn_dropout_drop_amt': 0.0,
         'timbre_fc_size': 256,
+        'timbre_penultimate_fc_size': 512,
         'timbre_fc_num_layers': 2,
         'timbre_fc_dropout_drop_amt': 0.0,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
@@ -69,10 +70,11 @@ def get_default_hparams():
         'timbre_leaky_alpha': 0.33,  # per han et al 2016 OR no negatives
         'timbre_sharing_conv': True,
         'timbre_extra_conv': False,
-        'timbre_global_pool': 0,
+        'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
         'timbre_bottleneck_filter_num': 0,
         'timbre_gradient_exp': 16,  # 16 for cqt no-log
+        'timbre_spec_epsilon': 1e-8,
         'timbre_class_weights_list': [
             16000 / 68955,
             16000 / 13830,
@@ -200,7 +202,10 @@ def acoustic_dense_layer(hparams):
                                                          hparams.timbre_l2_regularizer),
                                                      name=f'acoustic_dense_{i}'),
                                                hparams=hparams)(outputs)
-            outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
+            if i < hparams.timbre_fc_num_layers - 1:
+                outputs = bn_elu_fn(outputs)
+            else:
+                outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
         return outputs
 
     return acoustic_dense_fn
@@ -236,7 +241,7 @@ def timbre_prediction_model(hparams=None):
         hparams.timbre_input_shape[0], hparams.timbre_input_shape[1],
         hparams.timbre_input_shape[2],)
 
-    inputs = Input(shape=input_shape,
+    spec = Input(shape=input_shape,
                    name='spec')
 
     # batched dimensions for cropping like:
@@ -248,13 +253,15 @@ def timbre_prediction_model(hparams=None):
     num_notes = Input(shape=(1,),
                       name='num_notes', dtype='int64')
 
+    spec_with_epsilon = spec + hparams.timbre_spec_epsilon
+
     if hparams.timbre_architecture == 'vh':
-        vertical_outputs = vertical_layer(hparams)(inputs)
+        vertical_outputs = vertical_layer(hparams)(spec_with_epsilon)
         filter_outputs = horizontal_layer(hparams)(vertical_outputs)
     else:
         # acoustic_outputs shape: (None, None, 57, 128)
         # aka: (batch_size, length, freq_range, num_channels)
-        acoustic_outputs = acoustic_model_layer(hparams)(inputs)
+        acoustic_outputs = acoustic_model_layer(hparams)(spec_with_epsilon)
 
         if hparams.timbre_sharing_conv:
             # filter_outputs shape: (None, None, 57, 448)
@@ -263,7 +270,6 @@ def timbre_prediction_model(hparams=None):
         else:
             # if we aren't sharing the large filters, then just pass the simple conv output
             filter_outputs = acoustic_outputs
-
 
     # simplify to save memory
     if hparams.timbre_bottleneck_filter_num:
@@ -309,6 +315,11 @@ def timbre_prediction_model(hparams=None):
             pooled_outputs)
         timeless_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
 
+        non_normalized_outputs = time_distributed_wrapper(
+            Dense(hparams.timbre_penultimate_fc_size, kernel_initializer=VarianceScaling()), hparams)(
+            timeless_outputs)
+        non_normalized_outputs = ELU(hparams.timbre_leaky_alpha)(non_normalized_outputs)
+
     else:
         flattened_outputs = time_distributed_wrapper(Reshape(
             (-1, K.int_shape(pooled_outputs)[-2] * K.int_shape(pooled_outputs)[-1])),
@@ -317,24 +328,23 @@ def timbre_prediction_model(hparams=None):
 
         dense_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
 
-        # K.print_tensor(dense_outputs.shape, 'dense_outputs')
         # shape: (None, None, 512)
         # aka: (batch_size, num_notes, lstm_units)
         timeless_outputs = lstm_layer(hparams=hparams)(dense_outputs)
-        # K.print_tensor(timeless_outputs.shape, 'lstm_outputs')
+        non_normalized_outputs = ELU(hparams.timbre_leaky_alpha)(timeless_outputs)
 
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
-    instrument_family_probs = instrument_prediction_layer(hparams)(timeless_outputs)
-    # K.print_tensor(instrument_family_probs.shape, 'instrument_family_probs')
+    instrument_family_probs = instrument_prediction_layer(hparams)(non_normalized_outputs)
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 
     # weigh based on predicted value (expand on 0) instead?
     losses = {'family_probs': WeightedCategoricalCrossentropy(
-        weights=tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1), len(hparams.timbre_class_weights_list), axis=-1))}
+        weights=tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
+                          len(hparams.timbre_class_weights_list), axis=-1))}
 
     accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
 
-    return Model(inputs=[inputs, note_croppings, num_notes],
+    return Model(inputs=[spec, note_croppings, num_notes],
                  outputs=instrument_family_probs), losses, accuracies

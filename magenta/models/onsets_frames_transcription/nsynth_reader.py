@@ -36,7 +36,7 @@ def create_spectrogram(audio, hparams):
             fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
             fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
             n_mels=constants.TIMBRE_SPEC_BANDS,
-            pad_mode='constant',
+            pad_mode='symmetric',
             htk=hparams.spec_mel_htk,
             power=2
         ).T
@@ -50,7 +50,7 @@ def create_spectrogram(audio, hparams):
             fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
             n_bins=constants.TIMBRE_SPEC_BANDS,
             bins_per_octave=constants.BINS_PER_OCTAVE,
-            pad_mode='constant'
+            pad_mode='symmetric'
         ).T
         spec = librosa.amplitude_to_db(np.abs(spec))
 
