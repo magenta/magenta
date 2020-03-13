@@ -136,7 +136,7 @@ def train(data_fn,
         # model.load_model(38.89, 38.22, id='cqt-no-log-256', epoch_num=11)
         # model.load_model(28.68, 9.22, id='cqt-no-log-256', epoch_num=0)
         model.build_model()
-        model.load_newest()
+        model.load_newest(hparams.load_id)
     elif model_type == ModelType.TIMBRE:
         # model.load_model(23.81, id='96er', epoch_num=19)
         # model.load_model(24.22, id='96er', epoch_num=352)
@@ -146,12 +146,12 @@ def train(data_fn,
         # model.load_model(6.40, id='no-bot', epoch_num=17)
         # model.load_model(15.49, id='no-bot', epoch_num=78)
         model.build_model()
-        model.load_newest()
+        model.load_newest(hparams.load_id)
         #model.load_model(5.17, id=hparams.model_id, epoch_num=8)
     else:
         print('building full model')
         model.build_model()
-        model.load_newest()
+        model.load_newest(hparams.load_id)
 
 
 
@@ -182,13 +182,13 @@ def transcribe(data_fn,
         # midi_model.load_model(74.87, 82.45, 'weights-zero')
         # midi_model.load_model(82.94, 80.47, id='big-lstm-for-f1', epoch_num=149)
         midi_model.build_model()
-        midi_model.load_newest()
+        midi_model.load_newest(hparams.load_id)
     elif model_type == ModelType.TIMBRE:
         timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, id=hparams.model_id,
                                     dataset=transcription_data, batch_size=1,
                                     hparams=hparams)
         timbre_model.build_model()
-        timbre_model.load_newest()
+        timbre_model.load_newest(hparams.load_id)
 
     if data_fn:
         while True:

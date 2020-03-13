@@ -47,8 +47,8 @@ def get_default_hparams():
         'timbre_clip_norm': 3.0,
         'timbre_l2_regularizer': 1e-5,
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
-        'timbre_filter_temporal_sizes': [1, 3],  # , 5],
-        'timbre_num_filters': [128, 64],  # , 32],
+        'timbre_filter_temporal_sizes': [1, 3, 5],
+        'timbre_num_filters': [128, 64, 32],
         'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 6)),
         'timbre_vertical_filter': (1, 513),
         'timbre_vertical_num': 50,
@@ -276,16 +276,16 @@ def timbre_prediction_model(hparams=None):
     if hparams.timbre_bottleneck_filter_num:
         filter_outputs = Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1))(filter_outputs)
 
-    # cropped_outputs shape: (batch_size, None, None, 57, 128)
-    # aka: (batch_size, num_notes, length, freq_range, num_channels)
-    output_shape = (None, math.ceil(filter_outputs.shape[2] / hparams.timbre_filters_pool_size[1]), filter_outputs.shape[3]) \
-        if hparams.timbre_global_pool == 1 \
-        else (None, None, math.ceil(filter_outputs.shape[2] / hparams.timbre_filters_pool_size[1]), filter_outputs.shape[3])
+    # batch_size is excluded from this shape as it gets automatically inferred
+    # ouput_shape with coagulation: (batch_size*num_notes, freq_range, num_filters)
+    # output_shape without coagulation: (batch_size, num_notes, freq_range, num_filters)
+    output_shape = (math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]), K.int_shape(filter_outputs)[3]) \
+        if hparams.timbre_coagulate_batches \
+        else (None, math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]), K.int_shape(filter_outputs)[3])
     cropped_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
         output_shape=output_shape)(
         [filter_outputs, note_croppings, num_notes])
-    # K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
 
     # cropped_outputs = time_distributed_wrapper(ConvLSTM2D(128, (3, 3), activation='elu', return_sequences=True),
     #                                            hparams=hparams)(K.expand_dims(cropped_outputs, -1)) #TODO maybe -2
@@ -302,8 +302,6 @@ def timbre_prediction_model(hparams=None):
 
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
     # last 3 independently (time, frequency, and number of channels/filters)
-
-    # K.print_tensor(pooled_outputs.shape, 'pooled_outputs')
 
     if hparams.timbre_extra_conv:
         pooled_outputs = acoustic_model_layer(hparams, pre_crop=False)(pooled_outputs)
@@ -330,7 +328,6 @@ def timbre_prediction_model(hparams=None):
         flattened_outputs = time_distributed_wrapper(Reshape(
             (-1, K.int_shape(pooled_outputs)[-2] * K.int_shape(pooled_outputs)[-1])),
             hparams=hparams)(pooled_outputs)
-        K.print_tensor(flattened_outputs.shape, 'flattened_outputs')
 
         dense_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
 

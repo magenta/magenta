@@ -36,6 +36,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_boolean('using_plaidml', False, 'Are we using plaidml')
 
 tf.app.flags.DEFINE_string('model_id', None, 'Id to save the model as')
+tf.app.flags.DEFINE_string('load_id', '*', 'Id of the model to load')
 
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
@@ -113,6 +114,7 @@ def run(config_map, data_fn, additional_trial_info):
 
     hparams.using_plaidml = FLAGS.using_plaidml
     hparams.model_id = FLAGS.model_id
+    hparams.load_id = FLAGS.load_id
 
     hparams.model_type = model_util.ModelType[FLAGS.model_type]
     hparams.split_pianoroll = model_util.ModelType[FLAGS.model_type] is model_util.ModelType.FULL

@@ -66,12 +66,12 @@ class ModelWrapper:
         self.model_dir = model_dir
         self.type = type
 
-        self.model_save_format = '{}/Training {} Model Weights {} {:.2f} {:.2f} {}.hdf5' \
+        self.model_save_format = '{}/{}/{}/Training Model Weights {:.2f} {:.2f} {}.hdf5' \
             if type is not ModelType.TIMBRE \
-            else '{}/Training {} Model Weights {} {:.2f} {}.hdf5'
-        self.history_save_format = '{}/Training {} History {} {:.2f} {:.2f} {}' \
+            else '{}/{}/{}/Training Model Weights {:.2f} {}.hdf5'
+        self.history_save_format = '{}/{}/{}/Training History {:.2f} {:.2f} {}' \
             if type is not ModelType.TIMBRE \
-            else '{}/Training {} History {} {:.2f} {}.hdf5'
+            else '{}/{}/{}/Training History {:.2f} {}.hdf5'
         if id is None:
             self.id = uuid.uuid4().hex
         else:
@@ -148,7 +148,7 @@ class ModelWrapper:
                                      bins_per_octave=constants.BINS_PER_OCTAVE)
             for i in range(num_crops):
                 plt.subplot(int(num_crops / 2 + 1), 2, i + 2)
-                db = self.spec_to_db(croppings, i)
+                db = self.spec_to_db(K.expand_dims(croppings, 1), i)
                 librosa.display.specshow(db,
                                          y_axis=y_axis,
                                          hop_length=self.hparams.timbre_hop_length,
@@ -210,14 +210,14 @@ class ModelWrapper:
         elif self.type == ModelType.TIMBRE:
             return self._predict_timbre(spec, num_croppings, num_notes)
 
-    def load_newest(self, id=''):
+    def load_newest(self, id='*'):
         try:
             model_weights = \
                 sorted(glob.glob(
-                    f'{self.model_dir}/Training {self.type.name} Model Weights {id}*.hdf5'),
+                    f'{self.model_dir}/{self.type.name}/{id}/*.hdf5'),
                        key=os.path.getmtime)[-1]
             model_history = \
-                sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} History {id}*.npy'),
+                sorted(glob.glob(f'{self.model_dir}/{self.type.name}/{id}/*.npy'),
                        key=os.path.getmtime)[-1]
             self.metrics.load_metrics(
                 np.load(model_history,
