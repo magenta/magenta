@@ -114,6 +114,9 @@ def run(config_map, data_fn, additional_trial_info):
     hparams.using_plaidml = FLAGS.using_plaidml
     hparams.model_id = FLAGS.model_id
 
+    hparams.model_type = model_util.ModelType[FLAGS.model_type]
+    hparams.split_pianoroll = model_util.ModelType[FLAGS.model_type] is model_util.ModelType.FULL
+
     if FLAGS.mode == 'train':
         train_util.train(
             data_fn=data_fn,
@@ -148,9 +151,9 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    provide_batch_fn = data.provide_batch if model_util.ModelType[
-                                                 FLAGS.model_type] == model_util.ModelType.MIDI \
-        else nsynth_reader.provide_batch
+    provide_batch_fn = nsynth_reader.provide_batch if model_util.ModelType[
+                                                 FLAGS.model_type] == model_util.ModelType.TIMBRE \
+        else data.provide_batch
     data_fn = functools.partial(provide_batch_fn, examples=FLAGS.examples_path) \
         if FLAGS.examples_path else None
     additional_trial_info = {'examples_path': FLAGS.examples_path}

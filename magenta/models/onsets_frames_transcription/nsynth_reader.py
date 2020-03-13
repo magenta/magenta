@@ -1,17 +1,13 @@
 import collections
 import functools
-import functools
-import itertools
-import random
 
 import librosa
+import numpy as np
 import tensorflow.compat.v2 as tf
 import tensorflow.keras.backend as K
-from tensorflow.keras.layers import Add
-import numpy as np
+
 from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription.data import create_batch, hparams_frame_size, \
-    hparams_frames_per_second, read_examples, wav_to_num_frames_op, wav_to_spec_op
+from magenta.models.onsets_frames_transcription.data import read_examples
 
 
 def parse_nsynth_example(example_proto):

@@ -1754,7 +1754,7 @@ def sequence_to_pianoroll(
     onset_delay_ms=0.0,
     min_frame_occupancy_for_label=0.0,
     onset_overlap=True,
-    instrument=None):
+    instrument_family=None):
   """Transforms a NoteSequence to a pianoroll assuming a single instrument.
 
   This function uses floating point internally and may return different results
@@ -1838,7 +1838,7 @@ def sequence_to_pianoroll(
       tf.logging.warn('Skipping out of range pitch: %d', note.pitch)
       continue
 
-    if instrument is not None and midi_instrument_to_family[note.instrument] != instrument:
+    if instrument_family is not None and midi_instrument_to_family[note.instrument] != instrument_family:
       continue
     start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
 

@@ -42,6 +42,7 @@ from magenta.music.protobuf import music_pb2
 import numpy as np
 import six
 import tensorflow.compat.v2 as tf
+import tensorflow.keras.backend as K
 from tensorflow_core import TensorSpec, TensorShape
 
 
@@ -234,7 +235,7 @@ def transform_wav_data_op(wav_data_tensor, hparams, jitter_amount_sec):
 def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
     """Transforms a serialized NoteSequence to a pianoroll."""
 
-    def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor):
+    def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor, instrument_family=None):
         """Converts sequence to pianorolls."""
         velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor.numpy())
         sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
@@ -250,21 +251,50 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
             offset_length_ms=hparams.offset_length,
             onset_delay_ms=hparams.onset_delay,
             min_velocity=velocity_range.min,
-            max_velocity=velocity_range.max)
+            max_velocity=velocity_range.max,
+            instrument_family=instrument_family)
         return (roll.active, roll.weights, roll.onsets, roll.onset_velocities,
                 roll.offsets)
 
-    res, weighted_res, onsets, velocities, offsets = tf.py_function(
-        sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
-        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
-        name='sequence_to_pianoroll_op')
-    res.set_shape([None, constants.MIDI_PITCHES])
-    weighted_res.set_shape([None, constants.MIDI_PITCHES])
-    onsets.set_shape([None, constants.MIDI_PITCHES])
-    offsets.set_shape([None, constants.MIDI_PITCHES])
-    velocities.set_shape([None, constants.MIDI_PITCHES])
+    if hparams.split_pianoroll:
+        res_list = []
+        weighted_res_list = []
+        onsets_list = []
+        velocities_list = []
+        offsets_list = []
+        for i in range(constants.NUM_INSTRUMENT_FAMILIES):
+            res, weighted_res, onsets, velocities, offsets = tf.py_function(
+                sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
+                [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+                name='sequence_to_pianoroll_op')
+            res.set_shape([None, constants.MIDI_PITCHES])
+            weighted_res.set_shape([None, constants.MIDI_PITCHES])
+            onsets.set_shape([None, constants.MIDI_PITCHES])
+            offsets.set_shape([None, constants.MIDI_PITCHES])
+            velocities.set_shape([None, constants.MIDI_PITCHES])
+            res_list.append(K.expand_dims(res))
+            weighted_res_list.append(K.expand_dims(weighted_res))
+            onsets_list.append(K.expand_dims(onsets))
+            velocities_list.append(K.expand_dims(velocities))
+            offsets_list.append(K.expand_dims(offsets))
+        return K.concatenate(res_list), \
+               K.concatenate(weighted_res_list), \
+               K.concatenate(onsets_list), \
+               K.concatenate(offsets_list), \
+               K.concatenate(velocities_list)
 
-    return res, weighted_res, onsets, offsets, velocities
+    else:
+        res, weighted_res, onsets, velocities, offsets = tf.py_function(
+            sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
+            [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+            name='sequence_to_pianoroll_op')
+        res.set_shape([None, constants.MIDI_PITCHES])
+        weighted_res.set_shape([None, constants.MIDI_PITCHES])
+        onsets.set_shape([None, constants.MIDI_PITCHES])
+        offsets.set_shape([None, constants.MIDI_PITCHES])
+        velocities.set_shape([None, constants.MIDI_PITCHES])
+
+        return res, weighted_res, onsets, offsets, velocities
 
 
 def jitter_label_op(sequence_tensor, jitter_amount_sec):
@@ -323,6 +353,7 @@ InputTensors = collections.namedtuple(
                      'length', 'onsets', 'offsets', 'velocities', 'sequence_id',
                      'note_sequence'))
 
+
 def parse_example(example_proto):
     features = {
         'id': tf.io.FixedLenFeature(shape=(), dtype=tf.string),
@@ -332,7 +363,6 @@ def parse_example(example_proto):
     }
     record = tf.io.parse_single_example(example_proto, features)
     return record
-
 
 
 def preprocess_example(example_proto, hparams, is_training):
@@ -351,11 +381,11 @@ def preprocess_example(example_proto, hparams, is_training):
     """
     record = parse_example(example_proto)
     sequence_id = record['id']
-    #tf.print(sequence_id)
+    # tf.print(sequence_id)
     sequence = record['sequence']
     audio = record['audio']
     velocity_range = record['velocity_range']
-    #tf.print(velocity_range)
+    # tf.print(velocity_range)
 
     wav_jitter_amount_ms = label_jitter_amount_ms = 0
     # if there is combined jitter, we must generate it once here
@@ -604,7 +634,6 @@ def read_examples(examples, is_training, shuffle_examples,
     if skip_n_initial_records:
         input_dataset = input_dataset.skip(skip_n_initial_records)
 
-
     return input_dataset
 
 
@@ -692,6 +721,10 @@ def provide_batch(examples,
             preprocess_example, hparams=hparams, is_training=is_training)
     else:
         input_map_fn = parse_preprocessed_example
+
+    # foo = next(iter(input_dataset))
+    # input_map_fn(foo)
+
     input_tensors = input_dataset.map(input_map_fn)
 
     model_input = input_tensors.map(

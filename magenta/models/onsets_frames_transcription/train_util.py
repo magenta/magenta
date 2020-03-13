@@ -101,7 +101,7 @@ def train(data_fn,
         preprocess_examples=preprocess_examples,
         is_training=True,
         shuffle_examples=True,
-        skip_n_initial_records=random.randint(0, 1048))
+        skip_n_initial_records=0)#random.randint(0, 1048))
 
     model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                          dataset=transcription_data(params=hparams),
@@ -137,7 +137,7 @@ def train(data_fn,
         # model.load_model(28.68, 9.22, id='cqt-no-log-256', epoch_num=0)
         model.build_model()
         model.load_newest()
-    else:
+    elif model_type == ModelType.TIMBRE:
         # model.load_model(23.81, id='96er', epoch_num=19)
         # model.load_model(24.22, id='96er', epoch_num=352)
         # model.load_model(30.56, id='96er', epoch_num=163)
@@ -148,6 +148,11 @@ def train(data_fn,
         model.build_model()
         model.load_newest()
         #model.load_model(5.17, id=hparams.model_id, epoch_num=8)
+    else:
+        print('building full model')
+        model.build_model()
+        model.load_newest()
+
 
 
     for i in range(num_steps):

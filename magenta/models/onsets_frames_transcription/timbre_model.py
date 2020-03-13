@@ -3,6 +3,7 @@ from __future__ import absolute_import, division, print_function
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import functools
+import math
 
 import tensorflow as tf
 from dotmap import DotMap
@@ -22,9 +23,9 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import he_normal, VarianceScaling
     from keras.layers import BatchNormalization, Conv2D, \
-    Dense, Dropout, \
-    Input, concatenate, Lambda, Reshape, LSTM, \
-    Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add
+        Dense, Dropout, \
+        Input, concatenate, Lambda, Reshape, LSTM, \
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -242,7 +243,7 @@ def timbre_prediction_model(hparams=None):
         hparams.timbre_input_shape[2],)
 
     spec = Input(shape=input_shape,
-                   name='spec')
+                 name='spec')
 
     # batched dimensions for cropping like:
     # ((top_crop, bottom_crop), (left_crop, right_crop))
@@ -277,8 +278,12 @@ def timbre_prediction_model(hparams=None):
 
     # cropped_outputs shape: (batch_size, None, None, 57, 128)
     # aka: (batch_size, num_notes, length, freq_range, num_channels)
+    output_shape = (None, math.ceil(filter_outputs.shape[2] / hparams.timbre_filters_pool_size[1]), filter_outputs.shape[3]) \
+        if hparams.timbre_global_pool == 1 \
+        else (None, None, math.ceil(filter_outputs.shape[2] / hparams.timbre_filters_pool_size[1]), filter_outputs.shape[3])
     cropped_outputs = Lambda(
-        functools.partial(get_all_croppings, hparams=hparams))(
+        functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
+        output_shape=output_shape)(
         [filter_outputs, note_croppings, num_notes])
     # K.print_tensor(cropped_outputs.shape, 'cropped_outputs')
 
@@ -316,7 +321,8 @@ def timbre_prediction_model(hparams=None):
         timeless_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
 
         non_normalized_outputs = time_distributed_wrapper(
-            Dense(hparams.timbre_penultimate_fc_size, kernel_initializer=VarianceScaling()), hparams)(
+            Dense(hparams.timbre_penultimate_fc_size, kernel_initializer=VarianceScaling()),
+            hparams)(
             timeless_outputs)
         non_normalized_outputs = ELU(hparams.timbre_leaky_alpha)(non_normalized_outputs)
 

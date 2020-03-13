@@ -18,6 +18,7 @@ from magenta.models.onsets_frames_transcription.callback import MidiPredictionMe
 
 import tensorflow.compat.v1 as tf
 
+from magenta.models.onsets_frames_transcription.full_model import FullModel
 from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
 from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping, get_cqt_index
@@ -66,10 +67,10 @@ class ModelWrapper:
         self.type = type
 
         self.model_save_format = '{}/Training {} Model Weights {} {:.2f} {:.2f} {}.hdf5' \
-            if type is ModelType.MIDI \
+            if type is not ModelType.TIMBRE \
             else '{}/Training {} Model Weights {} {:.2f} {}.hdf5'
         self.history_save_format = '{}/Training {} History {} {:.2f} {:.2f} {}' \
-            if type is ModelType.MIDI \
+            if type is not ModelType.TIMBRE \
             else '{}/Training {} History {} {:.2f} {}.hdf5'
         if id is None:
             self.id = uuid.uuid4().hex
@@ -94,7 +95,7 @@ class ModelWrapper:
             self.generator, self.hparams)
 
     def save_model_with_metrics(self, epoch_num):
-        if self.type == ModelType.MIDI:
+        if self.type == ModelType.MIDI or self.type == ModelType.FULL:
             id_tup = (self.model_dir, self.type.name, self.id,
                       self.metrics.metrics_history[-1].frames['f1_score'].numpy() * 100,
                       self.metrics.metrics_history[-1].onsets['f1_score'].numpy() * 100,
@@ -114,11 +115,11 @@ class ModelWrapper:
 
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
-            if self.type == ModelType.MIDI or not self.hparams.timbre_coagulate_mini_batches:
+            if self.type != ModelType.TIMBRE or not self.hparams.timbre_coagulate_mini_batches:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
                 class_weights = self.hparams.timbre_class_weights
-                # self.plot_spectrograms(x)
+            # self.plot_spectrograms(x)
 
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
@@ -140,11 +141,11 @@ class ModelWrapper:
             plt.subplot(int(num_crops / 2 + 1), 2, 1)
             y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
             librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
-                y_axis=y_axis,
-                hop_length=self.hparams.timbre_hop_length,
-                fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
-                fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
-                bins_per_octave=constants.BINS_PER_OCTAVE)
+                                     y_axis=y_axis,
+                                     hop_length=self.hparams.timbre_hop_length,
+                                     fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
+                                     fmax=librosa.midi_to_hz(constants.MAX_TIMBRE_PITCH),
+                                     bins_per_octave=constants.BINS_PER_OCTAVE)
             for i in range(num_crops):
                 plt.subplot(int(num_crops / 2 + 1), 2, i + 2)
                 db = self.spec_to_db(croppings, i)
@@ -212,11 +213,12 @@ class ModelWrapper:
     def load_newest(self, id=''):
         try:
             model_weights = \
-            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} Model Weights {id}*.hdf5'),
-                   key=os.path.getmtime)[-1]
+                sorted(glob.glob(
+                    f'{self.model_dir}/Training {self.type.name} Model Weights {id}*.hdf5'),
+                       key=os.path.getmtime)[-1]
             model_history = \
-            sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} History {id}*.npy'),
-                   key=os.path.getmtime)[-1]
+                sorted(glob.glob(f'{self.model_dir}/Training {self.type.name} History {id}*.npy'),
+                       key=os.path.getmtime)[-1]
             self.metrics.load_metrics(
                 np.load(model_history,
                         allow_pickle=True)[0])
@@ -249,21 +251,29 @@ class ModelWrapper:
             print('Couldn\'t find pre-trained model: {}'
                   .format(self.model_save_format.format(*id_tup)))
 
-    # num_classes only needed for timbre prediction
-    def build_model(self):
-        if self.type == ModelType.MIDI:
-            self.model, losses, accuracies = midi_prediction_model(self.hparams)
+    def build_model(self, midi_model=None, timbre_model=None):
+        if self.type == ModelType.MIDI or self.type == ModelType.FULL and midi_model is None:
+            midi_model, losses, accuracies = midi_prediction_model(self.hparams)
+            midi_model.compile(Adam(self.hparams.learning_rate,
+                                    decay=self.hparams.decay_rate,
+                                    clipnorm=self.hparams.clip_norm),
+                               metrics=accuracies, loss=losses)
+            if self.type == ModelType.MIDI:
+                self.model = midi_model
+        if self.type == ModelType.TIMBRE or self.type == ModelType.FULL and timbre_model is None:
+            timbre_model, losses, accuracies = timbre_prediction_model(self.hparams)
+            timbre_model.compile(Adam(self.hparams.timbre_learning_rate,
+                                      decay=self.hparams.timbre_decay_rate,
+                                      clipnorm=self.hparams.timbre_clip_norm),
+                                 metrics=accuracies, loss=losses)
+            if self.type == ModelType.TIMBRE:
+                self.model = timbre_model
+        if self.type == ModelType.FULL:  # self.type == ModelType.FULL:
+            self.model, losses, accuracies = FullModel(midi_model, timbre_model,
+                                                       self.hparams).get_model()
             self.model.compile(Adam(self.hparams.learning_rate,
                                     decay=self.hparams.decay_rate,
                                     clipnorm=self.hparams.clip_norm),
                                metrics=accuracies, loss=losses)
-        elif self.type == ModelType.TIMBRE:
-            self.model, losses, accuracies = timbre_prediction_model(self.hparams)
-            self.model.compile(Adam(self.hparams.timbre_learning_rate,
-                                    decay=self.hparams.timbre_decay_rate,
-                                    clipnorm=self.hparams.timbre_clip_norm),
-                               metrics=accuracies, loss=losses)
-        else:  # self.type == ModelType.FULL:
-            pass
 
         print(self.model.summary())

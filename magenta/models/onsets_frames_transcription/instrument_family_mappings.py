@@ -107,3 +107,17 @@ midi_instrument_to_family = collections.defaultdict(lambda: Family.IGNORED).upda
     87: Family.SYNTH_LEAD,
     88: Family.SYNTH_LEAD,
 })
+
+family_to_midi_instrument = {
+    0: 33,  # Acoustic Bass
+    1: 62,  # Brass Section
+    2: 74,  # Flute
+    3: 25,  # Acoustic Nylon Guitar
+    4: 1,  # keyboard / Acoustic Grand Piano
+    5: 9,  # mallet / Celesta
+    6: 17,  # organ / Drawbar Organ
+    7: 72,  # reed / Clarinet
+    8: 49,  # string / String Ensemble
+    9: 82,  # synth lead / Sawtooth
+    10: 55,  # vocal / Synth Voice
+}

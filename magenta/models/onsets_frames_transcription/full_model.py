@@ -1,60 +1,33 @@
-import functools
-
 import tensorflow as tf
 from dotmap import DotMap
 from keras.layers import Multiply
 
 from magenta.models.onsets_frames_transcription import constants, infer_util, data
-from magenta.models.onsets_frames_transcription.accuracy_util import flatten_accuracy_wrapper, \
-    flatten_loss_wrapper
-from magenta.models.onsets_frames_transcription.layer_util import conv_bn_elu_layer, \
-    get_all_croppings, time_distributed_wrapper
+from magenta.models.onsets_frames_transcription.instrument_family_mappings import \
+    family_to_midi_instrument
 from tensorflow.keras import backend as K
-from tensorflow.keras.initializers import he_normal, VarianceScaling
-from tensorflow.keras.layers import BatchNormalization, Conv2D, \
-    Dense, Dropout, \
-    Input, concatenate, Lambda, Reshape, LSTM, \
-    Flatten, ELU, GlobalMaxPooling2D
+from tensorflow.keras.layers import Input, Lambda
 from tensorflow.keras.models import Model
-from tensorflow.keras.regularizers import l2
-import librosa
 
 from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping
 
 
-def sequence_to_note_croppings(sequence, hparams):
-    note_croppings = []
-    num_notes = 0
-    for note in sequence.notes:
-        frames_per_second = data.hparams_frames_per_second(hparams)
-        note_croppings.append(NoteCropping(pitch=note.pitch,
-                                           start_idx=note.start_time * frames_per_second,
-                                           end_idx=note.end_time * frames_per_second))
-        num_notes += 1
-    return note_croppings, num_notes
+def note_croppings_to_pianorolls(note_croppings, timbre_probs):
+    pianorolls = K.zeros(shape=(None, constants.MIDI_PITCHES, constants.NUM_INSTRUMENT_FAMILIES))
+    for i, cropping in enumerate(note_croppings):
+        pitch = cropping.pitch
+        start_idx = cropping.start_idx
+        end_idx = cropping.end_idx
+        pianorolls[start_idx:end_idx][pitch] += timbre_probs[i]
 
-
-# TODO is there a better method for this
-family_idx_to_midi_instrument = {
-    0: 33,  # Acoustic Bass
-    1: 62,  # Brass Section
-    2: 74,  # Flute
-    3: 25,  # Acoustic Nylon Guitar
-    4: 1,  # keyboard / Acoustic Grand Piano
-    5: 9,  # mallet / Celesta
-    6: 17,  # organ / Drawbar Organ
-    7: 72,  # reed / Clarinet
-    8: 49,  # string / String Ensemble
-    9: 82,  # synth lead / Sawtooth
-    10: 55,  # vocal / Synth Voice
-}
+    return pianorolls
 
 
 def populate_instruments(sequence, timbre_probs, present_instruments):
     masked_probs = Multiply()([timbre_probs, present_instruments])
     timbre_preds = K.flatten(tf.nn.top_k(masked_probs).indices)
     for i, note in enumerate(sequence.notes):
-        note.instrument = family_idx_to_midi_instrument[timbre_preds[i]]
+        note.instrument = family_to_midi_instrument[timbre_preds[i]]
 
     return sequence
 
@@ -67,6 +40,29 @@ class FullModel:
         self.midi_model = midi_model
         self.timbre_model = timbre_model
 
+    def sequence_to_note_croppings(self, sequence):
+        note_croppings = []
+        num_notes = 0
+        for note in sequence.notes:
+            frames_per_second = data.hparams_frames_per_second(self.hparams)
+            note_croppings.append(NoteCropping(pitch=note.pitch,
+                                               start_idx=note.start_time * frames_per_second,
+                                               end_idx=note.end_time * frames_per_second))
+            num_notes += 1
+        return note_croppings
+
+    def get_croppings(self, input_list):
+        """Convert frame predictions into a sequence."""
+        frame_predictions, onset_predictions, offset_predictions = input_list
+
+        sequence = infer_util.predict_sequence(
+            frame_predictions=frame_predictions,
+            onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
+            velocity_values=None,
+            hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
+        return self.sequence_to_note_croppings(sequence)
+
     def get_model(self):
         spec = Input(shape=(None, constants.SPEC_BANDS, 1))
         present_instruments = Input(shape=(self.hparams.timbre_num_classes,))
@@ -77,16 +73,24 @@ class FullModel:
         onset_predictions = onset_probs > self.hparams.predict_onset_threshold
         offset_predictions = offset_probs > self.hparams.predict_offset_threshold
 
-        sequence = infer_util.predict_sequence(
-            frame_predictions=frame_predictions,
-            onset_predictions=onset_predictions,
-            offset_predictions=offset_predictions,
-            velocity_values=None,
-            hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
-        note_croppings, num_notes = sequence_to_note_croppings(sequence, self.hparams)
+        note_croppings = Lambda(self.get_croppings, output_shape=(None, 3), dynamic=True)([frame_predictions, onset_predictions, offset_predictions])
+        num_notes = Lambda(lambda x: x.shape[0], output_shape=(1,), dynamic=True)(note_croppings)
+        num_notes = K.cast(num_notes, 'int64')
 
         timbre_probs = self.timbre_model([spec, note_croppings, num_notes])
 
-        multi_sequence = populate_instruments(sequence, timbre_probs, present_instruments)
+        timbre_pianoroll = note_croppings_to_pianorolls(note_croppings, timbre_probs)
 
-        return Model(inputs=[spec, present_instruments], outputs=multi_sequence)
+        expanded_frames = K.expand_dims(frame_predictions)
+        expanded_onsets = K.expand_dims(onset_predictions)
+        expanded_offsets = K.expand_dims(offset_predictions)
+
+        broadcasted_frames = Multiply()([timbre_pianoroll, expanded_frames])
+        broadcasted_onsets = Multiply()([timbre_pianoroll, expanded_onsets])
+        broadcasted_offsets = Multiply()([timbre_pianoroll, expanded_offsets])
+
+        # multi_sequence = populate_instruments(sequence, timbre_probs, present_instruments)
+
+        return Model(inputs=[spec, present_instruments],
+                     outputs=[broadcasted_frames, broadcasted_onsets, broadcasted_offsets])
+

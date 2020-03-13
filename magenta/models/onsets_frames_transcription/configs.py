@@ -38,9 +38,9 @@ DEFAULT_HPARAMS = {
         'shuffle_buffer_size': 64,
         'nsynth_shuffle_buffer_size': 1048,
         'timbre_coagulate_mini_batches': False,
-        'nsynth_batch_size': 64,
-        'timbre_training_max_instruments': 2,
-        'timbre_max_start_offset': 32000, #320000 goes to 800 when cropping
+        'nsynth_batch_size': 1,
+        'timbre_training_max_instruments': 256,
+        'timbre_max_start_offset': 320000, #320000 goes to 800 when cropping
         'timbre_min_len': 8000,
         'timbre_max_len': 0,
         'sample_rate': 16000,
