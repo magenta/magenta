@@ -172,7 +172,8 @@ class Batch(object):
     """
     assert set(kwargs.keys()) == self.keys
     assert all(
-        len(value) == len(list(kwargs.values())[0]) for value in list(kwargs.values()))
+        len(value) == len(list(kwargs.values())[0])
+        for value in list(kwargs.values()))
     self.features = kwargs
 
   def get_feed_dict(self, placeholders):
