@@ -53,6 +53,10 @@ flags.DEFINE_string('midi_dir', None, 'Directory for midi files.')
 flags.DEFINE_integer('num_shards', 0, 'number of output shards')
 flags.DEFINE_string('expected_splits', 'train,validation,test',
                     'Comma separated list of expected splits.')
+tf.app.flags.DEFINE_integer('min_length', 5, 'minimum length for a segment')
+tf.app.flags.DEFINE_integer('max_length', 20, 'maximum length for a segment')
+tf.app.flags.DEFINE_integer('sample_rate', 16000,
+                            'sample_rate of the output files')
 flags.DEFINE_boolean(
     'add_wav_glob', False,
     'If true, will add * to end of wav paths and use all matching files.')
@@ -91,10 +95,25 @@ class CreateExampleDoFn(beam.DoFn):
 
         Metrics.counter('create_example', 'read_midi_wav').inc()
 
-        example = audio_label_data_utils.create_example(ns.id, ns, wav_data)
+        if FLAGS.max_length > 0:
+            split_examples = audio_label_data_utils.process_record(
+                wav_data,
+                ns,
+                ns.id,
+                min_length=FLAGS.min_length,
+                max_length=FLAGS.max_length,
+                sample_rate=FLAGS.sample_rate,
+                load_audio_with_librosa=False)
 
-        Metrics.counter('create_example', 'created_example').inc()
-        yield example
+            for example in split_examples:
+                Metrics.counter('split_wav', 'split_example').inc()
+                yield example
+        else:
+
+            example = audio_label_data_utils.create_example(ns.id, ns, wav_data)
+
+            Metrics.counter('create_example', 'created_example').inc()
+            yield example
 
 
 def main(argv):

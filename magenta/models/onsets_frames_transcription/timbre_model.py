@@ -280,7 +280,7 @@ def timbre_prediction_model(hparams=None):
     # ouput_shape with coagulation: (batch_size*num_notes, freq_range, num_filters)
     # output_shape without coagulation: (batch_size, num_notes, freq_range, num_filters)
     output_shape = (math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]), K.int_shape(filter_outputs)[3]) \
-        if hparams.timbre_coagulate_batches \
+        if hparams.timbre_coagulate_mini_batches \
         else (None, math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]), K.int_shape(filter_outputs)[3])
     cropped_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams), dynamic=True,

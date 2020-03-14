@@ -121,9 +121,9 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
     for i in range(instrument_count):
         # otherwise move the audio so diff attack times
         pitch = tensor['pitch'][i]
-        pitch = tf.py_function(functools.partial(pitch_idx_fn, hparams=hparams),
-                               [pitch],
-                               tf.int64)
+        # pitch = tf.py_function(functools.partial(pitch_idx_fn, hparams=hparams),
+        #                        [pitch],
+        #                        tf.int64)
         start_idx = tf.random.uniform((), minval=0, maxval=hparams.timbre_max_start_offset,
                                       dtype='int64')
         audio = K.concatenate([tf.zeros(start_idx), tf.sparse.to_dense(tensor['audio'])[i]])

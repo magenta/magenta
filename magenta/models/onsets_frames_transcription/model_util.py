@@ -105,6 +105,9 @@ class ModelWrapper:
                       self.metrics.metrics_history[-1].timbre_prediction['f1_score'].numpy() * 100,
                       epoch_num)
         print('Saving {} model...'.format(self.type.name))
+
+        if not os.path.exists(f'{self.model_dir}/{self.type.name}/{self.id}'):
+            os.makedirs(f'{self.model_dir}/{self.type.name}/{self.id}')
         self.model.save_weights(self.model_save_format.format(*id_tup))
         np.save(self.history_save_format.format(*id_tup), [self.metrics.metrics_history])
         print('Model weights saved at: ' + self.model_save_format.format(*id_tup))
@@ -115,6 +118,7 @@ class ModelWrapper:
 
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
+            print('got next batch')
             if self.type != ModelType.TIMBRE or not self.hparams.timbre_coagulate_mini_batches:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:

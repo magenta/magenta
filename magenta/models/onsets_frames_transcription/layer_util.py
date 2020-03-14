@@ -1,9 +1,11 @@
+import functools
 import math
 
 import tensorflow as tf
 from intervaltree.node import l2
 
 from magenta.models.onsets_frames_transcription import constants
+from magenta.models.onsets_frames_transcription.nsynth_reader import get_cqt_index, get_mel_index
 
 FLAGS = tf.compat.v1.app.flags.FLAGS
 if FLAGS.using_plaidml:
@@ -12,8 +14,8 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
     from keras import backend as K
     from keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
-    MaxPooling2D, TimeDistributed, \
-    GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D
+        MaxPooling2D, TimeDistributed, \
+        GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D
     from keras.regularizers import l2
     from keras.initializers import he_normal
 
@@ -123,7 +125,7 @@ def get_all_croppings(input_list, hparams):
         if hparams.timbre_sharing_conv:
             out = MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
                                padding='same')(out)
-        #out = tf.reshape(out, (-1, *out.shape[2:]))
+        # out = tf.reshape(out, (-1, *out.shape[2:]))
 
         all_outputs.append(out)
 
@@ -135,7 +137,14 @@ def get_all_croppings(input_list, hparams):
 
 def get_croppings_for_single_image(conv_output, note_croppings,
                                    num_notes, hparams=None, temporal_scale=1.0):
-    gathered_pitches = K.cast_to_floatx(tf.gather(note_croppings, indices=0, axis=1)) \
+    pitch_idx_fn = functools.partial(get_cqt_index
+                                     if hparams.timbre_spec_type == 'cqt'
+                                     else get_mel_index,
+                                     hparams=hparams)
+    pitch_to_spec_index = tf.map_fn(
+        pitch_idx_fn,
+        tf.gather(note_croppings, indices=0, axis=1))
+    gathered_pitches = K.cast_to_floatx(pitch_to_spec_index) \
                        * K.int_shape(conv_output)[1] \
                        / constants.TIMBRE_SPEC_BANDS
     pitch_mask = K.expand_dims(
