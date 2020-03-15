@@ -14,7 +14,7 @@ from tensorflow.keras.layers import BatchNormalization
 
 from magenta.models.onsets_frames_transcription import infer_util, constants
 from magenta.models.onsets_frames_transcription.callback import MidiPredictionMetrics, \
-    TimbrePredictionMetrics
+    TimbrePredictionMetrics, FullPredictionMetrics
 
 import tensorflow.compat.v1 as tf
 
@@ -92,9 +92,12 @@ class ModelWrapper:
             self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
                                            use_numpy=False,
                                            coagulate_mini_batches=type is not ModelType.MIDI and hparams.timbre_coagulate_mini_batches)
-        self.metrics = MidiPredictionMetrics(self.generator,
-                                             self.hparams) if type == ModelType.MIDI else TimbrePredictionMetrics(
-            self.generator, self.hparams)
+        if self.type is ModelType.MIDI:
+            self.metrics = MidiPredictionMetrics(self.generator,self.hparams)
+        elif self.type is ModelType.TIMBRE:
+            self.metrics = TimbrePredictionMetrics(self.generator, self.hparams)
+        else:
+            self.metrics = FullPredictionMetrics(self.generator, self.hparams)
 
     def get_model(self):
         return self.model

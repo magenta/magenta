@@ -22,7 +22,8 @@ def Dixon(yTrue, yPred):
     tp, pp, rp = K.sum(yTrue * K.round(yPred)), K.sum(K.round(yPred)), K.sum(yTrue)
     return 1 if pp == 0 and rp == 0 else tp / (pp + rp - tp + K.epsilon())
 
-def multi_track_accuracy_wrapper(threshold):
+
+def multi_track_accuracy_wrapper(threshold, print_report=False, only_f1=True):
     def multi_track_accuracy(y_true, y_probs):
         sum_probs = K.sum(y_probs, axis=-1)
         thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
@@ -33,13 +34,23 @@ def multi_track_accuracy_wrapper(threshold):
         flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
         flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
 
+        if print_report:
+            print(classification_report(flat_y_true, flat_y_predictions, zero_division=1))
 
-        print(classification_report(flat_y_true, flat_y_predictions))
-
+        # definitely don't use macro accuracy here because some instruments won't be present
         precision, recall, f1, _ = precision_recall_fscore_support(flat_y_true,
                                                                    flat_y_predictions,
-                                                                   average='micro')
-        return f1
+                                                                   average='weighted',
+                                                                   zero_division=1) # TODO maybe 0
+        scores = {
+            'precision': K.constant(precision),
+            'recall': K.constant(recall),
+            'f1_score': K.constant(f1)
+        }
+        return scores
+
+    if only_f1:
+        return lambda t, p: multi_track_accuracy(t, p)['f1_score']
     return multi_track_accuracy
 
 
@@ -49,8 +60,8 @@ def binary_accuracy_wrapper(threshold):
 
         return calculate_frame_metrics(labels, probs > threshold)['accuracy_without_true_negatives']
 
-
     return acc
+
 
 def true_positive_wrapper(threshold):
     def pos(labels, probs):
@@ -58,8 +69,8 @@ def true_positive_wrapper(threshold):
 
         return calculate_frame_metrics(labels, probs > threshold)['true_positives']
 
-
     return pos
+
 
 def f1_wrapper(threshold):
     def f1(labels, probs):
@@ -67,12 +78,11 @@ def f1_wrapper(threshold):
 
         return calculate_frame_metrics(labels, probs > threshold)['f1_score']
 
-
     return f1
+
 
 def flatten_f1_wrapper(hparams):
     def flatten_f1_fn(y_true, y_probs):
-
         y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1],
                                    dtype=tf.int32)
 
@@ -89,7 +99,9 @@ def flatten_f1_wrapper(hparams):
             'f1_score': K.constant(f1)
         }
         return scores
+
     return flatten_f1_fn
+
 
 # use epsilon to prevent nans when doing log
 def flatten_loss_wrapper(hparams, epsilon=1e-9):
@@ -102,7 +114,9 @@ def flatten_loss_wrapper(hparams, epsilon=1e-9):
         rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
         return categorical_crossentropy(rebatched_true, rebatched_pred + epsilon,
                                         label_smoothing=hparams.timbre_label_smoothing)
+
     return flatten_loss_fn
+
 
 def flatten_accuracy_wrapper(hparams):
     def flatten_accuracy_fn(y_true, y_pred):
@@ -112,7 +126,9 @@ def flatten_accuracy_wrapper(hparams):
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
         return categorical_accuracy(rebatched_true, rebatched_pred)
+
     return flatten_accuracy_fn
+
 
 class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
 

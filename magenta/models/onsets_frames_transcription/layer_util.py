@@ -169,12 +169,16 @@ def get_croppings_for_single_image(conv_output, note_croppings,
         / temporal_scale, dtype='int32'
     )
     for i in range(num_notes):
-        trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
-        if hparams.timbre_global_pool:
-            # GlobalAveragePooling1D supports masking
-            trimmed_spec = GlobalAveragePooling1D()(
-                K.permute_dimensions(trimmed_spec, (1, 0, 2)))
-        trimmed_list.append(K.expand_dims(trimmed_spec, 0))
+        if end_idx[i] < 0:
+            # is a padded value note
+            trimmed_list.append(K.zeros(shape=(1, K.int_shape(conv_output)[1:]), dtype=K.floatx()))
+        else:
+            trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
+            if hparams.timbre_global_pool:
+                # GlobalAveragePooling1D supports masking
+                trimmed_spec = GlobalAveragePooling1D()(
+                    K.permute_dimensions(trimmed_spec, (1, 0, 2)))
+            trimmed_list.append(K.expand_dims(trimmed_spec, 0))
 
     broadcasted_spec = K.concatenate(trimmed_list, axis=0)
 

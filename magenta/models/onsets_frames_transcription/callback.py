@@ -92,7 +92,7 @@ class FullPredictionMetrics(MetricsCallback):
 
     def predict(self, X, y):
         y_probs = self.model.predict_on_batch(X)
-        frame_metrics = multi_track_accuracy_wrapper(self.hparams.predict_frame_threshold)(y[0], y_probs[0])
-        onset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_onset_threshold)(y[1], y_probs[1])
-        offset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_offset_threshold)(y[2], y_probs[2])
+        frame_metrics = multi_track_accuracy_wrapper(self.hparams.predict_frame_threshold, only_f1=False)(y[0], y_probs[0])
+        onset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_onset_threshold, only_f1=False)(y[1], y_probs[1])
+        offset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_offset_threshold, only_f1=False)(y[2], y_probs[2])
         return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)

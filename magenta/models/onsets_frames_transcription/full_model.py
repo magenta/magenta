@@ -21,15 +21,6 @@ def get_default_hparams():
     }
 
 
-def populate_instruments(sequence, timbre_probs, present_instruments):
-    masked_probs = Multiply()([timbre_probs, present_instruments])
-    timbre_preds = K.flatten(tf.nn.top_k(masked_probs).indices)
-    for i, note in enumerate(sequence.notes):
-        note.instrument = family_to_midi_instrument[timbre_preds[i]]
-
-    return sequence
-
-
 class FullModel:
     def __init__(self, midi_model, timbre_model, hparams):
         if hparams is None:
@@ -60,7 +51,8 @@ class FullModel:
                 pitch = cropping.pitch - constants.MIN_MIDI_PITCH
                 start_idx = K.cast(cropping.start_idx / self.hparams.timbre_hop_length, 'int64')
                 end_idx = K.cast(cropping.end_idx / self.hparams.timbre_hop_length, 'int64')
-                pianorolls[pitch][start_idx:end_idx + 1] += timbre_probs[i]
+                if pitch > 0:
+                    pianorolls[pitch][start_idx:end_idx + 1] += timbre_probs[i]
 
             # make time the first dimension
             pianoroll_list.append(K.permute_dimensions(pianorolls, (1, 0, 2)))
@@ -71,7 +63,6 @@ class FullModel:
     def sequence_to_note_croppings(self, sequence):
         note_croppings = []
         for note in sequence.notes:
-            frames_per_second = data.hparams_frames_per_second(self.hparams)
             note_croppings.append(NoteCropping(pitch=note.pitch,
                                                start_idx=note.start_time * self.hparams.sample_rate,
                                                end_idx=note.end_time * self.hparams.sample_rate))
@@ -94,14 +85,18 @@ class FullModel:
                 velocity_values=None,
                 hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
             croppings_list.append(self.sequence_to_note_croppings(sequence))
-        return tf.convert_to_tensor(croppings_list)
 
-    def get_num_notes(self, batched_note_croppings):
-        num_notes_list = []
-        for batch_idx in range(K.int_shape(batched_note_croppings)[0]):
-            num_notes = K.int_shape(batched_note_croppings[batch_idx])[0]
-            num_notes_list.append([num_notes])
-        return tf.convert_to_tensor(num_notes_list)
+        padded = tf.keras.preprocessing.sequence.pad_sequences(croppings_list,
+                                                               padding='post',
+                                                               dtype=K.floatx(),
+                                                               value=-1.0)
+        return tf.convert_to_tensor(padded)
+
+    def get_dynamic_length(self, batched_dynamic_tensor):
+        return K.expand_dims(
+            tf.repeat(K.expand_dims(K.int_shape(batched_dynamic_tensor)[1], axis=0),
+                      K.int_shape(batched_dynamic_tensor)[0])
+        )
 
     def separate_batches(self, input_list):
         # TODO implement
@@ -116,8 +111,10 @@ class FullModel:
 
         # decrease threshold to feed more notes into the timbre prediction
         # even if they don't make the final cut in accuracy_util.multi_track_accuracy_wrapper
-        generous_frame_predictions = frame_probs > (self.hparams.predict_frame_threshold / 4)
-        generous_onset_predictions = onset_probs > (self.hparams.predict_frame_threshold / 4)
+        generous_frame_predictions = frame_probs > (
+                self.hparams.predict_frame_threshold / self.hparams.prediction_generosity)
+        generous_onset_predictions = onset_probs > (
+                self.hparams.predict_frame_threshold / self.hparams.prediction_generosity)
         offset_predictions = offset_probs > self.hparams.predict_offset_threshold
 
         note_croppings = Lambda(self.get_croppings,
@@ -126,12 +123,12 @@ class FullModel:
             [generous_frame_predictions, generous_onset_predictions, offset_predictions])
 
         note_croppings = K.cast(note_croppings, 'int64')
-        num_notes = Lambda(self.get_num_notes,
+        num_notes = Lambda(self.get_dynamic_length,
                            output_shape=(1,),
                            dtype='int64',
                            dynamic=True)(note_croppings)
 
-        pianoroll_length = Lambda(self.get_num_notes,
+        pianoroll_length = Lambda(self.get_dynamic_length,
                                   output_shape=(1,),
                                   dtype='int64',
                                   dynamic=True)(generous_frame_predictions)
@@ -176,9 +173,11 @@ class FullModel:
 
         accuracies = {
             'multi_frames': [flatten_accuracy_wrapper(self.hparams),
-                             multi_track_accuracy_wrapper(self.hparams.predict_frame_threshold)],
+                             multi_track_accuracy_wrapper(self.hparams.predict_frame_threshold,
+                                                          print_report=True)],
             'multi_onsets': [flatten_accuracy_wrapper(self.hparams),
-                             multi_track_accuracy_wrapper(self.hparams.predict_onset_threshold)],
+                             multi_track_accuracy_wrapper(self.hparams.predict_onset_threshold,
+                                                          print_report=True)],
             'multi_offsets': [flatten_accuracy_wrapper(self.hparams),
                               multi_track_accuracy_wrapper(self.hparams.predict_offset_threshold)]
         }
