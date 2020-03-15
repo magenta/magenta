@@ -77,8 +77,11 @@ def run(argv, config_map, data_fn):
     #midi_model.load_model(71.11, 85.35, 'frame-weight-4')
     #midi_model.load_model(44.94, 86.05, '1-4-9-threshold')
     #midi_model.load_model(63.17, 89.81, '2-4-9-threshold')
-    midi_model.load_model(67.10, 85.14, '3-4-9-threshold')
-
+    #midi_model.load_model(66.89, 86.17, '3-4-9-threshold')
+    # midi_model.load_model(82.94, 80.47, id='big-lstm-for-f1', epoch_num=149)
+    # midi_model.load_model(34.14, 51.86, id='cqt-no-log-256', epoch_num=2)
+    midi_model.build_model()
+    midi_model.load_newest()
 
     for filename in argv[1:]:
         tf.compat.v1.logging.info('Starting transcription for %s...', filename)
@@ -90,7 +93,7 @@ def run(argv, config_map, data_fn):
         spec = tf.reshape(spec, (1, *spec.shape, 1))
 
         tf.compat.v1.logging.info('Running inference...')
-        sequence_prediction = midi_model.predict_sequence(spec)
+        sequence_prediction = midi_model.predict_from_spec(spec)
         #assert len(prediction_list) == 1
 
         #sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)

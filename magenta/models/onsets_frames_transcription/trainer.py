@@ -84,12 +84,23 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'TIMBRE', 'FULL'],
                          'type of model to train')
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs, nsynth_reader, model_util
+tf.app.flags.DEFINE_string(
+    'transcribed_file_suffix', 'predicted',
+    'Optional suffix to add to transcribed files.')
+
+if FLAGS.using_plaidml:
+    os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
+    import plaidml.keras
+
+    plaidml.keras.install_backend()
+
+from magenta.models.onsets_frames_transcription import data, train_util, configs, nsynth_reader, \
+    model_util
 
 
 def run(config_map, data_fn, additional_trial_info):
     """Run training or evaluation."""
-    tf.compat.v1.logging.set_verbosity(FLAGS.log)
+    tf.logging.set_verbosity(FLAGS.log)
 
     config = config_map[FLAGS.config]
     model_dir = os.path.expanduser(FLAGS.model_dir)
@@ -113,8 +124,10 @@ def run(config_map, data_fn, additional_trial_info):
             num_steps=FLAGS.num_steps)
     elif FLAGS.mode == 'predict':
         train_util.transcribe(data_fn=data_fn,
-                              filename=FLAGS.audio_filename,
-                              model_dir='./out',
+                              model_dir=model_dir,
+                              model_type=model_util.ModelType[FLAGS.model_type],
+                              path=FLAGS.audio_filename,
+                              file_suffix=FLAGS.transcribed_file_suffix,
                               hparams=hparams
                               )
     elif FLAGS.mode == 'eval':
@@ -135,9 +148,11 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    provide_batch_fn = data.provide_batch if model_util.ModelType[FLAGS.model_type] == model_util.ModelType.MIDI \
+    provide_batch_fn = data.provide_batch if model_util.ModelType[
+                                                 FLAGS.model_type] == model_util.ModelType.MIDI \
         else nsynth_reader.provide_batch
-    data_fn = functools.partial(provide_batch_fn, examples=FLAGS.examples_path)
+    data_fn = functools.partial(provide_batch_fn, examples=FLAGS.examples_path) \
+        if FLAGS.examples_path else None
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)
