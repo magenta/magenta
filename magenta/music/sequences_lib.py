@@ -1838,7 +1838,8 @@ def sequence_to_pianoroll(
       tf.logging.warn('Skipping out of range pitch: %d', note.pitch)
       continue
 
-    if instrument_family is not None and midi_instrument_to_family[note.instrument] != instrument_family:
+    if instrument_family is not None \
+            and midi_instrument_to_family[note.program].value != instrument_family:
       continue
     start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
 

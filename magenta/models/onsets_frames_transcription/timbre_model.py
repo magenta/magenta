@@ -9,8 +9,8 @@ import tensorflow as tf
 from dotmap import DotMap
 
 from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription.accuracy_util import flatten_accuracy_wrapper, \
-    flatten_loss_wrapper, WeightedCategoricalCrossentropy
+from magenta.models.onsets_frames_transcription.accuracy_util import \
+    WeightedCategoricalCrossentropy, flatten_accuracy_wrapper
 from magenta.models.onsets_frames_transcription.layer_util import conv_bn_elu_layer, \
     get_all_croppings, time_distributed_wrapper
 
@@ -22,24 +22,26 @@ if FLAGS.using_plaidml:
 
     from keras import backend as K
     from keras.initializers import he_normal, VarianceScaling
-    from keras.layers import BatchNormalization, Conv2D, \
-    Dense, Dropout, \
-    Input, concatenate, Lambda, Reshape, LSTM, \
-    Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add, Multiply, Activation
+    from keras.activations import tanh
+    from keras.layers import Conv2D, \
+        Dense, Dropout, \
+        Input, concatenate, Lambda, Reshape, LSTM, \
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply
     from keras.models import Model
     from keras.regularizers import l2
 else:
     from tensorflow.keras import backend as K
     from tensorflow.keras.initializers import he_normal, VarianceScaling
-    from tensorflow.keras.layers import BatchNormalization, Conv2D, \
+    from tensorflow.keras.activations import tanh
+    from tensorflow.keras.layers import Conv2D, \
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add, Multiply, Activation
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
-# \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
 
+# \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
 def get_default_hparams():
     return {
         'timbre_learning_rate': 0.0006,
@@ -186,12 +188,6 @@ def acoustic_model_layer(hparams, pre_crop=True):
 
 
 def acoustic_dense_layer(hparams):
-    # batch norm, then elu activation, then maxpool
-    bn_elu_fn = lambda x: ELU(hparams.timbre_leaky_alpha)(
-        time_distributed_wrapper(
-            BatchNormalization(axis=-1, scale=False), hparams=hparams)
-        (x))
-
     def acoustic_dense_fn(inputs):
         outputs = inputs
         for i in range(hparams.timbre_fc_num_layers):
@@ -205,10 +201,8 @@ def acoustic_dense_layer(hparams):
                                                          hparams.timbre_l2_regularizer),
                                                      name=f'acoustic_dense_{i}'),
                                                hparams=hparams)(outputs)
-            if i < hparams.timbre_fc_num_layers - 1:
-                outputs = bn_elu_fn(outputs)
-            else:
-                outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
+            # don't do batch normalization because our samples are no longer independent
+            outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
         return outputs
 
     return acoustic_dense_fn
@@ -266,13 +260,9 @@ def timbre_prediction_model(hparams=None):
         # aka: (batch_size, length, freq_range, num_channels)
         acoustic_outputs = acoustic_model_layer(hparams)(spec_with_epsilon)
 
-        if hparams.timbre_sharing_conv:
-            # filter_outputs shape: (None, None, 57, 448)
-            # aka: (batch_size, length, freq_range, num_channels)
-            filter_outputs = filters_layer(hparams)(acoustic_outputs)
-        else:
-            # if we aren't sharing the large filters, then just pass the simple conv output
-            filter_outputs = acoustic_outputs
+        # filter_outputs shape: (None, None, 57, 448)
+        # aka: (batch_size, length, freq_range, num_channels)
+        filter_outputs = filters_layer(hparams)(acoustic_outputs)
 
     # simplify to save memory
     if hparams.timbre_bottleneck_filter_num:
@@ -281,32 +271,18 @@ def timbre_prediction_model(hparams=None):
     # batch_size is excluded from this shape as it gets automatically inferred
     # ouput_shape with coagulation: (batch_size*num_notes, freq_range, num_filters)
     # output_shape without coagulation: (batch_size, num_notes, freq_range, num_filters)
-    output_shape = (math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]), K.int_shape(filter_outputs)[3]) \
+    output_shape = (math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]),
+                    K.int_shape(filter_outputs)[3]) \
         if hparams.timbre_coagulate_mini_batches \
-        else (None, math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]), K.int_shape(filter_outputs)[3])
-    cropped_outputs = Lambda(
+        else (None, math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]),
+              K.int_shape(filter_outputs)[3])
+    pooled_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
         output_shape=output_shape)(
         [filter_outputs, note_croppings, num_notes])
 
-    # cropped_outputs = time_distributed_wrapper(ConvLSTM2D(128, (3, 3), activation='elu', return_sequences=True),
-    #                                            hparams=hparams)(K.expand_dims(cropped_outputs, -1)) #TODO maybe -2
-
-    # cropped_outputs = time_distributed_wrapper(BatchNormalization(axis=-1, scale=False), hparams)(
-    #     cropped_outputs)
-
-    if hparams.timbre_sharing_conv:
-        # pooled_outputs shape: (None, None, None, 19, 448)
-        # aka: (batch_size, num_notes, length, freq_range, num_channels)
-        pooled_outputs = cropped_outputs
-    else:
-        pooled_outputs = filters_layer(hparams)(cropped_outputs)
-
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
     # last 3 independently (time, frequency, and number of channels/filters)
-
-    if hparams.timbre_extra_conv:
-        pooled_outputs = acoustic_model_layer(hparams, pre_crop=False)(pooled_outputs)
 
     # flatten while preserving batch and time dimensions
     # shape: (None, None, None, 1792)
@@ -320,11 +296,6 @@ def timbre_prediction_model(hparams=None):
             pooled_outputs)
         timeless_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
 
-        non_normalized_outputs = time_distributed_wrapper(
-            Dense(hparams.timbre_penultimate_fc_size, kernel_initializer=VarianceScaling()),
-            hparams)(
-            timeless_outputs)
-        non_normalized_outputs = Activation('tanh')(non_normalized_outputs)
 
     else:
         flattened_outputs = time_distributed_wrapper(Reshape(
@@ -336,22 +307,32 @@ def timbre_prediction_model(hparams=None):
         # shape: (None, None, 512)
         # aka: (batch_size, num_notes, lstm_units)
         timeless_outputs = lstm_layer(hparams=hparams)(dense_outputs)
-        non_normalized_outputs = ELU(hparams.timbre_leaky_alpha)(timeless_outputs)
 
+    penultimate_outputs = time_distributed_wrapper(
+        Dense(hparams.timbre_penultimate_fc_size,
+              activation='tanh',
+              kernel_initializer=VarianceScaling()),
+        hparams)(
+        timeless_outputs)
+    # Allows debugging
+    def passthrough(x):
+        return x
+    penultimate_outputs = Lambda(passthrough, output_shape=K.int_shape(penultimate_outputs)[1:], dynamic=True)(penultimate_outputs)
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
-    instrument_family_probs = instrument_prediction_layer(hparams)(non_normalized_outputs)
+    instrument_family_probs = instrument_prediction_layer(hparams)(penultimate_outputs)
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 
     weights = tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
-                          len(hparams.timbre_class_weights_list), axis=-1)
+                        len(hparams.timbre_class_weights_list), axis=-1)
 
     # decrease loss for correct predictions TODO does this make any sense?
     weights = Multiply()([weights,
                           1 + tf.linalg.diag(
                               tf.repeat(
-                                  -hparams.weight_correct_multiplier, len(hparams.timbre_class_weights_list)
+                                  -hparams.weight_correct_multiplier,
+                                  len(hparams.timbre_class_weights_list)
                               )
                           )])
     # weigh based on predicted value (expand on 0) instead?

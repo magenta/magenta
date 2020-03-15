@@ -150,7 +150,14 @@ def train(data_fn,
         #model.load_model(5.17, id=hparams.model_id, epoch_num=8)
     else:
         print('building full model')
-        model.build_model()
+        midi_model = ModelWrapper(model_dir, ModelType.MIDI, hparams=hparams)
+        midi_model.build_model()
+        midi_model.load_newest()
+        timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, hparams=hparams)
+        timbre_model.build_model()
+        timbre_model.load_newest()
+
+        model.build_model(midi_model=midi_model.get_model(), timbre_model=timbre_model.get_model())
         model.load_newest(hparams.load_id)
 
 

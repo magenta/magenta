@@ -115,17 +115,20 @@ def get_all_croppings(input_list, hparams):
     all_outputs = []
     # unbatch / do different things for each batch (we kinda create mini-batches)
     for batch_idx in range(K.int_shape(conv_output_list)[0]):
-        out = get_croppings_for_single_image(conv_output_list[batch_idx],
-                                             note_croppings_list[batch_idx],
-                                             num_notes_list[batch_idx],
-                                             hparams=hparams,
-                                             temporal_scale=max(1, hparams.timbre_pool_size[0]
-                                                                ** hparams.timbre_num_layers))
+        if not num_notes_list[batch_idx]:
+            out = K.zeros(shape=(0, *K.int_shape(conv_output_list[batch_idx])[1:]))
+        else:
+            out = get_croppings_for_single_image(conv_output_list[batch_idx],
+                                                 note_croppings_list[batch_idx],
+                                                 num_notes_list[batch_idx],
+                                                 hparams=hparams,
+                                                 temporal_scale=max(1, hparams.timbre_pool_size[0]
+                                                                    ** hparams.timbre_num_layers))
 
-        if hparams.timbre_sharing_conv:
-            out = MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
-                               padding='same')(out)
-        # out = tf.reshape(out, (-1, *out.shape[2:]))
+            if hparams.timbre_sharing_conv:
+                out = MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
+                                   padding='same')(out)
+            # out = tf.reshape(out, (-1, *out.shape[2:]))
 
         all_outputs.append(out)
 
@@ -166,7 +169,7 @@ def get_croppings_for_single_image(conv_output, note_croppings,
         / temporal_scale, dtype='int32'
     )
     for i in range(num_notes):
-        trimmed_spec = conv_output[start_idx[i]:end_idx[i]]
+        trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
         if hparams.timbre_global_pool:
             # GlobalAveragePooling1D supports masking
             trimmed_spec = GlobalAveragePooling1D()(

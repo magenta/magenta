@@ -22,6 +22,26 @@ def Dixon(yTrue, yPred):
     tp, pp, rp = K.sum(yTrue * K.round(yPred)), K.sum(K.round(yPred)), K.sum(yTrue)
     return 1 if pp == 0 and rp == 0 else tp / (pp + rp - tp + K.epsilon())
 
+def multi_track_accuracy_wrapper(threshold):
+    def multi_track_accuracy(y_true, y_probs):
+        sum_probs = K.sum(y_probs, axis=-1)
+        thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
+        one_hot = tf.one_hot(tf.reshape(tf.nn.top_k(y_probs).indices, K.int_shape(y_probs)[:-1]),
+                             K.int_shape(y_probs)[-1])
+        times_one_hot = thresholded_y_probs * one_hot
+        y_predictions = tf.math.is_finite(thresholded_y_probs / times_one_hot)
+        flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
+        flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
+
+
+        print(classification_report(flat_y_true, flat_y_predictions))
+
+        precision, recall, f1, _ = precision_recall_fscore_support(flat_y_true,
+                                                                   flat_y_predictions,
+                                                                   average='micro')
+        return f1
+    return multi_track_accuracy
+
 
 def binary_accuracy_wrapper(threshold):
     def acc(labels, probs):
@@ -71,15 +91,16 @@ def flatten_f1_wrapper(hparams):
         return scores
     return flatten_f1_fn
 
-def flatten_loss_wrapper(hparams):
+# use epsilon to prevent nans when doing log
+def flatten_loss_wrapper(hparams, epsilon=1e-9):
     def flatten_loss_fn(y_true, y_pred):
         if hparams.timbre_coagulate_mini_batches:
-            return categorical_crossentropy(y_true, y_pred,
+            return categorical_crossentropy(y_true, y_pred + epsilon,
                                             label_smoothing=hparams.timbre_label_smoothing)
         rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
-        return categorical_crossentropy(rebatched_true, rebatched_pred,
+        return categorical_crossentropy(rebatched_true, rebatched_pred + epsilon,
                                         label_smoothing=hparams.timbre_label_smoothing)
     return flatten_loss_fn
 

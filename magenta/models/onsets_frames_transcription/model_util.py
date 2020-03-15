@@ -35,10 +35,12 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
     from keras.models import load_model
     from keras.optimizers import Adam
+    from keras.utils import plot_model
     import keras.backend as K
 else:
     from tensorflow.keras.models import load_model
     from tensorflow.keras.optimizers import Adam
+    from tensorflow.keras.utils import plot_model
     import tensorflow.keras.backend as K
 
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
@@ -94,6 +96,9 @@ class ModelWrapper:
                                              self.hparams) if type == ModelType.MIDI else TimbrePredictionMetrics(
             self.generator, self.hparams)
 
+    def get_model(self):
+        return self.model
+
     def save_model_with_metrics(self, epoch_num):
         if self.type == ModelType.MIDI or self.type == ModelType.FULL:
             id_tup = (self.model_dir, self.type.name, self.id,
@@ -122,7 +127,7 @@ class ModelWrapper:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
                 class_weights = self.hparams.timbre_class_weights
-            # self.plot_spectrograms(x)
+            #self.plot_spectrograms(x)
 
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
@@ -228,8 +233,8 @@ class ModelWrapper:
             print('Loading pre-trained model: {}'.format(model_weights))
             self.model.load_weights(model_weights)
             print('Model loaded successfully')
-        except:
-            print(f'Couldn\'t load model weights')
+        except IndexError:
+            print(f'No saved models exist at path: {self.model_dir}/{self.type.name}/{id}/')
 
     def load_model(self, frames_f1, onsets_f1=-1, id=-1, epoch_num=0):
         if not id:
@@ -271,6 +276,7 @@ class ModelWrapper:
                                  metrics=accuracies, loss=losses)
             if self.type == ModelType.TIMBRE:
                 self.model = timbre_model
+
         if self.type == ModelType.FULL:  # self.type == ModelType.FULL:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()
@@ -279,4 +285,12 @@ class ModelWrapper:
                                     clipnorm=self.hparams.clip_norm),
                                metrics=accuracies, loss=losses)
 
+        # only save the model image if we are training on it
+        if self.generator is not None:
+            if not os.path.exists(f'{self.model_dir}/{self.type.name}/{self.id}'):
+                os.makedirs(f'{self.model_dir}/{self.type.name}/{self.id}')
+            plot_model(self.model,
+                       to_file=f'{self.model_dir}/{self.type.name}/{self.id}/model.png',
+                       show_shapes=True,
+                       show_layer_names=False)
         print(self.model.summary())

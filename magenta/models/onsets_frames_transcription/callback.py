@@ -4,7 +4,8 @@ from abc import abstractmethod
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
 
-from magenta.models.onsets_frames_transcription.accuracy_util import flatten_f1_wrapper
+from magenta.models.onsets_frames_transcription.accuracy_util import flatten_f1_wrapper, \
+    multi_track_accuracy_wrapper
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -84,3 +85,14 @@ class TimbrePredictionMetrics(MetricsCallback):
         scores = flatten_f1_wrapper(self.hparams)(y[0], y_probs)
         return TimbrePredictionOutputMetrics(scores)
 
+class FullPredictionMetrics(MetricsCallback):
+    def load_metrics(self, metrics_history):
+        # convert to list of namedtuples
+        self.metrics_history = [MidiPredictionOutputMetrics(*x) for x in metrics_history]
+
+    def predict(self, X, y):
+        y_probs = self.model.predict_on_batch(X)
+        frame_metrics = multi_track_accuracy_wrapper(self.hparams.predict_frame_threshold)(y[0], y_probs[0])
+        onset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_onset_threshold)(y[1], y_probs[1])
+        offset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_offset_threshold)(y[2], y_probs[2])
+        return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)

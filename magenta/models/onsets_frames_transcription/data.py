@@ -26,6 +26,7 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
+import copy
 import functools
 import re
 import wave
@@ -264,7 +265,7 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         offsets_list = []
         for i in range(constants.NUM_INSTRUMENT_FAMILIES):
             res, weighted_res, onsets, velocities, offsets = tf.py_function(
-                sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
+                sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor, i],
                 [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
                 name='sequence_to_pianoroll_op')
             res.set_shape([None, constants.MIDI_PITCHES])
@@ -335,7 +336,7 @@ def get_present_instruments_op(sequence_tensor):
         sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
         present_list = np.zeros(constants.NUM_INSTRUMENT_FAMILIES, dtype=np.bool)
         for note in sequence.notes:
-            note_family = instrument_family_mappings.midi_instrument_to_family[note.instrument]
+            note_family = instrument_family_mappings.midi_instrument_to_family[note.program]
             if note_family is not instrument_family_mappings.Family.IGNORED:
                 present_list[note_family.value] = True
 
@@ -427,6 +428,14 @@ def preprocess_example(example_proto, hparams, is_training):
     spec = wav_to_spec_op(audio, hparams=hparams)
     spectrogram_hash = get_spectrogram_hash_op(spec)
 
+    if hparams.split_pianoroll:
+        # make a second spec that will be used for timbre prediction
+        temp_hparams = copy.deepcopy(hparams)
+        temp_hparams.spec_hop_length = hparams.timbre_hop_length
+        temp_hparams.spec_type = hparams.timbre_spec_type
+        temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
+        spec = [spec, wav_to_spec_op(audio, hparams=hparams)]
+
     labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
         sequence, velocity_range, hparams=hparams)
 
@@ -484,7 +493,7 @@ def input_tensors_to_example(inputs, hparams):
 FeatureTensors = collections.namedtuple(
     # 'FeatureTensors', ('spec', 'label_weights'))
     'FeatureTensors', ('spec',))  # 'label_weights', 'length', 'sequence_id'))
-MultiFeatureTensors = collections.namedtuple('MultiFeatureTensors', ('spec', 'present_instruments'))
+MultiFeatureTensors = collections.namedtuple('MultiFeatureTensors', ('spec_512', 'spec_256', 'present_instruments'))
 LabelTensors = collections.namedtuple(
     'LabelTensors', ('labels', 'onsets', 'offsets'))  # , 'note_sequence'))
 
@@ -530,6 +539,16 @@ def input_tensors_to_model_input(
         # In this case, it is min(hparams.truncated_length, length)
         final_length = truncated_length
 
+    if hparams.split_pianoroll:
+        spec_256 = spec[1]
+        spec = spec[0]
+        spec_256_length = int(final_length * hparams.spec_hop_length / hparams.timbre_hop_length)
+        spec_256_delta = tf.shape(spec_256)[0] - spec_256_length
+        spec_256 = tf.case(
+            [(spec_256_delta < 0,
+              lambda: tf.pad(spec_256, tf.stack([(0, -spec_256_delta), (0, 0)]))),
+             (spec_256_delta > 0, lambda: spec_256[0:-spec_256_delta])],
+            default=lambda: spec_256)
     spec_delta = tf.shape(spec)[0] - final_length
     spec = tf.case(
         [(spec_delta < 0,
@@ -568,7 +587,8 @@ def input_tensors_to_model_input(
     if hparams.split_pianoroll:
 
         features = MultiFeatureTensors(
-            spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
+            spec_512=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
+            spec_256=tf.reshape(spec_256, (spec_256_length, hparams_frame_size(hparams), 1)),
             present_instruments=get_present_instruments_op(input_tensors.note_sequence)
             # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
             # length=truncated_length,
@@ -716,9 +736,12 @@ def create_batch(dataset, hparams, is_training, batch_size=None):
             # padded_shapes=(TensorShape(3), TensorShape(6)),
             # padded_shapes=dataset.element_spec,
             padded_shapes=(
-                MultiFeatureTensors(TensorShape([None, 229, 1]), TensorShape([constants.NUM_INSTRUMENT_FAMILIES])),  # , TensorShape([None, 88]),
+                MultiFeatureTensors(TensorShape([None, 229, 1]),
+                                    TensorShape([None, 229, 1]),
+                                    TensorShape([constants.NUM_INSTRUMENT_FAMILIES])),  # , TensorShape([None, 88]),
                 # TensorShape([]), TensorShape([])),
-                LabelTensors(TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]), TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]),
+                LabelTensors(TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]),
+                             TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]),
                              TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]),
                              # TensorShape([None, 88]), TensorShape([None, 88]),
                              # TensorShape([])
