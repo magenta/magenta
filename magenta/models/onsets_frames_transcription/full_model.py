@@ -14,7 +14,8 @@ from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrappe
 from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping
 
 
-def note_croppings_to_pianorolls(batched_note_croppings, batched_timbre_probs):
+def note_croppings_to_pianorolls(input_list):
+    batched_note_croppings, batched_timbre_probs = input_list
     pianoroll_list = []
     for batch_idx in range(K.int_shape(batched_note_croppings)[0]):
         note_croppings = batched_note_croppings[batch_idx]
@@ -62,15 +63,29 @@ class FullModel:
 
     def get_croppings(self, input_list):
         """Convert frame predictions into a sequence."""
-        frame_predictions, onset_predictions, offset_predictions = input_list
+        batched_frame_predictions, batched_onset_predictions, batched_offset_predictions = \
+            input_list
 
-        sequence = infer_util.predict_sequence(
-            frame_predictions=frame_predictions,
-            onset_predictions=onset_predictions,
-            offset_predictions=offset_predictions,
-            velocity_values=None,
-            hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
-        return self.sequence_to_note_croppings(sequence)
+        croppings_list = []
+        for batch_idx in range(K.int_shape(batched_frame_predictions)[0]):
+            frame_predictions = batched_frame_predictions[batch_idx]
+            onset_predictions = batched_onset_predictions[batch_idx]
+            offset_predictions = batched_offset_predictions[batch_idx]
+            sequence = infer_util.predict_sequence(
+                frame_predictions=frame_predictions,
+                onset_predictions=onset_predictions,
+                offset_predictions=offset_predictions,
+                velocity_values=None,
+                hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
+            croppings_list.append(self.sequence_to_note_croppings(sequence))
+        return tf.convert_to_tensor(croppings_list)
+
+    def get_num_notes(self, batched_note_croppings):
+        num_notes_list = []
+        for batch_idx in range(K.int_shape(batched_note_croppings)[0]):
+            num_notes = K.int_shape(batched_note_croppings[batch_idx])[0]
+            num_notes_list.append([num_notes])
+        return tf.convert_to_tensor(num_notes_list)
 
     def separate_batches(self, input_list):
         # TODO implement
@@ -88,8 +103,10 @@ class FullModel:
 
         note_croppings = Lambda(self.get_croppings, output_shape=(None, 3), dynamic=True)(
             [frame_predictions, onset_predictions, offset_predictions])
-        num_notes = Lambda(lambda x: x.shape[0], output_shape=(1,), dynamic=True)(note_croppings)
-        num_notes = K.cast(num_notes, 'int64')
+        note_croppings = K.cast(note_croppings, 'int64')
+        num_notes = Lambda(self.get_num_notes, output_shape=(1,), dtype='int64', dynamic=True)(
+            note_croppings)
+        # num_notes = K.cast(num_notes, 'int64')
 
         timbre_probs = self.timbre_model.call([spec, note_croppings, num_notes])
 
@@ -107,7 +124,7 @@ class FullModel:
                                   output_shape=(None,
                                                 constants.MIDI_PITCHES,
                                                 constants.NUM_INSTRUMENT_FAMILIES))(
-            note_croppings, present_timbre_probs)
+            [note_croppings, present_timbre_probs])
 
         expanded_frames = K.cast_to_floatx(K.expand_dims(frame_predictions))
         expanded_onsets = K.cast_to_floatx(K.expand_dims(onset_predictions))

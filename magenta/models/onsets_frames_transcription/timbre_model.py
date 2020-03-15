@@ -23,9 +23,9 @@ if FLAGS.using_plaidml:
     from keras import backend as K
     from keras.initializers import he_normal, VarianceScaling
     from keras.layers import BatchNormalization, Conv2D, \
-        Dense, Dropout, \
-        Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add
+    Dense, Dropout, \
+    Input, concatenate, Lambda, Reshape, LSTM, \
+    Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add, Multiply, Activation
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -34,17 +34,18 @@ else:
     from tensorflow.keras.layers import BatchNormalization, Conv2D, \
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Add, Multiply, Activation
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
+# \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
 
 def get_default_hparams():
     return {
-        'timbre_learning_rate': 0.0003,
+        'timbre_learning_rate': 0.0006,
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 1e-3,
-        'timbre_clip_norm': 3.0,
+        'timbre_clip_norm': 1.0,
         'timbre_l2_regularizer': 1e-5,
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
@@ -101,7 +102,8 @@ def get_default_hparams():
             8: 16000 / 20594,
             9: 16000 / 5501,
             10: 16000 / 10753,
-        }
+        },
+        'weight_correct_multiplier': 0.5,
     }
 
 
@@ -322,7 +324,7 @@ def timbre_prediction_model(hparams=None):
             Dense(hparams.timbre_penultimate_fc_size, kernel_initializer=VarianceScaling()),
             hparams)(
             timeless_outputs)
-        non_normalized_outputs = ELU(hparams.timbre_leaky_alpha)(non_normalized_outputs)
+        non_normalized_outputs = Activation('tanh')(non_normalized_outputs)
 
     else:
         flattened_outputs = time_distributed_wrapper(Reshape(
@@ -342,10 +344,19 @@ def timbre_prediction_model(hparams=None):
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 
+    weights = tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
+                          len(hparams.timbre_class_weights_list), axis=-1)
+
+    # decrease loss for correct predictions TODO does this make any sense?
+    weights = Multiply()([weights,
+                          1 + tf.linalg.diag(
+                              tf.repeat(
+                                  -hparams.weight_correct_multiplier, len(hparams.timbre_class_weights_list)
+                              )
+                          )])
     # weigh based on predicted value (expand on 0) instead?
     losses = {'family_probs': WeightedCategoricalCrossentropy(
-        weights=tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
-                          len(hparams.timbre_class_weights_list), axis=-1))}
+        weights=weights)}
 
     accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
 

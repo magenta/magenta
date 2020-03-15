@@ -13,11 +13,12 @@ class Family(Enum):
     REED = 7,
     STRING = 8,
     SYNTH_LEAD = 9,
-    VOCAL = 11,
-    IGNORED = 12,
+    VOCAL = 10,
+    IGNORED = 11,
 
 
-midi_instrument_to_family = collections.defaultdict(lambda: Family.IGNORED).update({
+midi_instrument_to_family = collections.defaultdict(lambda: Family.IGNORED)
+midi_instrument_to_family.update({
     1: Family.KEYBOARD,
     2: Family.KEYBOARD,
     3: Family.KEYBOARD,

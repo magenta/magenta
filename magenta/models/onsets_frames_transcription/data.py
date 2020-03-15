@@ -333,7 +333,7 @@ def truncate_note_sequence(sequence, truncate_secs):
 def get_present_instruments_op(sequence_tensor):
     def get_present_instruments_fn(sequence_tensor):
         sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
-        present_list = tf.zeros(constants.NUM_INSTRUMENT_FAMILIES, dtype=tf.bool)
+        present_list = np.zeros(constants.NUM_INSTRUMENT_FAMILIES, dtype=np.bool)
         for note in sequence.notes:
             note_family = instrument_family_mappings.midi_instrument_to_family[note.instrument]
             if note_family is not instrument_family_mappings.Family.IGNORED:
@@ -343,9 +343,9 @@ def get_present_instruments_op(sequence_tensor):
 
     res = tf.py_function(
         get_present_instruments_fn,
-        sequence_tensor,
+        [sequence_tensor],
         tf.bool)
-    res.set_shape(())
+    res.set_shape(constants.NUM_INSTRUMENT_FAMILIES)
     return res
 
 def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
@@ -567,7 +567,7 @@ def input_tensors_to_model_input(
 
     if hparams.split_pianoroll:
 
-        features = MulitFeatureTensors(
+        features = MultiFeatureTensors(
             spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
             present_instruments=get_present_instruments_op(input_tensors.note_sequence)
             # label_weights=tf.reshape(label_weights, (final_length, num_classes)),

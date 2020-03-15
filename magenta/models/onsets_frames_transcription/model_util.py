@@ -118,7 +118,6 @@ class ModelWrapper:
 
         for i in range(self.steps_per_epoch):
             x, y = self.generator.get()
-            print('got next batch')
             if self.type != ModelType.TIMBRE or not self.hparams.timbre_coagulate_mini_batches:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
@@ -140,7 +139,7 @@ class ModelWrapper:
             spec = K.pool2d(x[0], (temporal_ds, freq_ds), (temporal_ds, freq_ds), padding='same')
             croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
                                                        x[2][batch_idx], self.hparams, temporal_ds)
-            plt.figure(figsize=(12, 8))
+            plt.figure(figsize=(10, 6))
             num_crops = min(3, x[2][batch_idx].numpy())
             plt.subplot(int(num_crops / 2 + 1), 2, 1)
             y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
