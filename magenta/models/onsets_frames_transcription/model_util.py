@@ -1,4 +1,5 @@
 # load and save models
+import gc
 import glob
 import os
 import time
@@ -13,7 +14,8 @@ from memory_profiler import profile
 from sklearn.utils import class_weight
 from tensorflow.keras.layers import BatchNormalization
 
-from magenta.models.onsets_frames_transcription import infer_util, constants
+from magenta.models.onsets_frames_transcription import infer_util, constants, \
+    instrument_family_mappings
 from magenta.models.onsets_frames_transcription.callback import MidiPredictionMetrics, \
     TimbrePredictionMetrics, FullPredictionMetrics
 
@@ -22,7 +24,7 @@ import tensorflow.compat.v1 as tf
 from magenta.models.onsets_frames_transcription.full_model import FullModel
 from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
-from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping, get_cqt_index
+from magenta.models.onsets_frames_transcription.timbre_dataset_reader import NoteCropping, get_cqt_index
 from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model, \
     acoustic_model_layer
 
@@ -47,7 +49,7 @@ else:
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
 
 from magenta.models.onsets_frames_transcription.accuracy_util import AccuracyMetric, \
-    binary_accuracy_wrapper
+    binary_accuracy_wrapper, convert_multi_instrument_probs_to_predictions
 from magenta.models.onsets_frames_transcription.midi_model import midi_prediction_model
 
 
@@ -121,7 +123,7 @@ class ModelWrapper:
         np.save(self.history_save_format.format(*id_tup), [self.metrics.metrics_history])
         print('Model weights saved at: ' + self.model_save_format.format(*id_tup))
 
-    @profile
+    #@profile
     def train_and_save(self, epochs=1, epoch_num=0):
         if self.model is None:
             self.build_model()
@@ -146,8 +148,13 @@ class ModelWrapper:
 
         self.save_model_with_metrics(epoch_num)
 
-        tf.reset_default_graph()
-        K.clear_session()
+        # try to prevent oom
+        # del self.model
+        # gc.collect()
+        # tf.reset_default_graph()
+        # K.clear_session()
+        # self.build_model()
+        # self.load_newest()
 
     def plot_spectrograms(self, x, temporal_ds=16, freq_ds=4, max_batches=1):
         for batch_idx in range(max_batches):
@@ -222,11 +229,48 @@ class ModelWrapper:
             hparams=self.hparams, min_pitch=constants.MIN_MIDI_PITCH)
         return sequence
 
-    def predict_from_spec(self, spec, num_croppings=None, num_notes=None, *args):
+    def predict_multi_sequence(self, midi_spec, timbre_spec, present_instruments=None):
+        if present_instruments is None:
+            present_instruments = K.expand_dims(np.ones(constants.NUM_INSTRUMENT_FAMILIES), 0)
+        y_pred = self.model.predict([midi_spec, timbre_spec, present_instruments])
+        frame_predictions = convert_multi_instrument_probs_to_predictions(
+            y_pred[0], self.hparams.predict_frame_threshold)[0]
+        onset_predictions = convert_multi_instrument_probs_to_predictions(
+            y_pred[1], self.hparams.predict_frame_threshold)[0]
+        offset_predictions = convert_multi_instrument_probs_to_predictions(
+            y_pred[2], self.hparams.predict_frame_threshold)[0]
+
+        permuted_frame_predictions = K.permute_dimensions(frame_predictions, (2, 0, 1))
+        permuted_onset_predictions = K.permute_dimensions(onset_predictions, (2, 0, 1))
+        permuted_offset_predictions = K.permute_dimensions(offset_predictions, (2, 0, 1))
+
+        multi_sequence = None
+        for instrument_idx in range(K.int_shape(permuted_frame_predictions)[0]):
+            frame_predictions = permuted_frame_predictions[instrument_idx]
+            onset_predictions = permuted_onset_predictions[instrument_idx]
+            offset_predictions = permuted_offset_predictions[instrument_idx]
+            sequence = infer_util.predict_sequence(
+                frame_predictions=frame_predictions,
+                onset_predictions=onset_predictions,
+                offset_predictions=offset_predictions,
+                velocity_values=None,
+                hparams=self.hparams,
+                min_pitch=constants.MIN_MIDI_PITCH,
+                program=instrument_family_mappings.family_to_midi_instrument[instrument_idx] - 1,
+                instrument=instrument_idx)
+            if multi_sequence is None:
+                multi_sequence = sequence
+            else:
+                multi_sequence.notes.extend(sequence.notes)
+        return multi_sequence
+
+    def predict_from_spec(self, spec=None, additional_spec=None, num_croppings=None, num_notes=None, *args):
         if self.type == ModelType.MIDI:
             return self._predict_sequence(spec)
         elif self.type == ModelType.TIMBRE:
             return self._predict_timbre(spec, num_croppings, num_notes)
+        else:
+            return self.predict_multi_sequence(midi_spec=spec, timbre_spec=additional_spec)
 
     def load_newest(self, id='*'):
         try:

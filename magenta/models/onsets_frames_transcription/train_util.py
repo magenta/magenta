@@ -34,7 +34,7 @@ import numpy as np
 from magenta.models.onsets_frames_transcription import audio_label_data_utils, constants
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
-from magenta.models.onsets_frames_transcription.nsynth_reader import create_spectrogram
+from magenta.models.onsets_frames_transcription.timbre_dataset_reader import create_spectrogram
 from magenta.music import midi_io, audio_io
 from magenta.music.protobuf import music_pb2
 

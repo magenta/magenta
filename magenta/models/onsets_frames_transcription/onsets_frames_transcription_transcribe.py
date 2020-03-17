@@ -16,9 +16,11 @@
 
 from __future__ import absolute_import, division, print_function
 
+import copy
 import json
 
 import tensorflow.compat.v1 as tf
+import numpy as np
 from dotmap import DotMap
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
 
@@ -46,12 +48,15 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_string(
     'transcribed_file_suffix', 'predicted',
     'Optional suffix to add to transcribed files.')
+
+tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'FULL'],
+                         'type of model to transcribe')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
-from magenta.models.onsets_frames_transcription import configs
+from magenta.models.onsets_frames_transcription import configs, model_util, constants
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
 from magenta.music import midi_io
@@ -72,7 +77,8 @@ def run(argv, config_map, data_fn):
     hparams.batch_size = 1
     hparams.truncated_length_secs = 0
 
-    midi_model = ModelWrapper('./models', ModelType.MIDI, id=hparams.model_id, hparams=hparams)
+    model_type = model_util.ModelType[FLAGS.model_type]
+    midi_model = ModelWrapper('./models', type=model_type, id=hparams.model_id, hparams=hparams)
     #midi_model.load_model(80.37, 83.94, 'weights-zero')
     #midi_model.load_model(71.11, 85.35, 'frame-weight-4')
     #midi_model.load_model(44.94, 86.05, '1-4-9-threshold')
@@ -87,13 +93,29 @@ def run(argv, config_map, data_fn):
         tf.compat.v1.logging.info('Starting transcription for %s...', filename)
 
         wav_data = tf.gfile.Open(filename, 'rb').read()
-        spec = wav_to_spec_op(wav_data, hparams=hparams)
 
-        # add "batch" and channel dims
-        spec = tf.reshape(spec, (1, *spec.shape, 1))
+        if model_type is model_util.ModelType.MIDI:
+            spec = wav_to_spec_op(wav_data, hparams=hparams)
 
-        tf.compat.v1.logging.info('Running inference...')
-        sequence_prediction = midi_model.predict_from_spec(spec)
+            # add "batch" and channel dims
+            spec = tf.reshape(spec, (1, *spec.shape, 1))
+
+            tf.compat.v1.logging.info('Running inference...')
+            sequence_prediction = midi_model.predict_from_spec(spec)
+        else:
+            midi_spec = wav_to_spec_op(wav_data, hparams=hparams)
+            temp_hparams = copy.deepcopy(hparams)
+            temp_hparams.spec_hop_length = hparams.timbre_hop_length
+            temp_hparams.spec_type = hparams.timbre_spec_type
+            temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
+            timbre_spec = wav_to_spec_op(wav_data, hparams=temp_hparams)
+            # add "batch" and channel dims
+            midi_spec = tf.reshape(midi_spec, (1, *midi_spec.shape, 1))
+            timbre_spec = tf.reshape(timbre_spec, (1, *timbre_spec.shape, 1))
+
+            tf.compat.v1.logging.info('Running inference...')
+            sequence_prediction = midi_model.predict_multi_sequence(midi_spec=midi_spec,
+                                                               timbre_spec=timbre_spec)
         #assert len(prediction_list) == 1
 
         #sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)

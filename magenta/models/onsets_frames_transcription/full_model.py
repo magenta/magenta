@@ -8,11 +8,11 @@ from tensorflow.keras.models import Model
 from magenta.models.onsets_frames_transcription import constants, data, infer_util
 from magenta.models.onsets_frames_transcription.accuracy_util import flatten_accuracy_wrapper, \
     multi_track_prf_wrapper, flatten_loss_wrapper, multi_track_loss_wrapper, \
-    multi_track_present_accuracy_wrapper
+    multi_track_present_accuracy_wrapper, single_track_present_accuracy_wrapper
 from magenta.models.onsets_frames_transcription.instrument_family_mappings import \
     family_to_midi_instrument
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
-from magenta.models.onsets_frames_transcription.nsynth_reader import NoteCropping
+from magenta.models.onsets_frames_transcription.timbre_dataset_reader import NoteCropping
 
 
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
@@ -176,6 +176,8 @@ class FullModel:
             'multi_frames': [
                 multi_track_present_accuracy_wrapper(
                     self.hparams.predict_frame_threshold),
+                single_track_present_accuracy_wrapper(
+                    self.hparams.predict_frame_threshold),
                 multi_track_prf_wrapper(
                     self.hparams.predict_frame_threshold,
                     print_report=True)
@@ -183,12 +185,16 @@ class FullModel:
             'multi_onsets': [
                 multi_track_present_accuracy_wrapper(
                     self.hparams.predict_onset_threshold),
+                single_track_present_accuracy_wrapper(
+                    self.hparams.predict_onset_threshold),
                 multi_track_prf_wrapper(
                     self.hparams.predict_onset_threshold,
                     print_report=True)
             ],
             'multi_offsets': [
                 multi_track_present_accuracy_wrapper(
+                    self.hparams.predict_offset_threshold),
+                single_track_present_accuracy_wrapper(
                     self.hparams.predict_offset_threshold),
                 multi_track_prf_wrapper(
                     self.hparams.predict_offset_threshold)

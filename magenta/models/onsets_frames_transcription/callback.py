@@ -43,7 +43,7 @@ class MetricsCallback(Callback):
     def predict(self, X, y):
         pass
 
-    @profile
+    #@profile
     def on_epoch_end(self, epoch, logs={}, model=None):
         if model:
             self.model = model

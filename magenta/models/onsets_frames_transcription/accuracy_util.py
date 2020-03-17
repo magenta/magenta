@@ -51,6 +51,13 @@ def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
 
 
 def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5):
+    y_predictions = convert_multi_instrument_probs_to_predictions(y_probs, threshold)
+    flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
+    flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
+    return flat_y_true, flat_y_predictions
+
+
+def convert_multi_instrument_probs_to_predictions(y_probs, threshold):
     sum_probs = K.sum(y_probs, axis=-1)
     # remove any where the original midi prediction is below the threshold
     thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
@@ -60,10 +67,17 @@ def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5):
     # only predict the best instrument at each location
     times_one_hot = thresholded_y_probs * one_hot
     y_predictions = times_one_hot > 0
-    flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
-    flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
-    return flat_y_true, flat_y_predictions
+    return y_predictions
 
+
+def single_track_present_accuracy_wrapper(threshold):
+    def single_present_acc(y_true, y_probs):
+        single_y_true = K.max(y_true, axis=-1)
+        single_y_predictions = K.sum(y_probs, axis=-1) > threshold
+        return calculate_frame_metrics(single_y_true, single_y_predictions)[
+            'accuracy_without_true_negatives']
+
+    return single_present_acc
 
 def multi_track_present_accuracy_wrapper(threshold):
     def present_acc(y_true, y_probs):

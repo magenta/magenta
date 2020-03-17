@@ -5,7 +5,7 @@ import tensorflow as tf
 from intervaltree.node import l2
 
 from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription.nsynth_reader import get_cqt_index, get_mel_index
+from magenta.models.onsets_frames_transcription.timbre_dataset_reader import get_cqt_index, get_mel_index
 
 FLAGS = tf.compat.v1.app.flags.FLAGS
 if FLAGS.using_plaidml:
@@ -135,7 +135,7 @@ def get_all_croppings(input_list, hparams):
     if hparams.timbre_coagulate_mini_batches:
         return K.concatenate(all_outputs, axis=0)
 
-    return all_outputs
+    return tf.convert_to_tensor(all_outputs)
 
 
 def get_croppings_for_single_image(conv_output, note_croppings,
