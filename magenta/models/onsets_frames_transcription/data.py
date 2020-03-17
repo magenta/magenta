@@ -434,7 +434,7 @@ def preprocess_example(example_proto, hparams, is_training):
         temp_hparams.spec_hop_length = hparams.timbre_hop_length
         temp_hparams.spec_type = hparams.timbre_spec_type
         temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
-        spec = [spec, wav_to_spec_op(audio, hparams=hparams)]
+        spec = (spec, wav_to_spec_op(audio, hparams=temp_hparams))
 
     labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
         sequence, velocity_range, hparams=hparams)

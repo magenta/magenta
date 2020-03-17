@@ -7,7 +7,8 @@ from tensorflow.keras.models import Model
 
 from magenta.models.onsets_frames_transcription import constants, data, infer_util
 from magenta.models.onsets_frames_transcription.accuracy_util import flatten_accuracy_wrapper, \
-    multi_track_accuracy_wrapper, flatten_loss_wrapper
+    multi_track_prf_wrapper, flatten_loss_wrapper, multi_track_loss_wrapper, \
+    multi_track_present_accuracy_wrapper
 from magenta.models.onsets_frames_transcription.instrument_family_mappings import \
     family_to_midi_instrument
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
@@ -52,13 +53,12 @@ class FullModel:
                 start_idx = K.cast(cropping.start_idx / self.hparams.timbre_hop_length, 'int64')
                 end_idx = K.cast(cropping.end_idx / self.hparams.timbre_hop_length, 'int64')
                 if pitch > 0:
-                    pianorolls[pitch][start_idx:end_idx + 1] += timbre_probs[i]
+                    pianorolls[pitch][start_idx:end_idx + 1] = timbre_probs[i]
 
             # make time the first dimension
             pianoroll_list.append(K.permute_dimensions(pianorolls, (1, 0, 2)))
 
-        # TODO I bet this won't work if we have > 1 batch_size because of different lengths
-        return tf.convert_to_tensor(pianoroll_list)
+        return pianoroll_list
 
     def sequence_to_note_croppings(self, sequence):
         note_croppings = []
@@ -73,6 +73,7 @@ class FullModel:
         batched_frame_predictions, batched_onset_predictions, batched_offset_predictions = \
             input_list
 
+        print(f'num_onsets: {K.sum(K.cast_to_floatx(batched_onset_predictions))}')
         croppings_list = []
         for batch_idx in range(K.int_shape(batched_frame_predictions)[0]):
             frame_predictions = batched_frame_predictions[batch_idx]
@@ -90,9 +91,10 @@ class FullModel:
                                                                padding='post',
                                                                dtype=K.floatx(),
                                                                value=-1.0)
-        return tf.convert_to_tensor(padded)
+        return padded
 
     def get_dynamic_length(self, batched_dynamic_tensor):
+        print(f'dynamic length: {K.int_shape(batched_dynamic_tensor)[1]}')
         return K.expand_dims(
             tf.repeat(K.expand_dims(K.int_shape(batched_dynamic_tensor)[1], axis=0),
                       K.int_shape(batched_dynamic_tensor)[0])
@@ -111,16 +113,15 @@ class FullModel:
 
         # decrease threshold to feed more notes into the timbre prediction
         # even if they don't make the final cut in accuracy_util.multi_track_accuracy_wrapper
-        generous_frame_predictions = frame_probs > (
-                self.hparams.predict_frame_threshold / self.hparams.prediction_generosity)
-        generous_onset_predictions = onset_probs > (
-                self.hparams.predict_frame_threshold / self.hparams.prediction_generosity)
-        offset_predictions = offset_probs > self.hparams.predict_offset_threshold
+        frame_predictions = K.stop_gradient(frame_probs > self.hparams.predict_frame_threshold)
+        generous_onset_predictions = K.stop_gradient(onset_probs > (
+                self.hparams.predict_onset_threshold / self.hparams.prediction_generosity))
+        offset_predictions = K.stop_gradient(offset_probs > self.hparams.predict_offset_threshold)
 
         note_croppings = Lambda(self.get_croppings,
                                 output_shape=(None, 3),
                                 dynamic=True)(
-            [generous_frame_predictions, generous_onset_predictions, offset_predictions])
+            [frame_predictions, generous_onset_predictions, offset_predictions])
 
         note_croppings = K.cast(note_croppings, 'int64')
         num_notes = Lambda(self.get_dynamic_length,
@@ -131,7 +132,7 @@ class FullModel:
         pianoroll_length = Lambda(self.get_dynamic_length,
                                   output_shape=(1,),
                                   dtype='int64',
-                                  dynamic=True)(generous_frame_predictions)
+                                  dynamic=True)(frame_predictions)
 
         timbre_probs = self.timbre_model.call([spec_256, note_croppings, num_notes])
 
@@ -166,20 +167,32 @@ class FullModel:
         # multi_sequence = populate_instruments(sequence, timbre_probs, present_instruments)
 
         losses = {
-            'multi_frames': flatten_loss_wrapper(self.hparams),
-            'multi_onsets': flatten_loss_wrapper(self.hparams),
-            'multi_offsets': flatten_loss_wrapper(self.hparams),
+            'multi_frames': multi_track_loss_wrapper(self.hparams.frames_true_weighing),
+            'multi_onsets': multi_track_loss_wrapper(self.hparams.onsets_true_weighing),
+            'multi_offsets': multi_track_loss_wrapper(self.hparams.offsets_true_weighing),
         }
 
         accuracies = {
-            'multi_frames': [flatten_accuracy_wrapper(self.hparams),
-                             multi_track_accuracy_wrapper(self.hparams.predict_frame_threshold,
-                                                          print_report=True)],
-            'multi_onsets': [flatten_accuracy_wrapper(self.hparams),
-                             multi_track_accuracy_wrapper(self.hparams.predict_onset_threshold,
-                                                          print_report=True)],
-            'multi_offsets': [flatten_accuracy_wrapper(self.hparams),
-                              multi_track_accuracy_wrapper(self.hparams.predict_offset_threshold)]
+            'multi_frames': [
+                multi_track_present_accuracy_wrapper(
+                    self.hparams.predict_frame_threshold),
+                multi_track_prf_wrapper(
+                    self.hparams.predict_frame_threshold,
+                    print_report=True)
+            ],
+            'multi_onsets': [
+                multi_track_present_accuracy_wrapper(
+                    self.hparams.predict_onset_threshold),
+                multi_track_prf_wrapper(
+                    self.hparams.predict_onset_threshold,
+                    print_report=True)
+            ],
+            'multi_offsets': [
+                multi_track_present_accuracy_wrapper(
+                    self.hparams.predict_offset_threshold),
+                multi_track_prf_wrapper(
+                    self.hparams.predict_offset_threshold)
+            ]
         }
 
         return Model(inputs=[spec_512, spec_256, present_instruments],

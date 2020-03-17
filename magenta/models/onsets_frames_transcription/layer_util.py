@@ -135,7 +135,7 @@ def get_all_croppings(input_list, hparams):
     if hparams.timbre_coagulate_mini_batches:
         return K.concatenate(all_outputs, axis=0)
 
-    return tf.convert_to_tensor(all_outputs)
+    return all_outputs
 
 
 def get_croppings_for_single_image(conv_output, note_croppings,

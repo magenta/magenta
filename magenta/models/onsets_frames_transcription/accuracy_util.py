@@ -10,6 +10,7 @@ from tensorflow.keras.losses import categorical_crossentropy, CategoricalCrossen
 from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
 
+from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
 
 AccuracyMetric = namedtuple('AccuracyMetric', ('name', 'method'))
@@ -23,25 +24,73 @@ def Dixon(yTrue, yPred):
     return 1 if pp == 0 and rp == 0 else tp / (pp + rp - tp + K.epsilon())
 
 
-def multi_track_accuracy_wrapper(threshold, print_report=False, only_f1=True):
-    def multi_track_accuracy(y_true, y_probs):
-        sum_probs = K.sum(y_probs, axis=-1)
-        thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
-        one_hot = tf.one_hot(tf.reshape(tf.nn.top_k(y_probs).indices, K.int_shape(y_probs)[:-1]),
-                             K.int_shape(y_probs)[-1])
-        times_one_hot = thresholded_y_probs * one_hot
-        y_predictions = tf.math.is_finite(thresholded_y_probs / times_one_hot)
-        flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
-        flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
+def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
+    def multi_track_loss(y_true, y_probs):
+        # num_instruments, batch, time, pitch
+        permuted_y_true = K.permute_dimensions(y_true, (3, 0, 1, 2))
+        permuted_y_probs = K.permute_dimensions(y_probs, (3, 0, 1, 2))
 
+        loss_list = []
+        for instrument_idx in range(K.int_shape(permuted_y_true)[0]):
+            if 0 == K.sum(permuted_y_probs[instrument_idx]) == K.sum(
+                    permuted_y_true[instrument_idx]):
+                # ignore the non-present instruments
+                continue
+            loss_list.append(K.mean(tf_utils.log_loss(permuted_y_true[instrument_idx],
+                                                      permuted_y_probs[instrument_idx] + epsilon,
+                                                      epsilon=epsilon,
+                                                      recall_weighing=recall_weighing)))
+        # add instrument-independent loss
+        loss_list.append(K.mean(tf_utils.log_loss(K.max(y_true, axis=-1),
+                                                  K.sum(y_probs, axis=-1) + epsilon,
+                                                  epsilon=epsilon,
+                                                  recall_weighing=recall_weighing)))
+        return tf.reduce_mean(loss_list)
+
+    return multi_track_loss
+
+
+def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5):
+    sum_probs = K.sum(y_probs, axis=-1)
+    # remove any where the original midi prediction is below the threshold
+    thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
+    # get the label for the highest probability instrument
+    one_hot = tf.one_hot(tf.reshape(tf.nn.top_k(y_probs).indices, K.int_shape(y_probs)[:-1]),
+                         K.int_shape(y_probs)[-1])
+    # only predict the best instrument at each location
+    times_one_hot = thresholded_y_probs * one_hot
+    y_predictions = times_one_hot > 0
+    flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
+    flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
+    return flat_y_true, flat_y_predictions
+
+
+def multi_track_present_accuracy_wrapper(threshold):
+    def present_acc(y_true, y_probs):
+        flat_y_true, flat_y_predictions = convert_to_multi_instrument_predictions(y_true,
+                                                                                  y_probs,
+                                                                                  threshold)
+        return calculate_frame_metrics(flat_y_true, flat_y_predictions)[
+            'accuracy_without_true_negatives']
+
+    return present_acc
+
+
+def multi_track_prf_wrapper(threshold, print_report=False, only_f1=True):
+    def multi_track_prf(y_true, y_probs):
+        flat_y_true, flat_y_predictions = convert_to_multi_instrument_predictions(y_true,
+                                                                                  y_probs,
+                                                                                  threshold)
+
+        print(f'total predicted {K.sum(K.cast_to_floatx(flat_y_predictions))}')
         if print_report:
             print(classification_report(flat_y_true, flat_y_predictions, zero_division=1))
 
         # definitely don't use macro accuracy here because some instruments won't be present
         precision, recall, f1, _ = precision_recall_fscore_support(flat_y_true,
                                                                    flat_y_predictions,
-                                                                   average='weighted',
-                                                                   zero_division=1) # TODO maybe 0
+                                                                   average='micro',
+                                                                   zero_division=1)  # TODO maybe 0
         scores = {
             'precision': K.constant(precision),
             'recall': K.constant(recall),
@@ -49,9 +98,12 @@ def multi_track_accuracy_wrapper(threshold, print_report=False, only_f1=True):
         }
         return scores
 
+    def f1(t, p):
+        return multi_track_prf(t, p)['f1_score']
+
     if only_f1:
-        return lambda t, p: multi_track_accuracy(t, p)['f1_score']
-    return multi_track_accuracy
+        return f1
+    return multi_track_prf
 
 
 def binary_accuracy_wrapper(threshold):

@@ -10,9 +10,11 @@ else:
     import tensorflow.keras.backend as K
 
 
-def log_loss_wrapper(class_weighing):
+def log_loss_wrapper(recall_weighing):
     def log_loss_wrapper_fn(label_true, label_predicted):
-        return tf.reduce_mean(tf_utils.log_loss(label_true, label_predicted, class_weighing=class_weighing))
+        return tf.reduce_mean(tf_utils.log_loss(label_true,
+                                                label_predicted,
+                                                recall_weighing=recall_weighing))
 
     return log_loss_wrapper_fn
 

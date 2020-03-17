@@ -46,7 +46,7 @@ def get_default_hparams():
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 1e-4,
-        'clip_norm': 3.0,
+        'clip_norm': 1.0,
         'transform_audio': False,
         'onset_lstm_units': 256,
         'offset_lstm_units': 256,
@@ -208,7 +208,7 @@ def midi_prediction_model(hparams=None):
     # Frame prediction
     frame_probs = midi_pitches_layer('frames')(outputs)
 
-    # use class_weighing to care more about correctly identifying actual notes instead of false positives
+    # use recall_weighing > 0 to care more about recall than precision
     losses = {
         'frames': log_loss_wrapper(hparams.frames_true_weighing),
         'onsets': log_loss_wrapper(hparams.onsets_true_weighing),

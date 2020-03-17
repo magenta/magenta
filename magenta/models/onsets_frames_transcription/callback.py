@@ -1,11 +1,13 @@
 import collections
+import gc
 from abc import abstractmethod
 
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
+from memory_profiler import profile
 
 from magenta.models.onsets_frames_transcription.accuracy_util import flatten_f1_wrapper, \
-    multi_track_accuracy_wrapper
+    multi_track_prf_wrapper
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -41,6 +43,7 @@ class MetricsCallback(Callback):
     def predict(self, X, y):
         pass
 
+    @profile
     def on_epoch_end(self, epoch, logs={}, model=None):
         if model:
             self.model = model
@@ -52,6 +55,7 @@ class MetricsCallback(Callback):
             print('Precision: {}, Recall: {}, F1: {}\n'.format(value['precision'].numpy() * 100,
                                                                value['recall'].numpy() * 100,
                                                                value['f1_score'].numpy() * 100))
+        gc.collect()
 
 
 class MidiPredictionMetrics(MetricsCallback):
@@ -83,6 +87,7 @@ class TimbrePredictionMetrics(MetricsCallback):
         y_probs = self.model.predict_on_batch(X)
         print(y_probs + K.cast_to_floatx(y[0]))
         scores = flatten_f1_wrapper(self.hparams)(y[0], y_probs)
+        del y_probs
         return TimbrePredictionOutputMetrics(scores)
 
 class FullPredictionMetrics(MetricsCallback):
@@ -92,7 +97,8 @@ class FullPredictionMetrics(MetricsCallback):
 
     def predict(self, X, y):
         y_probs = self.model.predict_on_batch(X)
-        frame_metrics = multi_track_accuracy_wrapper(self.hparams.predict_frame_threshold, only_f1=False)(y[0], y_probs[0])
-        onset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_onset_threshold, only_f1=False)(y[1], y_probs[1])
-        offset_metrics = multi_track_accuracy_wrapper(self.hparams.predict_offset_threshold, only_f1=False)(y[2], y_probs[2])
+        frame_metrics = multi_track_prf_wrapper(self.hparams.predict_frame_threshold, only_f1=False)(y[0], y_probs[0])
+        onset_metrics = multi_track_prf_wrapper(self.hparams.predict_onset_threshold, only_f1=False)(y[1], y_probs[1])
+        offset_metrics = multi_track_prf_wrapper(self.hparams.predict_offset_threshold, only_f1=False)(y[2], y_probs[2])
+        del y_probs
         return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)

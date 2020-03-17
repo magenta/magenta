@@ -26,7 +26,7 @@ if FLAGS.using_plaidml:
     from keras.layers import Conv2D, \
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -36,7 +36,7 @@ else:
     from tensorflow.keras.layers import Conv2D, \
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
@@ -67,6 +67,7 @@ def get_default_hparams():
         'timbre_penultimate_fc_size': 512,
         'timbre_fc_num_layers': 2,
         'timbre_fc_dropout_drop_amt': 0.0,
+        'timbre_local_conv': True,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': 11,
         'timbre_lstm_units': 256,
@@ -281,6 +282,14 @@ def timbre_prediction_model(hparams=None):
         output_shape=output_shape)(
         [filter_outputs, note_croppings, num_notes])
 
+    if hparams.timbre_local_conv:
+        pooled_outputs = time_distributed_wrapper(LocallyConnected1D(
+            128,
+            5,
+            kernel_regularizer=l2(hparams.timbre_l2_regularizer),
+            kernel_initializer=he_normal(),
+        ), hparams)(pooled_outputs)
+
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
     # last 3 independently (time, frequency, and number of channels/filters)
 
@@ -314,10 +323,13 @@ def timbre_prediction_model(hparams=None):
               kernel_initializer=VarianceScaling()),
         hparams)(
         timeless_outputs)
+
     # Allows debugging
     def passthrough(x):
         return x
-    penultimate_outputs = Lambda(passthrough, output_shape=K.int_shape(penultimate_outputs)[1:], dynamic=True)(penultimate_outputs)
+
+    penultimate_outputs = Lambda(passthrough, output_shape=K.int_shape(penultimate_outputs)[1:],
+                                 dynamic=True)(penultimate_outputs)
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
     instrument_family_probs = instrument_prediction_layer(hparams)(penultimate_outputs)

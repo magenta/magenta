@@ -9,6 +9,7 @@ import numpy as np
 import uuid
 import matplotlib.pyplot as plt
 from keras.layers import Conv2D
+from memory_profiler import profile
 from sklearn.utils import class_weight
 from tensorflow.keras.layers import BatchNormalization
 
@@ -120,6 +121,7 @@ class ModelWrapper:
         np.save(self.history_save_format.format(*id_tup), [self.metrics.metrics_history])
         print('Model weights saved at: ' + self.model_save_format.format(*id_tup))
 
+    @profile
     def train_and_save(self, epochs=1, epoch_num=0):
         if self.model is None:
             self.build_model()
@@ -130,28 +132,33 @@ class ModelWrapper:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
             else:
                 class_weights = self.hparams.timbre_class_weights
-            #self.plot_spectrograms(x)
+            # self.plot_spectrograms(x)
 
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
-            new_metrics = self.model.train_on_batch(x, y, class_weight=class_weights)
+            new_metrics = self.model.train_on_batch(x, y)
+            tf.random.set_random_seed(1)
             # self.model.evaluate(x, y)
             print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
-            print(new_metrics)
+            print([f'{x[0]}: {x[1]:0.4f}' for x in zip(self.model.metrics_names, new_metrics)])
+
         self.metrics.on_epoch_end(1, model=self.model)
 
         self.save_model_with_metrics(epoch_num)
+
+        tf.reset_default_graph()
+        K.clear_session()
 
     def plot_spectrograms(self, x, temporal_ds=16, freq_ds=4, max_batches=1):
         for batch_idx in range(max_batches):
             spec = K.pool2d(x[0], (temporal_ds, freq_ds), (temporal_ds, freq_ds), padding='same')
             croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
-                                                       x[2][batch_idx], self.hparams, temporal_ds)
+                                                       K.cast(x[2][batch_idx], 'int64'), self.hparams, temporal_ds)
             plt.figure(figsize=(10, 6))
             num_crops = min(3, x[2][batch_idx].numpy())
             plt.subplot(int(num_crops / 2 + 1), 2, 1)
             y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
-            librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
+            librosa.display.specshow(self.spec_to_db(x[1], batch_idx),
                                      y_axis=y_axis,
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
@@ -262,24 +269,27 @@ class ModelWrapper:
             print('Couldn\'t find pre-trained model: {}'
                   .format(self.model_save_format.format(*id_tup)))
 
-    def build_model(self, midi_model=None, timbre_model=None):
+    def build_model(self, midi_model=None, timbre_model=None, compile=True):
         if self.type == ModelType.MIDI or self.type == ModelType.FULL and midi_model is None:
             midi_model, losses, accuracies = midi_prediction_model(self.hparams)
-            midi_model.compile(Adam(self.hparams.learning_rate,
-                                    decay=self.hparams.decay_rate,
-                                    clipnorm=self.hparams.clip_norm),
-                               metrics=accuracies, loss=losses)
+
             if self.type == ModelType.MIDI:
                 self.model = midi_model
+                if compile:
+                    midi_model.compile(Adam(self.hparams.learning_rate,
+                                            decay=self.hparams.decay_rate,
+                                            clipnorm=self.hparams.clip_norm),
+                                       metrics=accuracies, loss=losses)
         if self.type == ModelType.TIMBRE or self.type == ModelType.FULL and timbre_model is None:
             timbre_model, losses, accuracies = timbre_prediction_model(self.hparams)
-            timbre_model.compile(Adam(self.hparams.timbre_learning_rate,
-                                      decay=self.hparams.timbre_decay_rate,
-                                      clipnorm=self.hparams.timbre_clip_norm),
-                                 metrics=accuracies, loss=losses)
+
             if self.type == ModelType.TIMBRE:
                 self.model = timbre_model
-
+                if compile:
+                    timbre_model.compile(Adam(self.hparams.timbre_learning_rate,
+                                              decay=self.hparams.timbre_decay_rate,
+                                              clipnorm=self.hparams.timbre_clip_norm),
+                                         metrics=accuracies, loss=losses)
         if self.type == ModelType.FULL:  # self.type == ModelType.FULL:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()

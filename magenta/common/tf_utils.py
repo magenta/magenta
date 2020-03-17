@@ -37,7 +37,7 @@ def merge_hparams(hparams_1, hparams_2):
   # return contrib_training.HParams(**hparams_map)
 
 
-def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, class_weighing=None):
+def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, recall_weighing=None):
   """Calculate log losses.
 
   Same as tf.losses.log_loss except that this returns the individual losses
@@ -45,6 +45,7 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, class_
   weighted mean. This is useful for eval jobs that report the mean loss. By
   returning individual losses, that mean loss can be the same regardless of
   batch size.
+  recall_weighing weighs recall loss as recall_weighing times MORE than precision loss
 
   Args:
     labels: The ground truth output tensor, same dimensions as 'predictions'.
@@ -52,7 +53,7 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, class_
     epsilon: A small increment to add to avoid taking a log of zero.
     scope: The scope for the operations performed in computing the loss.
     weights: Weights to apply to labels.
-    class_weighing: scalar to weigh the trues by this many times more than falses
+    recall_weighing: scalar to weigh the trues by this many times more than falses
 
   Returns:
     A `Tensor` representing the loss values.
@@ -68,7 +69,11 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, class_
         (1 - labels), tf.log(1 - predictions + epsilon))
     if weights is not None:
       losses = tf.multiply(losses, weights)
-    if class_weighing:
-      losses = tf.multiply(losses, (labels + 1/class_weighing)/(1 + 1/class_weighing))
+    if recall_weighing != 0:
+      if recall_weighing < 0:
+        # weigh towards precision if negative
+        labels = 1 - labels
+        recall_weighing = -recall_weighing
+      losses = tf.multiply(losses, (labels + 1 / recall_weighing) / (1 + 1 / recall_weighing))
 
     return losses
