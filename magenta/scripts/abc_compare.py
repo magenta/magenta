@@ -22,10 +22,6 @@ ls *.abc | xargs -l1 sed -i '/R: hornpipe/d'
 ls *.abc | xargs -l1 abc2midi
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import pdb
 import re
