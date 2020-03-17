@@ -124,24 +124,24 @@ class FullModel:
             [frame_predictions, generous_onset_predictions, offset_predictions])
 
         note_croppings = K.cast(note_croppings, 'int64')
-        num_notes = Lambda(self.get_dynamic_length,
-                           output_shape=(1,),
-                           dtype='int64',
-                           dynamic=True)(note_croppings)
+        # num_notes = Lambda(self.get_dynamic_length,
+        #                    output_shape=(1,),
+        #                    dtype='int64',
+        #                    dynamic=True)(note_croppings)
 
         pianoroll_length = Lambda(self.get_dynamic_length,
                                   output_shape=(1,),
                                   dtype='int64',
                                   dynamic=True)(frame_predictions)
 
-        timbre_probs = self.timbre_model.call([spec_256, note_croppings, num_notes])
+        timbre_probs = self.timbre_model.call([spec_256, note_croppings])
 
         if self.hparams.timbre_coagulate_mini_batches:
             # re-separate
             timbre_probs = Lambda(self.separate_batches,
                                   dynamic=True,
                                   output_shape=(None, constants.NUM_INSTRUMENT_FAMILIES))(
-                [timbre_probs, num_notes])
+                [timbre_probs])
 
         expanded_present_instruments = K.expand_dims(present_instruments, 1)
         present_timbre_probs = Multiply()([timbre_probs, expanded_present_instruments])

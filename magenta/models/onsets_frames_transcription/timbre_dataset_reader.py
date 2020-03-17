@@ -79,7 +79,7 @@ def get_mel_index(pitch, hparams):
     return np.abs(frequencies - librosa.midi_to_hz(pitch.numpy())).argmin()
 
 
-FeatureTensors = collections.namedtuple('FeatureTensors', ('spec', 'note_croppings', 'num_notes'))
+FeatureTensors = collections.namedtuple('FeatureTensors', ('spec', 'note_croppings'))
 
 LabelTensors = collections.namedtuple('LabelTensors', ('instrument_families',))
 
@@ -101,13 +101,13 @@ def nsynth_input_tensors_to_model_input(
 
     features = FeatureTensors(
         spec=spec,
-        note_croppings=tf.reshape(note_croppings, (-1, 3)),
-        num_notes=tf.reshape(num_notes, (1,))
+        note_croppings=note_croppings,
+        # num_notes=tf.reshape(num_notes, (1,))
         # length=truncated_length,
         # sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
     )
     labels = LabelTensors(
-        instrument_families=tf.reshape(instrument_families, (-1, 11))
+        instrument_families=instrument_families
     )
 
     return features, labels
@@ -144,6 +144,7 @@ def get_note_croppings(record, hparams=None, is_training=True):
         note_sequence = sequences_lib.apply_sustain_control_changes(note_sequence)
         croppings = []
         families = []
+        num_notes = 0
         for note in note_sequence.notes:
             note_family = instrument_family_mappings.midi_instrument_to_family[note.program]
             if note_family is not instrument_family_mappings.Family.IGNORED:
@@ -154,7 +155,8 @@ def get_note_croppings(record, hparams=None, is_training=True):
                     note_family.value,
                     tf.int32
                 ), hparams.timbre_num_classes))
-        return (croppings, families, [len(families)])
+                num_notes += 1
+        return croppings, families, num_notes
 
     note_croppings, instrument_families, num_notes = tf.py_function(
         get_note_croppings_fn,
@@ -233,7 +235,7 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
         spec=spec,
         note_croppings=note_croppings,
         instrument_families=instrument_families,
-        num_notes=instrument_count
+        # num_notes=instrument_count
     )
 
 
@@ -300,12 +302,14 @@ def provide_batch(examples,
             padded_shapes=(
                 FeatureTensors(spec=TensorShape([None, 229, 1]),
                                note_croppings=TensorShape([None, 3]),
-                               num_notes=TensorShape([1])),
+                               #num_notes=TensorShape([1])
+                               ),
                 LabelTensors(instrument_families=TensorShape([None, 11]))),
             padding_values=(
                 FeatureTensors(spec=K.cast_to_floatx(0),
                                note_croppings=K.cast_to_floatx(-1),
-                               num_notes=K.cast(0, 'int32')),
-                LabelTensors(instrument_families=K.cast(0, 'int32'))),
+                               #num_notes=K.cast(0, 'int32')
+                               ),
+                LabelTensors(instrument_families=0)),
             drop_remainder=True)
     return dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)

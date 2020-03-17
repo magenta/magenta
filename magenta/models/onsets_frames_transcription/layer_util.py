@@ -2,6 +2,7 @@ import functools
 import math
 
 import tensorflow as tf
+import numpy as np
 from intervaltree.node import l2
 
 from magenta.models.onsets_frames_transcription import constants
@@ -110,17 +111,18 @@ def normalize_and_weigh(inputs, num_notes, pitches, hparams):
 def get_all_croppings(input_list, hparams):
     conv_output_list = input_list[0]
     note_croppings_list = input_list[1]
-    num_notes_list = tf.reshape(input_list[2], (-1,))
+    #num_notes_list = tf.reshape(input_list[2], (-1,))
+    num_notes = K.int_shape(note_croppings_list)[1]
 
     all_outputs = []
     # unbatch / do different things for each batch (we kinda create mini-batches)
     for batch_idx in range(K.int_shape(conv_output_list)[0]):
-        if not num_notes_list[batch_idx]:
+        if num_notes <= 0:
             out = K.zeros(shape=(0, *K.int_shape(conv_output_list[batch_idx])[1:]))
         else:
             out = get_croppings_for_single_image(conv_output_list[batch_idx],
                                                  note_croppings_list[batch_idx],
-                                                 num_notes_list[batch_idx],
+                                                 num_notes,
                                                  hparams=hparams,
                                                  temporal_scale=max(1, hparams.timbre_pool_size[0]
                                                                     ** hparams.timbre_num_layers))
@@ -171,7 +173,8 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     for i in range(num_notes):
         if end_idx[i] < 0:
             # is a padded value note
-            trimmed_list.append(K.zeros(shape=(1, K.int_shape(conv_output)[1:]), dtype=K.floatx()))
+            trimmed_list.append(
+                np.zeros(shape=(1, K.int_shape(conv_output)[1:]), dtype=K.floatx()))
         else:
             trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
             if hparams.timbre_global_pool:
@@ -192,7 +195,7 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     # mask = tf.reshape(mask, (-1, *mask.shape[2:]))
 
     # Tell downstream layers to skip timesteps that are fully masked out
-    return mask
+    return Masking(mask_value=0.0)(mask)
 
 
 # conv output is the image we are generating crops of

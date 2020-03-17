@@ -248,8 +248,7 @@ def timbre_prediction_model(hparams=None):
     note_croppings = Input(shape=(None, 3),
                            name='note_croppings', dtype='int64')
 
-    num_notes = Input(shape=(1,),
-                      name='num_notes', dtype='int64')
+    #num_notes = Input(shape=(1,), name='num_notes', dtype='int64')
 
     spec_with_epsilon = spec + hparams.timbre_spec_epsilon
 
@@ -280,7 +279,7 @@ def timbre_prediction_model(hparams=None):
     pooled_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
         output_shape=output_shape)(
-        [filter_outputs, note_croppings, num_notes])
+        [filter_outputs, note_croppings])
 
     if hparams.timbre_local_conv:
         pooled_outputs = time_distributed_wrapper(LocallyConnected1D(
@@ -353,5 +352,5 @@ def timbre_prediction_model(hparams=None):
 
     accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
 
-    return Model(inputs=[spec, note_croppings, num_notes],
+    return Model(inputs=[spec, note_croppings],
                  outputs=instrument_family_probs), losses, accuracies

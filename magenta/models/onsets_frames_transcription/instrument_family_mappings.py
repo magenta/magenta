@@ -3,18 +3,18 @@ from enum import Enum
 
 
 class Family(Enum):
-    BASS = 0,
-    BRASS = 1,
-    FLUTE = 2,
-    GUITAR = 3,
-    KEYBOARD = 4,
+    BASS = 0
+    BRASS = 1
+    FLUTE = 2
+    GUITAR = 3
+    KEYBOARD = 4
     MALLET = 5
-    ORGAN = 6,
-    REED = 7,
-    STRING = 8,
-    SYNTH_LEAD = 9,
-    VOCAL = 10,
-    IGNORED = 11,
+    ORGAN = 6
+    REED = 7
+    STRING = 8
+    SYNTH_LEAD = 9
+    VOCAL = 10
+    IGNORED = 11
 
 
 midi_instrument_to_family = collections.defaultdict(lambda: Family.IGNORED)

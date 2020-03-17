@@ -25,6 +25,7 @@ import math
 import operator
 import random
 
+from magenta.models.onsets_frames_transcription import instrument_family_mappings
 from magenta.models.onsets_frames_transcription.instrument_family_mappings import \
   midi_instrument_to_family
 from magenta.music import chord_symbols_lib
@@ -1754,7 +1755,8 @@ def sequence_to_pianoroll(
     onset_delay_ms=0.0,
     min_frame_occupancy_for_label=0.0,
     onset_overlap=True,
-    instrument_family=None):
+    instrument_family=None,
+    use_drums=False):
   """Transforms a NoteSequence to a pianoroll assuming a single instrument.
 
   This function uses floating point internally and may return different results
@@ -1838,7 +1840,9 @@ def sequence_to_pianoroll(
       tf.logging.warn('Skipping out of range pitch: %d', note.pitch)
       continue
 
-    if instrument_family is not None \
+    if not use_drums and note.is_drum or \
+            midi_instrument_to_family[note.program] is instrument_family_mappings.Family.IGNORED or \
+            instrument_family is not None \
             and midi_instrument_to_family[note.program].value != instrument_family:
       continue
     start_frame, end_frame = frames_from_times(note.start_time, note.end_time)

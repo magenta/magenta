@@ -769,7 +769,8 @@ def provide_batch(examples,
                   params,
                   is_training,
                   shuffle_examples,
-                  skip_n_initial_records):
+                  skip_n_initial_records,
+                  **kwargs):
     """Returns batches of tensors read from TFRecord files.
 
     Args:

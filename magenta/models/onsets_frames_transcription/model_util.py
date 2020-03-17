@@ -196,7 +196,7 @@ class ModelWrapper:
         return self.predict_from_spec(*x)
 
     def _predict_timbre(self, spec, note_croppings=None, num_notes=None):
-        if note_croppings is None or num_notes is None:
+        if note_croppings is None: # or num_notes is None:
             pitch = get_cqt_index(K.constant(librosa.note_to_midi('C3')), self.hparams)
             start_idx = 0
             end_idx = self.hparams.timbre_hop_length * spec.shape[1]
@@ -204,11 +204,11 @@ class ModelWrapper:
                                            start_idx=start_idx,
                                            end_idx=end_idx)]
             note_croppings = tf.reshape(note_croppings, (1, 1, 3))
-            num_notes = tf.expand_dims(1, axis=0)
+            # num_notes = tf.expand_dims(1, axis=0)
 
-        self.plot_spectrograms([spec, note_croppings, num_notes])
+        self.plot_spectrograms([spec, note_croppings])
 
-        timbre_probs = self.model.predict([spec, note_croppings, num_notes])
+        timbre_probs = self.model.predict([spec, note_croppings])
         print(timbre_probs)
         return K.flatten(tf.nn.top_k(timbre_probs).indices)
 
@@ -268,7 +268,7 @@ class ModelWrapper:
         if self.type == ModelType.MIDI:
             return self._predict_sequence(spec)
         elif self.type == ModelType.TIMBRE:
-            return self._predict_timbre(spec, num_croppings, num_notes)
+            return self._predict_timbre(spec, num_croppings)
         else:
             return self.predict_multi_sequence(midi_spec=spec, timbre_spec=additional_spec)
 
@@ -318,22 +318,23 @@ class ModelWrapper:
             midi_model, losses, accuracies = midi_prediction_model(self.hparams)
 
             if self.type == ModelType.MIDI:
-                self.model = midi_model
                 if compile:
                     midi_model.compile(Adam(self.hparams.learning_rate,
                                             decay=self.hparams.decay_rate,
                                             clipnorm=self.hparams.clip_norm),
                                        metrics=accuracies, loss=losses)
+                self.model = midi_model
+
         if self.type == ModelType.TIMBRE or self.type == ModelType.FULL and timbre_model is None:
             timbre_model, losses, accuracies = timbre_prediction_model(self.hparams)
 
             if self.type == ModelType.TIMBRE:
-                self.model = timbre_model
                 if compile:
                     timbre_model.compile(Adam(self.hparams.timbre_learning_rate,
                                               decay=self.hparams.timbre_decay_rate,
                                               clipnorm=self.hparams.timbre_clip_norm),
                                          metrics=accuracies, loss=losses)
+                self.model = timbre_model
         if self.type == ModelType.FULL:  # self.type == ModelType.FULL:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()
