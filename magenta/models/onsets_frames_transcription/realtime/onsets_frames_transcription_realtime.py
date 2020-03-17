@@ -15,10 +15,6 @@
 # Lint as: python3
 """Experimental realtime transcription demo."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import multiprocessing
 import threading
 

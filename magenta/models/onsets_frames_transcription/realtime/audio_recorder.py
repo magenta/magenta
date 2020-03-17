@@ -19,10 +19,6 @@ This module provides one class, AudioRecorder, which buffers chunks of audio
 from PyAudio.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import importlib
 import math
 import queue
