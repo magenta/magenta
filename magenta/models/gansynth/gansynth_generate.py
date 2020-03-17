@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as: python3
 r"""Generate samples with a pretrained GANSynth model.
 
 To use a config of hyperparameters and manual hparams:
@@ -24,9 +24,6 @@ If a MIDI file is specified, notes are synthesized with interpolation between
 latent vectors in time. If no MIDI file is given, a random batch of notes is
 synthesized.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 
