@@ -52,14 +52,14 @@ def get_default_hparams():
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
         'timbre_num_filters': [128, 64, 32],
-        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 6)),
+        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 3)),
         'timbre_vertical_filter': (1, 513),
         'timbre_vertical_num': 50,
         'timbre_horizontal_filter': (12, 1),
         'timbre_horizontal_num': 30,
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_architecture': 'parallel',
-        'timbre_pool_size': (4, 2),
+        'timbre_pool_size': [(2, 1), (4, 2)],
         'timbre_num_layers': 2,
         'timbre_dropout_drop_amts': [0.0, 0.0, 0.0],
         'timbre_rnn_dropout_drop_amt': 0.0,
@@ -69,7 +69,7 @@ def get_default_hparams():
         'timbre_fc_dropout_drop_amt': 0.0,
         'timbre_local_conv': True,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
-        'timbre_num_classes': 11,
+        'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 2, # include other and drums
         'timbre_lstm_units': 256,
         'timbre_rnn_stack_size': 1,
         'timbre_leaky_alpha': 0.33,  # per han et al 2016 OR no negatives
@@ -106,7 +106,7 @@ def get_default_hparams():
             9: 16000 / 5501,
             10: 16000 / 10753,
         },
-        'weight_correct_multiplier': 0.5,
+        'weight_correct_multiplier': 0.1,
     }
 
 
@@ -180,7 +180,7 @@ def acoustic_model_layer(hparams, pre_crop=True):
 
         for i in range(num_layers):
             outputs = Dropout(hparams.timbre_fc_dropout_drop_amt)(outputs)
-            outputs = conv_bn_elu_layer(num_filters, 3, 3, hparams.timbre_pool_size, pre_crop,
+            outputs = conv_bn_elu_layer(num_filters, 3, 3, hparams.timbre_pool_size[i], pre_crop,
                                         hparams)(outputs)
 
         return outputs
@@ -284,7 +284,7 @@ def timbre_prediction_model(hparams=None):
     if hparams.timbre_local_conv:
         pooled_outputs = time_distributed_wrapper(LocallyConnected1D(
             128,
-            5,
+            3,
             kernel_regularizer=l2(hparams.timbre_l2_regularizer),
             kernel_initializer=he_normal(),
         ), hparams)(pooled_outputs)
@@ -335,17 +335,21 @@ def timbre_prediction_model(hparams=None):
 
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 
-    weights = tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
-                        len(hparams.timbre_class_weights_list), axis=-1)
+    if hparams.timbre_weighted_loss:
+        weights = tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
+                            len(hparams.timbre_class_weights_list), axis=-1)
+    else:
+        weights = tf.ones(shape=(hparams.timbre_num_classes, hparams.timbre_num_classes))
 
     # decrease loss for correct predictions TODO does this make any sense?
     weights = Multiply()([weights,
                           1 + tf.linalg.diag(
                               tf.repeat(
-                                  -hparams.weight_correct_multiplier,
-                                  len(hparams.timbre_class_weights_list)
+                                  hparams.weight_correct_multiplier - 1,
+                                  hparams.timbre_num_classes
                               )
                           )])
+
     # weigh based on predicted value (expand on 0) instead?
     losses = {'family_probs': WeightedCategoricalCrossentropy(
         weights=weights)}

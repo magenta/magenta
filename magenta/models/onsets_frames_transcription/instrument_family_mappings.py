@@ -14,10 +14,11 @@ class Family(Enum):
     STRING = 8
     SYNTH_LEAD = 9
     VOCAL = 10
-    IGNORED = 11
+    OTHER = 11
+    DRUMS = 12
 
 
-midi_instrument_to_family = collections.defaultdict(lambda: Family.IGNORED)
+midi_instrument_to_family = collections.defaultdict(lambda: Family.OTHER)
 midi_instrument_to_family.update({
     0: Family.KEYBOARD,
     1: Family.KEYBOARD,
@@ -107,6 +108,16 @@ midi_instrument_to_family.update({
     85: Family.SYNTH_LEAD,
     86: Family.SYNTH_LEAD,
     87: Family.SYNTH_LEAD,
+    105: Family.GUITAR,
+    106: Family.GUITAR,
+    107: Family.GUITAR,
+    108: Family.GUITAR,
+    109: Family.MALLET,
+    110: Family.REED,
+    111: Family.STRING,
+    112: Family.REED,
+    113: Family.MALLET,
+    114: Family.MALLET,
 })
 
 family_to_midi_instrument = {
@@ -121,4 +132,6 @@ family_to_midi_instrument = {
     8: 49,  # string / String Ensemble
     9: 82,  # synth lead / Sawtooth
     10: 55,  # vocal / Synth Voice
+    11: 118,
+    12: 119, # TODO actual percussion
 }

@@ -95,7 +95,6 @@ def nsynth_input_tensors_to_model_input(
     spec = tf.reshape(input_tensors['spec'], (-1, constants.TIMBRE_SPEC_BANDS, 1))
     note_croppings = input_tensors['note_croppings']
     instrument_families = input_tensors['instrument_families']
-    num_notes = input_tensors['num_notes']
     # instrument_family = input_tensors['instrument_family']
     # tf.print(instrument_family)
 
@@ -147,7 +146,7 @@ def get_note_croppings(record, hparams=None, is_training=True):
         num_notes = 0
         for note in note_sequence.notes:
             note_family = instrument_family_mappings.midi_instrument_to_family[note.program]
-            if note_family is not instrument_family_mappings.Family.IGNORED:
+            if note_family.value < hparams.timbre_num_classes:
                 croppings.append(NoteCropping(pitch=note.pitch,
                                                    start_idx=note.start_time * hparams.sample_rate,
                                                    end_idx=note.end_time * hparams.sample_rate))
@@ -179,7 +178,6 @@ def reduce_batch_fn(tensor, hparams=None, is_training=True):
     instrument_family_list = []
     audios = []
     max_length = 0
-    pitch_idx_fn = get_cqt_index if hparams.timbre_spec_type == 'cqt' else get_mel_index
     for i in range(instrument_count):
         # otherwise move the audio so diff attack times
         pitch = tensor['pitch'][i]
@@ -304,7 +302,7 @@ def provide_batch(examples,
                                note_croppings=TensorShape([None, 3]),
                                #num_notes=TensorShape([1])
                                ),
-                LabelTensors(instrument_families=TensorShape([None, 11]))),
+                LabelTensors(instrument_families=TensorShape([None, hparams.timbre_num_classes]))),
             padding_values=(
                 FeatureTensors(spec=K.cast_to_floatx(0),
                                note_croppings=K.cast_to_floatx(-1),

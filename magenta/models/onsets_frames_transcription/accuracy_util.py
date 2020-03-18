@@ -11,6 +11,7 @@ from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
 
 from magenta.common import tf_utils
+from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
 
 AccuracyMetric = namedtuple('AccuracyMetric', ('name', 'method'))
@@ -50,14 +51,19 @@ def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
     return multi_track_loss
 
 
-def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5):
-    y_predictions = convert_multi_instrument_probs_to_predictions(y_probs, threshold)
+def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5,
+                                            multiple_instruments_threshold=0.2):
+    y_predictions = convert_multi_instrument_probs_to_predictions(y_probs,
+                                                                  threshold,
+                                                                  multiple_instruments_threshold)
     flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
     flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
     return flat_y_true, flat_y_predictions
 
 
-def convert_multi_instrument_probs_to_predictions(y_probs, threshold):
+def convert_multi_instrument_probs_to_predictions(y_probs,
+                                                  threshold,
+                                                  multiple_instruments_threshold=0.2):
     sum_probs = K.sum(y_probs, axis=-1)
     # remove any where the original midi prediction is below the threshold
     thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
@@ -66,7 +72,8 @@ def convert_multi_instrument_probs_to_predictions(y_probs, threshold):
                          K.int_shape(y_probs)[-1])
     # only predict the best instrument at each location
     times_one_hot = thresholded_y_probs * one_hot
-    y_predictions = times_one_hot > 0
+    y_predictions = tf.logical_or(thresholded_y_probs > multiple_instruments_threshold,
+                                  times_one_hot > 0)
     return y_predictions
 
 
@@ -79,22 +86,24 @@ def single_track_present_accuracy_wrapper(threshold):
 
     return single_present_acc
 
-def multi_track_present_accuracy_wrapper(threshold):
+def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_threshold=0.2):
     def present_acc(y_true, y_probs):
         flat_y_true, flat_y_predictions = convert_to_multi_instrument_predictions(y_true,
                                                                                   y_probs,
-                                                                                  threshold)
+                                                                                  threshold,
+                                                                                  multiple_instruments_threshold)
         return calculate_frame_metrics(flat_y_true, flat_y_predictions)[
             'accuracy_without_true_negatives']
 
     return present_acc
 
 
-def multi_track_prf_wrapper(threshold, print_report=False, only_f1=True):
+def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.2, print_report=False, only_f1=True):
     def multi_track_prf(y_true, y_probs):
         flat_y_true, flat_y_predictions = convert_to_multi_instrument_predictions(y_true,
                                                                                   y_probs,
-                                                                                  threshold)
+                                                                                  threshold,
+                                                                                  multiple_instruments_threshold)
 
         print(f'total predicted {K.sum(K.cast_to_floatx(flat_y_predictions))}')
         if print_report:
@@ -158,7 +167,7 @@ def flatten_f1_wrapper(hparams):
 
         precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true,
                                                                    y_predictions,
-                                                                   average='macro')  # TODO maybe 'macro'
+                                                                   average='weighted')  # TODO maybe 'macro'
         scores = {
             'precision': K.constant(precision),
             'recall': K.constant(recall),
@@ -187,10 +196,15 @@ def flatten_loss_wrapper(hparams, epsilon=1e-9):
 def flatten_accuracy_wrapper(hparams):
     def flatten_accuracy_fn(y_true, y_pred):
         if hparams.timbre_coagulate_mini_batches:
+            # remove any predictions from padded values
+            y_pred = y_pred * K.cast_to_floatx(K.sum(y_true, -1) > 0)
             return categorical_accuracy(y_true, y_pred)
         rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
+
+        # remove any predictions from padded values
+        rebatched_pred = rebatched_pred * K.expand_dims(K.cast_to_floatx(K.sum(rebatched_true, -1) > 0))
         return categorical_accuracy(rebatched_true, rebatched_pred)
 
     return flatten_accuracy_fn
@@ -215,6 +229,9 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
         y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_pred_unshaped.shape[-1]))
+
+        # remove any predictions from padded values
+        y_pred = y_pred * K.expand_dims(K.cast_to_floatx(K.sum(y_true, -1) > 0)) + 1e-9
 
         weights = self.weights
         nb_cl = len(weights)

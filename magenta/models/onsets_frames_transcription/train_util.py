@@ -101,7 +101,7 @@ def train(data_fn,
         preprocess_examples=preprocess_examples,
         is_training=True,
         shuffle_examples=True,
-        skip_n_initial_records=0)#random.randint(0, 1048))
+        skip_n_initial_records=random.randint(0, 1048))
 
     model = ModelWrapper(model_dir, model_type, id=hparams.model_id,
                          dataset=transcription_data(params=hparams),
@@ -189,13 +189,13 @@ def transcribe(data_fn,
                                   batch_size=1, id=hparams.model_id, hparams=hparams)
         # midi_model.load_model(74.87, 82.45, 'weights-zero')
         # midi_model.load_model(82.94, 80.47, id='big-lstm-for-f1', epoch_num=149)
-        midi_model.build_model()
+        midi_model.build_model(compile=False)
         midi_model.load_newest(hparams.load_id)
     elif model_type == ModelType.TIMBRE:
         timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, id=hparams.model_id,
                                     dataset=transcription_data, batch_size=1,
                                     hparams=hparams)
-        timbre_model.build_model()
+        timbre_model.build_model(compile=False)
         timbre_model.load_newest(hparams.load_id)
 
     if data_fn:

@@ -1,3 +1,5 @@
+import operator
+
 import numpy as np
 import tensorflow as tf
 from dotmap import DotMap
@@ -18,7 +20,8 @@ from magenta.models.onsets_frames_transcription.timbre_dataset_reader import Not
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
 def get_default_hparams():
     return {
-        'prediction_generosity': 4
+        'prediction_generosity': 4,
+        'multiple_instruments_threshold': 0.2
     }
 
 
@@ -30,6 +33,17 @@ class FullModel:
         self.midi_model = midi_model
         self.timbre_model = timbre_model
 
+    def fill_pianoroll_area(self, sorted_croppings, filling_fn):
+        for i, eager_cropping in enumerate(sorted_croppings):
+            cropping = NoteCropping(*eager_cropping)
+            pitch = cropping.pitch - constants.MIN_MIDI_PITCH
+            start_idx = K.cast(cropping.start_idx / self.hparams.timbre_hop_length, 'int64')
+            end_idx = K.cast(cropping.end_idx / self.hparams.timbre_hop_length, 'int64')
+            if pitch > 0:
+                # guess that anything higher and to the right of this note has these probs
+                # for each i, this area is partially overridden
+                filling_fn(i, pitch, start_idx, end_idx)
+
     def note_croppings_to_pianorolls(self, input_list):
         batched_note_croppings, batched_timbre_probs, batched_pianoroll_length = input_list
         pianoroll_list = []
@@ -37,23 +51,32 @@ class FullModel:
             note_croppings = batched_note_croppings[batch_idx]
             timbre_probs = batched_timbre_probs[batch_idx]
 
-            # need to convert to midi spec hop length so pianorolls are compatible
-            # max_end_idx = K.cast(K.max(note_croppings, axis=0)[-1] / self.hparams.spec_hop_length,
-            #                      'int64')
-
             # Make pitch the first dimension for easy manipulation
-            pianorolls = np.zeros(
+            # default to equal guess for the instruments
+            pianorolls = np.ones(
                 shape=(constants.MIDI_PITCHES,
                        batched_pianoroll_length[batch_idx][0],
-                       constants.NUM_INSTRUMENT_FAMILIES))
+                       self.hparams.timbre_num_classes)) / self.hparams.timbre_num_classes
 
-            for i, eager_cropping in enumerate(note_croppings):
-                cropping = NoteCropping(*eager_cropping)
-                pitch = cropping.pitch - constants.MIN_MIDI_PITCH
-                start_idx = K.cast(cropping.start_idx / self.hparams.timbre_hop_length, 'int64')
-                end_idx = K.cast(cropping.end_idx / self.hparams.timbre_hop_length, 'int64')
-                if pitch > 0:
-                    pianorolls[pitch][start_idx:end_idx + 1] = timbre_probs[i]
+            def full_fill(i, pitch, start_idx, end_idx):
+                pianorolls[pitch:, start_idx:] = timbre_probs[i]
+
+            def time_fill(i, pitch, start_idx, end_idx):
+                pianorolls[pitch, start_idx:] = timbre_probs[i]
+
+            def pitch_fill(i, pitch, start_idx, end_idx):
+                pianorolls[pitch:, start_idx:end_idx + 1] = timbre_probs[i]
+
+            def exact_fill(i, pitch, start_idx, end_idx):
+                pianorolls[pitch, start_idx:end_idx + 1] = timbre_probs[i]
+
+            pitch_first = sorted(note_croppings, key=operator.itemgetter(0, 1))
+            time_first = sorted(note_croppings, key=operator.itemgetter(1, 0))
+
+            self.fill_pianoroll_area(pitch_first, full_fill)
+            self.fill_pianoroll_area(time_first, time_fill)
+            self.fill_pianoroll_area(pitch_first, pitch_fill)
+            self.fill_pianoroll_area(note_croppings, exact_fill)
 
             # make time the first dimension
             pianoroll_list.append(K.permute_dimensions(pianorolls, (1, 0, 2)))
@@ -66,6 +89,8 @@ class FullModel:
             note_croppings.append(NoteCropping(pitch=note.pitch,
                                                start_idx=note.start_time * self.hparams.sample_rate,
                                                end_idx=note.end_time * self.hparams.sample_rate))
+        # pitch is more important than start time for what an instrument is
+        # we also don't want to overwrite definitive predictions
         return note_croppings
 
     def get_croppings(self, input_list):
@@ -114,6 +139,8 @@ class FullModel:
         # decrease threshold to feed more notes into the timbre prediction
         # even if they don't make the final cut in accuracy_util.multi_track_accuracy_wrapper
         frame_predictions = K.stop_gradient(frame_probs > self.hparams.predict_frame_threshold)
+        # generous onsets are used so that we can get more frame prediction data for the instruments
+        # this will end up making our end-predicted notes much shorter though
         generous_onset_predictions = K.stop_gradient(onset_probs > (
                 self.hparams.predict_onset_threshold / self.hparams.prediction_generosity))
         offset_predictions = K.stop_gradient(offset_probs > self.hparams.predict_offset_threshold)
@@ -140,20 +167,22 @@ class FullModel:
             # re-separate
             timbre_probs = Lambda(self.separate_batches,
                                   dynamic=True,
-                                  output_shape=(None, constants.NUM_INSTRUMENT_FAMILIES))(
+                                  output_shape=(None, self.hparams.timbre_num_classes))(
                 [timbre_probs])
 
         expanded_present_instruments = K.expand_dims(present_instruments, 1)
         present_timbre_probs = Multiply()([timbre_probs, expanded_present_instruments])
+
+        norm_sum = Multiply()([1 / K.sum(timbre_probs, -1), K.sum(present_timbre_probs, -1)])
         # normalize
         present_timbre_probs = Multiply()([present_timbre_probs,
-                                           K.expand_dims(1 / K.sum(present_timbre_probs, axis=-1))])
+                                           K.expand_dims(1 / norm_sum)])
 
         timbre_pianoroll = Lambda(self.note_croppings_to_pianorolls,
                                   dynamic=True,
                                   output_shape=(None,
                                                 constants.MIDI_PITCHES,
-                                                constants.NUM_INSTRUMENT_FAMILIES))(
+                                                self.hparams.timbre_num_classes))(
             [note_croppings, present_timbre_probs, pianoroll_length])
 
         expanded_frames = K.cast_to_floatx(K.expand_dims(frame_probs))
@@ -175,29 +204,35 @@ class FullModel:
         accuracies = {
             'multi_frames': [
                 multi_track_present_accuracy_wrapper(
-                    self.hparams.predict_frame_threshold),
+                    self.hparams.predict_frame_threshold,
+                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold),
                 single_track_present_accuracy_wrapper(
                     self.hparams.predict_frame_threshold),
                 multi_track_prf_wrapper(
                     self.hparams.predict_frame_threshold,
+                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
                     print_report=True)
             ],
             'multi_onsets': [
                 multi_track_present_accuracy_wrapper(
-                    self.hparams.predict_onset_threshold),
+                    self.hparams.predict_onset_threshold,
+                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold),
                 single_track_present_accuracy_wrapper(
                     self.hparams.predict_onset_threshold),
                 multi_track_prf_wrapper(
                     self.hparams.predict_onset_threshold,
+                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
                     print_report=True)
             ],
             'multi_offsets': [
                 multi_track_present_accuracy_wrapper(
-                    self.hparams.predict_offset_threshold),
+                    self.hparams.predict_offset_threshold,
+                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold),
                 single_track_present_accuracy_wrapper(
                     self.hparams.predict_offset_threshold),
                 multi_track_prf_wrapper(
-                    self.hparams.predict_offset_threshold)
+                    self.hparams.predict_offset_threshold,
+                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold)
             ]
         }
 

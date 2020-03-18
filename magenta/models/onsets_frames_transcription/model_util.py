@@ -159,13 +159,12 @@ class ModelWrapper:
     def plot_spectrograms(self, x, temporal_ds=16, freq_ds=4, max_batches=1):
         for batch_idx in range(max_batches):
             spec = K.pool2d(x[0], (temporal_ds, freq_ds), (temporal_ds, freq_ds), padding='same')
-            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
-                                                       K.cast(x[2][batch_idx], 'int64'), self.hparams, temporal_ds)
+            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx], self.hparams, temporal_ds)
             plt.figure(figsize=(10, 6))
-            num_crops = min(3, x[2][batch_idx].numpy())
+            num_crops = min(3, K.int_shape(x[1][batch_idx])[0])
             plt.subplot(int(num_crops / 2 + 1), 2, 1)
             y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
-            librosa.display.specshow(self.spec_to_db(x[1], batch_idx),
+            librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
                                      y_axis=y_axis,
                                      hop_length=self.hparams.timbre_hop_length,
                                      fmin=librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),
@@ -197,7 +196,7 @@ class ModelWrapper:
 
     def _predict_timbre(self, spec, note_croppings=None, num_notes=None):
         if note_croppings is None: # or num_notes is None:
-            pitch = get_cqt_index(K.constant(librosa.note_to_midi('C3')), self.hparams)
+            pitch = librosa.note_to_midi('C3')
             start_idx = 0
             end_idx = self.hparams.timbre_hop_length * spec.shape[1]
             note_croppings = [NoteCropping(pitch=pitch,
@@ -231,14 +230,14 @@ class ModelWrapper:
 
     def predict_multi_sequence(self, midi_spec, timbre_spec, present_instruments=None):
         if present_instruments is None:
-            present_instruments = K.expand_dims(np.ones(constants.NUM_INSTRUMENT_FAMILIES), 0)
+            present_instruments = K.expand_dims(np.ones(self.hparams.timbre_num_classes), 0)
         y_pred = self.model.predict([midi_spec, timbre_spec, present_instruments])
         frame_predictions = convert_multi_instrument_probs_to_predictions(
             y_pred[0], self.hparams.predict_frame_threshold)[0]
         onset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[1], self.hparams.predict_frame_threshold)[0]
+            y_pred[1], self.hparams.predict_onset_threshold)[0]
         offset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[2], self.hparams.predict_frame_threshold)[0]
+            y_pred[2], self.hparams.predict_offset_threshold)[0]
 
         permuted_frame_predictions = K.permute_dimensions(frame_predictions, (2, 0, 1))
         permuted_onset_predictions = K.permute_dimensions(onset_predictions, (2, 0, 1))
@@ -264,7 +263,7 @@ class ModelWrapper:
                 multi_sequence.notes.extend(sequence.notes)
         return multi_sequence
 
-    def predict_from_spec(self, spec=None, additional_spec=None, num_croppings=None, num_notes=None, *args):
+    def predict_from_spec(self, spec=None, num_croppings=None, additional_spec=None, num_notes=None, *args):
         if self.type == ModelType.MIDI:
             return self._predict_sequence(spec)
         elif self.type == ModelType.TIMBRE:
@@ -344,7 +343,7 @@ class ModelWrapper:
                                metrics=accuracies, loss=losses)
 
         # only save the model image if we are training on it
-        if self.generator is not None:
+        if compile:
             if not os.path.exists(f'{self.model_dir}/{self.type.name}/{self.id}'):
                 os.makedirs(f'{self.model_dir}/{self.type.name}/{self.id}')
             plot_model(self.model,

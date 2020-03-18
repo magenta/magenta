@@ -112,20 +112,18 @@ def get_all_croppings(input_list, hparams):
     conv_output_list = input_list[0]
     note_croppings_list = input_list[1]
     #num_notes_list = tf.reshape(input_list[2], (-1,))
-    num_notes = K.int_shape(note_croppings_list)[1]
 
     all_outputs = []
     # unbatch / do different things for each batch (we kinda create mini-batches)
     for batch_idx in range(K.int_shape(conv_output_list)[0]):
-        if num_notes <= 0:
+        if K.int_shape(note_croppings_list)[1] == 0:
             out = K.zeros(shape=(0, *K.int_shape(conv_output_list[batch_idx])[1:]))
         else:
             out = get_croppings_for_single_image(conv_output_list[batch_idx],
                                                  note_croppings_list[batch_idx],
-                                                 num_notes,
                                                  hparams=hparams,
-                                                 temporal_scale=max(1, hparams.timbre_pool_size[0]
-                                                                    ** hparams.timbre_num_layers))
+                                                 temporal_scale=max(1, hparams.timbre_pool_size[0][0]
+                                                                    * hparams.timbre_pool_size[1][0]))
 
             if hparams.timbre_sharing_conv:
                 out = MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
@@ -141,7 +139,8 @@ def get_all_croppings(input_list, hparams):
 
 
 def get_croppings_for_single_image(conv_output, note_croppings,
-                                   num_notes, hparams=None, temporal_scale=1.0):
+                                   hparams=None, temporal_scale=1.0):
+    num_notes = K.int_shape(note_croppings)[0]
     pitch_idx_fn = functools.partial(get_cqt_index
                                      if hparams.timbre_spec_type == 'cqt'
                                      else get_mel_index,

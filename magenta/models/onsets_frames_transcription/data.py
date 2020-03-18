@@ -253,7 +253,9 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
             onset_delay_ms=hparams.onset_delay,
             min_velocity=velocity_range.min,
             max_velocity=velocity_range.max,
-            instrument_family=instrument_family)
+            instrument_family=instrument_family,
+            use_drums=hparams.use_drums,
+            timbre_num_classes=hparams.timbre_num_classes)
         return (roll.active, roll.weights, roll.onsets, roll.onset_velocities,
                 roll.offsets)
 
@@ -263,7 +265,7 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         onsets_list = []
         velocities_list = []
         offsets_list = []
-        for i in range(constants.NUM_INSTRUMENT_FAMILIES):
+        for i in range(hparams.timbre_num_classes):
             res, weighted_res, onsets, velocities, offsets = tf.py_function(
                 sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor, i],
                 [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
@@ -331,13 +333,13 @@ def truncate_note_sequence(sequence, truncate_secs):
         truncated_seq.total_time = truncated_seq.notes[-1].end_time
     return truncated_seq
 
-def get_present_instruments_op(sequence_tensor):
+def get_present_instruments_op(sequence_tensor, hparams=None):
     def get_present_instruments_fn(sequence_tensor):
         sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
-        present_list = np.zeros(constants.NUM_INSTRUMENT_FAMILIES, dtype=np.bool)
+        present_list = np.zeros(hparams.timbre_num_classes, dtype=np.bool)
         for note in sequence.notes:
             note_family = instrument_family_mappings.midi_instrument_to_family[note.program]
-            if note_family is not instrument_family_mappings.Family.IGNORED:
+            if note_family.value < hparams.timbre_num_classes:
                 present_list[note_family.value] = True
 
         return present_list
@@ -346,7 +348,7 @@ def get_present_instruments_op(sequence_tensor):
         get_present_instruments_fn,
         [sequence_tensor],
         tf.bool)
-    res.set_shape(constants.NUM_INSTRUMENT_FAMILIES)
+    res.set_shape(hparams.timbre_num_classes)
     return res
 
 def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
@@ -589,16 +591,16 @@ def input_tensors_to_model_input(
         features = MultiFeatureTensors(
             spec_512=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
             spec_256=tf.reshape(spec_256, (spec_256_length, hparams_frame_size(hparams), 1)),
-            present_instruments=get_present_instruments_op(input_tensors.note_sequence)
+            present_instruments=get_present_instruments_op(input_tensors.note_sequence, hparams=hparams)
             # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
             # length=truncated_length,
             # sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
         )
         labels = LabelTensors(
-            labels=tf.reshape(labels, (final_length, num_classes, constants.NUM_INSTRUMENT_FAMILIES)),
+            labels=tf.reshape(labels, (final_length, num_classes, hparams.timbre_num_classes)),
             # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
-            onsets=tf.reshape(onsets, (final_length, num_classes, constants.NUM_INSTRUMENT_FAMILIES)),
-            offsets=tf.reshape(offsets, (final_length, num_classes, constants.NUM_INSTRUMENT_FAMILIES)),
+            onsets=tf.reshape(onsets, (final_length, num_classes, hparams.timbre_num_classes)),
+            offsets=tf.reshape(offsets, (final_length, num_classes, hparams.timbre_num_classes)),
             # velocities=tf.reshape(velocities, (final_length, num_classes)),
             # note_sequence=truncated_note_sequence
         )
@@ -738,11 +740,11 @@ def create_batch(dataset, hparams, is_training, batch_size=None):
             padded_shapes=(
                 MultiFeatureTensors(TensorShape([None, 229, 1]),
                                     TensorShape([None, 229, 1]),
-                                    TensorShape([constants.NUM_INSTRUMENT_FAMILIES])),  # , TensorShape([None, 88]),
+                                    TensorShape([hparams.timbre_num_classes])),  # , TensorShape([None, 88]),
                 # TensorShape([]), TensorShape([])),
-                LabelTensors(TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]),
-                             TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]),
-                             TensorShape([None, 88, constants.NUM_INSTRUMENT_FAMILIES]),
+                LabelTensors(TensorShape([None, 88, hparams.timbre_num_classes]),
+                             TensorShape([None, 88, hparams.timbre_num_classes]),
+                             TensorShape([None, 88, hparams.timbre_num_classes]),
                              # TensorShape([None, 88]), TensorShape([None, 88]),
                              # TensorShape([])
                              )),
