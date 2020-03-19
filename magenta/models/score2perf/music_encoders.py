@@ -118,8 +118,8 @@ class MidiPerformanceEncoder(object):
     j = 0
     while j < len(event_ids):
       ngram = ()
-      for i in event_ids[j:]:
-        ngram += (i,)
+      for i in range(j, len(event_ids)):
+        ngram += (event_ids[i],)
         if self._ngrams_trie.has_key(ngram):
           best_ngram = ngram
         if not self._ngrams_trie.has_subtrie(ngram):
