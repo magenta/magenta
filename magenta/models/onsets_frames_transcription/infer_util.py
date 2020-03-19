@@ -27,7 +27,7 @@ import numpy as np
 
 def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
                      velocity_values, min_pitch, hparams,
-                     onsets_only=False):
+                     onsets_only=False, instrument=0, program=0):
   """Predict sequence given model output."""
   if not hparams.predict_onset_threshold:
     onset_predictions = None
@@ -43,7 +43,9 @@ def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
         frames_per_second=data.hparams_frames_per_second(hparams),
         note_duration_seconds=0.05,
         min_midi_pitch=min_pitch,
-        velocity_values=velocity_values)
+        velocity_values=velocity_values,
+        instrument=instrument,
+        program=program)
   else:
     sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
         frames=frame_predictions,
@@ -52,7 +54,9 @@ def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
         min_midi_pitch=min_pitch,
         onset_predictions=onset_predictions,
         offset_predictions=offset_predictions,
-        velocity_values=velocity_values)
+        velocity_values=velocity_values,
+        instrument=instrument,
+        program=program)
 
   return sequence_prediction
 

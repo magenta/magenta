@@ -11,3 +11,4 @@ build/
 .idea/
 *.npy
 *.hdf5
+magenta/models/onsets_frames_transcription/models/*

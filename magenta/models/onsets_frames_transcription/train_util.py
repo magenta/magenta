@@ -34,7 +34,7 @@ import numpy as np
 from magenta.models.onsets_frames_transcription import audio_label_data_utils, constants
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
-from magenta.models.onsets_frames_transcription.nsynth_reader import create_spectrogram
+from magenta.models.onsets_frames_transcription.timbre_dataset_reader import create_spectrogram
 from magenta.music import midi_io, audio_io
 from magenta.music.protobuf import music_pb2
 
@@ -136,8 +136,8 @@ def train(data_fn,
         # model.load_model(38.89, 38.22, id='cqt-no-log-256', epoch_num=11)
         # model.load_model(28.68, 9.22, id='cqt-no-log-256', epoch_num=0)
         model.build_model()
-        model.load_newest()
-    else:
+        model.load_newest(hparams.load_id)
+    elif model_type == ModelType.TIMBRE:
         # model.load_model(23.81, id='96er', epoch_num=19)
         # model.load_model(24.22, id='96er', epoch_num=352)
         # model.load_model(30.56, id='96er', epoch_num=163)
@@ -146,10 +146,23 @@ def train(data_fn,
         # model.load_model(6.40, id='no-bot', epoch_num=17)
         # model.load_model(15.49, id='no-bot', epoch_num=78)
         model.build_model()
-        model.load_newest()
+        model.load_newest(hparams.load_id)
         #model.load_model(5.17, id=hparams.model_id, epoch_num=8)
+    else:
+        print('building full model')
+        # midi_model = ModelWrapper(model_dir, ModelType.MIDI, hparams=hparams)
+        # midi_model.build_model(compile=False)
+        # midi_model.load_newest()
+        # timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, hparams=hparams)
+        # timbre_model.build_model(compile=False)
+        # timbre_model.load_newest()
+        #
+        # model.build_model(midi_model=midi_model.get_model(), timbre_model=timbre_model.get_model())
+        model.build_model()
+        model.load_newest(hparams.load_id)
 
-
+    graph = tf.compat.v1.get_default_graph()
+    graph.finalize()
     for i in range(num_steps):
         model.train_and_save(epochs=1, epoch_num=i)
 
@@ -176,14 +189,14 @@ def transcribe(data_fn,
                                   batch_size=1, id=hparams.model_id, hparams=hparams)
         # midi_model.load_model(74.87, 82.45, 'weights-zero')
         # midi_model.load_model(82.94, 80.47, id='big-lstm-for-f1', epoch_num=149)
-        midi_model.build_model()
-        midi_model.load_newest()
+        midi_model.build_model(compile=False)
+        midi_model.load_newest(hparams.load_id)
     elif model_type == ModelType.TIMBRE:
         timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, id=hparams.model_id,
                                     dataset=transcription_data, batch_size=1,
                                     hparams=hparams)
-        timbre_model.build_model()
-        timbre_model.load_newest()
+        timbre_model.build_model(compile=False)
+        timbre_model.load_newest(hparams.load_id)
 
     if data_fn:
         while True:

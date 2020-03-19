@@ -23,7 +23,7 @@ import librosa
 
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import audio_transform, midi_model, timbre_model, \
-    constants
+    constants, full_model
 
 Config = collections.namedtuple('Config', ('hparams',))
 
@@ -38,9 +38,11 @@ DEFAULT_HPARAMS = {
         'shuffle_buffer_size': 64,
         'nsynth_shuffle_buffer_size': 1048,
         'timbre_coagulate_mini_batches': False,
-        'nsynth_batch_size': 64,
-        'timbre_training_max_instruments': 2,
-        'timbre_max_start_offset': 32000, #320000 goes to 800 when cropping
+        'nsynth_batch_size': 4,
+        'slakh_batch_size': 4,
+        'use_drums': True,
+        'timbre_training_max_instruments': 32,
+        'timbre_max_start_offset': 320000, #320000 goes to 800 when cropping
         'timbre_min_len': 8000,
         'timbre_max_len': 0,
         'sample_rate': 16000,
@@ -68,9 +70,13 @@ DEFAULT_HPARAMS = {
 
 CONFIG_MAP = {}
 
+# TODO do this the right way
 CONFIG_MAP['onsets_frames'] = Config(
     #model_fn=model.model_fn,
-    hparams={**DEFAULT_HPARAMS, **midi_model.get_default_hparams(), **timbre_model.get_default_hparams()},
+    hparams={**DEFAULT_HPARAMS,
+             **midi_model.get_default_hparams(),
+             **timbre_model.get_default_hparams(),
+             **full_model.get_default_hparams()},
 )
 
 DatasetConfig = collections.namedtuple(
@@ -103,4 +109,13 @@ DATASET_CONFIG_MAP['maestro'] = [
         'maestro-v1.0.0_ns_wav_validation.tfrecord@10',
         num_mixes=None,
         process_for_training=False),
+]
+
+DATASET_CONFIG_MAP['slakh'] = [
+    DatasetConfig(
+        'train',
+        'E:/Datasets/slakh'
+        'train.tfrecord@20',
+        num_mixes=None,
+        process_for_training=True),
 ]

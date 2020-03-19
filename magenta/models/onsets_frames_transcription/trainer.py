@@ -36,6 +36,7 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_boolean('using_plaidml', False, 'Are we using plaidml')
 
 tf.app.flags.DEFINE_string('model_id', None, 'Id to save the model as')
+tf.app.flags.DEFINE_string('load_id', '*', 'Id of the model to load')
 
 tf.app.flags.DEFINE_string('master', '',
                            'Name of the TensorFlow runtime to use.')
@@ -84,6 +85,9 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'TIMBRE', 'FULL'],
                          'type of model to train')
 
+tf.app.flags.DEFINE_enum('dataset_name', 'nsynth', ['nsynth', 'slakh'],
+                         'type of dataset we are using')
+
 tf.app.flags.DEFINE_string(
     'transcribed_file_suffix', 'predicted',
     'Optional suffix to add to transcribed files.')
@@ -94,7 +98,7 @@ if FLAGS.using_plaidml:
 
     plaidml.keras.install_backend()
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs, nsynth_reader, \
+from magenta.models.onsets_frames_transcription import data, train_util, configs, timbre_dataset_reader, \
     model_util
 
 
@@ -113,6 +117,10 @@ def run(config_map, data_fn, additional_trial_info):
 
     hparams.using_plaidml = FLAGS.using_plaidml
     hparams.model_id = FLAGS.model_id
+    hparams.load_id = FLAGS.load_id
+
+    hparams.model_type = model_util.ModelType[FLAGS.model_type]
+    hparams.split_pianoroll = model_util.ModelType[FLAGS.model_type] is model_util.ModelType.FULL
 
     if FLAGS.mode == 'train':
         train_util.train(
@@ -148,10 +156,12 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    provide_batch_fn = data.provide_batch if model_util.ModelType[
-                                                 FLAGS.model_type] == model_util.ModelType.MIDI \
-        else nsynth_reader.provide_batch
-    data_fn = functools.partial(provide_batch_fn, examples=FLAGS.examples_path) \
+    provide_batch_fn = timbre_dataset_reader.provide_batch if model_util.ModelType[
+                                                 FLAGS.model_type] == model_util.ModelType.TIMBRE \
+        else data.provide_batch
+    data_fn = functools.partial(provide_batch_fn,
+                                examples=FLAGS.examples_path,
+                                dataset_name=FLAGS.dataset_name) \
         if FLAGS.examples_path else None
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
