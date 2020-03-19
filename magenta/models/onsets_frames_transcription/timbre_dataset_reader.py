@@ -305,7 +305,7 @@ def provide_batch(examples,
                 LabelTensors(instrument_families=TensorShape([None, hparams.timbre_num_classes]))),
             padding_values=(
                 FeatureTensors(spec=K.cast_to_floatx(0),
-                               note_croppings=K.cast_to_floatx(-1),
+                               note_croppings=K.cast_to_floatx(-1e+7),
                                #num_notes=K.cast(0, 'int32')
                                ),
                 LabelTensors(instrument_families=0)),

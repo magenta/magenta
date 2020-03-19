@@ -87,10 +87,15 @@ def run(argv, config_map, data_fn):
     timbre_model.build_model(compile=False)
     timbre_model.load_newest()
 
-    model.build_model(midi_model=midi_model.get_model(), timbre_model=timbre_model.get_model())
+    model.build_model(midi_model=midi_model.get_model(),
+                      timbre_model=timbre_model.get_model(),
+                      compile=False)
 
     # model.build_model()
-    # model.load_newest()
+    try:
+        model.load_newest()
+    except:
+        pass
 
     for filename in argv[1:]:
         tf.compat.v1.logging.info('Starting transcription for %s...', filename)

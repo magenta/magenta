@@ -26,6 +26,29 @@ def Dixon(yTrue, yPred):
 
 
 def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
+    def weighted_loss(y_true_unshaped, y_pred_unshaped):
+        y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
+        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_pred_unshaped.shape[-1]))
+        weights = K.ones(K.int_shape(y_true)[0], K.int_shape(y_true)[0])
+        support_inv_exp = 1.0
+        total_support = 1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), 0), 1 / support_inv_exp)
+        # weigh those with less support more
+        weighted_weights = total_support * weights / (
+                    1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), -1), 1 / support_inv_exp))
+
+        nb_cl = len(weighted_weights)
+        final_mask = K.zeros_like(y_pred[:, 0])
+        y_pred_max = K.max(y_pred, axis=1)
+        y_pred_max = K.reshape(
+            y_pred_max, (K.shape(y_pred)[0], 1))
+        y_pred_max_mat = K.cast(
+            K.equal(y_pred, y_pred_max), K.floatx())
+        for c_p, c_t in product(range(nb_cl), range(nb_cl)):
+            final_mask += (
+                    weighted_weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
+        return categorical_crossentropy(y_true, y_pred) * final_mask
+
     def multi_track_loss(y_true, y_probs):
         # num_instruments, batch, time, pitch
         permuted_y_true = K.permute_dimensions(y_true, (3, 0, 1, 2))
@@ -72,8 +95,9 @@ def convert_multi_instrument_probs_to_predictions(y_probs,
                          K.int_shape(y_probs)[-1])
     # only predict the best instrument at each location
     times_one_hot = thresholded_y_probs * one_hot
-    y_predictions = tf.logical_or(thresholded_y_probs > multiple_instruments_threshold,
-                                  times_one_hot > 0)
+    # y_predictions = tf.logical_or(thresholded_y_probs > multiple_instruments_threshold,
+    #                               times_one_hot > 0)
+    y_predictions = thresholded_y_probs > multiple_instruments_threshold
     return y_predictions
 
 
@@ -85,6 +109,7 @@ def single_track_present_accuracy_wrapper(threshold):
             'accuracy_without_true_negatives']
 
     return single_present_acc
+
 
 def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_threshold=0.2):
     def present_acc(y_true, y_probs):
@@ -98,22 +123,26 @@ def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_thresho
     return present_acc
 
 
-def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.2, print_report=False, only_f1=True):
+def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.2, print_report=False,
+                            only_f1=True):
     def multi_track_prf(y_true, y_probs):
         flat_y_true, flat_y_predictions = convert_to_multi_instrument_predictions(y_true,
                                                                                   y_probs,
                                                                                   threshold,
                                                                                   multiple_instruments_threshold)
 
+        # remove any predictions from padded values
+        flat_y_predictions = flat_y_predictions * K.expand_dims(K.sum(flat_y_true, -1) > 0)
         print(f'total predicted {K.sum(K.cast_to_floatx(flat_y_predictions))}')
         if print_report:
-            print(classification_report(flat_y_true, flat_y_predictions, zero_division=1))
+            print(classification_report(flat_y_true, flat_y_predictions, digits=4, zero_division=0))
+            print([f'{i}:{x}' for i, x in enumerate(K.sum(flat_y_predictions, 0))])
 
         # definitely don't use macro accuracy here because some instruments won't be present
         precision, recall, f1, _ = precision_recall_fscore_support(flat_y_true,
                                                                    flat_y_predictions,
                                                                    average='micro',
-                                                                   zero_division=1)  # TODO maybe 0
+                                                                   zero_division=0)  # TODO maybe 0
         scores = {
             'precision': K.constant(precision),
             'recall': K.constant(recall),
@@ -158,16 +187,19 @@ def f1_wrapper(threshold):
 
 def flatten_f1_wrapper(hparams):
     def flatten_f1_fn(y_true, y_probs):
-        y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1],
-                                   dtype=tf.int32)
+        y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1])
 
         reshaped_y_true = K.reshape(y_true, (-1, y_predictions.shape[-1]))
 
-        print(classification_report(reshaped_y_true, y_predictions))
+        # remove any predictions from padded values
+        y_predictions = y_predictions * K.expand_dims(K.cast_to_floatx(K.sum(reshaped_y_true, -1) > 0))
 
+        print(classification_report(reshaped_y_true, y_predictions, digits=4, zero_division=0))
+        print([f'{i}:{x}' for i, x in enumerate(K.cast(K.sum(y_predictions, 0), 'int32'))])
         precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true,
                                                                    y_predictions,
-                                                                   average='weighted')  # TODO maybe 'macro'
+                                                                   average='macro',
+                                                                   zero_division=0)  # TODO maybe 'macro'
         scores = {
             'precision': K.constant(precision),
             'recall': K.constant(recall),
@@ -204,10 +236,24 @@ def flatten_accuracy_wrapper(hparams):
         rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
 
         # remove any predictions from padded values
-        rebatched_pred = rebatched_pred * K.expand_dims(K.cast_to_floatx(K.sum(rebatched_true, -1) > 0))
+        rebatched_pred = rebatched_pred * K.expand_dims(
+            K.cast_to_floatx(K.sum(rebatched_true, -1) > 0))
         return categorical_accuracy(rebatched_true, rebatched_pred)
 
     return flatten_accuracy_fn
+
+
+def flatten_weighted_logit_loss(pos_weight=1):
+    def weighted_logit_loss(y_true_unshaped, y_logits_unshaped):
+        y_logits = K.reshape(y_logits_unshaped, (-1, y_logits_unshaped.shape[-1]))
+        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_logits_unshaped.shape[-1]))
+
+        # remove any predictions from padded values
+        y_logits = y_logits + K.expand_dims(tf.where(K.sum(y_true, -1) > 0, 0.0, -1e+9))
+        return tf.nn.weighted_cross_entropy_with_logits(y_true, y_logits, pos_weight=pos_weight)
+
+    return weighted_logit_loss
 
 
 class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
@@ -234,6 +280,13 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
         y_pred = y_pred * K.expand_dims(K.cast_to_floatx(K.sum(y_true, -1) > 0)) + 1e-9
 
         weights = self.weights
+        support_inv_exp = 1.0
+        total_support = 1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), 0),
+                                        1 / (0.5 + support_inv_exp))
+        # weigh those with less support more
+        weighted_weights = total_support * weights / (
+                    1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), -1), 1 / support_inv_exp))
+        # print(weighted_weights)
         nb_cl = len(weights)
         final_mask = K.zeros_like(y_pred[:, 0])
         y_pred_max = K.max(y_pred, axis=1)
@@ -243,5 +296,5 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
             K.equal(y_pred, y_pred_max), K.floatx())
         for c_p, c_t in product(range(nb_cl), range(nb_cl)):
             final_mask += (
-                    weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
+                    weighted_weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
         return super().call(y_true, y_pred) * final_mask

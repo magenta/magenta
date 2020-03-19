@@ -50,8 +50,8 @@ def bn_elu_layer(hparams, pool_size, time_distributed_bypass):
         return get_time_distributed_wrapper(bypass=time_distributed_bypass)(
             MaxPooling2D(pool_size=pool_size), hparams=hparams)(
             ELU(hparams.timbre_leaky_alpha)(
-                get_time_distributed_wrapper(bypass=time_distributed_bypass)(
-                    BatchNormalization(scale=False), hparams=hparams)
+                # get_time_distributed_wrapper(bypass=time_distributed_bypass)(
+                #     BatchNormalization(scale=False), hparams=hparams)
                 (x)))
 
     return bn_elu_fn
@@ -173,7 +173,7 @@ def get_croppings_for_single_image(conv_output, note_croppings,
         if end_idx[i] < 0:
             # is a padded value note
             trimmed_list.append(
-                np.zeros(shape=(1, K.int_shape(conv_output)[1:]), dtype=K.floatx()))
+                np.zeros(shape=(1, *K.int_shape(conv_output)[1:]), dtype=K.floatx()))
         else:
             trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
             if hparams.timbre_global_pool:
@@ -194,4 +194,4 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     # mask = tf.reshape(mask, (-1, *mask.shape[2:]))
 
     # Tell downstream layers to skip timesteps that are fully masked out
-    return Masking(mask_value=0.0)(mask)
+    return mask # Masking(mask_value=0.0)(mask)

@@ -10,7 +10,7 @@ from dotmap import DotMap
 
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription.accuracy_util import \
-    WeightedCategoricalCrossentropy, flatten_accuracy_wrapper
+    WeightedCategoricalCrossentropy, flatten_accuracy_wrapper, flatten_weighted_logit_loss
 from magenta.models.onsets_frames_transcription.layer_util import conv_bn_elu_layer, \
     get_all_croppings, time_distributed_wrapper
 
@@ -21,7 +21,7 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
 
     from keras import backend as K
-    from keras.initializers import he_normal, VarianceScaling
+    from keras.initializers import he_normal, VarianceScaling, he_uniform, glorot_uniform
     from keras.activations import tanh
     from keras.layers import Conv2D, \
         Dense, Dropout, \
@@ -31,7 +31,7 @@ if FLAGS.using_plaidml:
     from keras.regularizers import l2
 else:
     from tensorflow.keras import backend as K
-    from tensorflow.keras.initializers import he_normal, VarianceScaling
+    from tensorflow.keras.initializers import he_normal, VarianceScaling, he_uniform, glorot_uniform
     from tensorflow.keras.activations import tanh
     from tensorflow.keras.layers import Conv2D, \
         Dense, Dropout, \
@@ -44,37 +44,40 @@ else:
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
 def get_default_hparams():
     return {
-        'timbre_learning_rate': 0.0006,
+        'timbre_learning_rate': 0.0001,
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 1e-3,
         'timbre_clip_norm': 1.0,
-        'timbre_l2_regularizer': 1e-5,
+        'timbre_l2_regularizer': 1e-3,
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
-        'timbre_num_filters': [128, 64, 32],
-        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 3)),
+        'timbre_num_filters': [96, 64, 32],
+        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 6)),
         'timbre_vertical_filter': (1, 513),
         'timbre_vertical_num': 50,
         'timbre_horizontal_filter': (12, 1),
         'timbre_horizontal_num': 30,
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_architecture': 'parallel',
-        'timbre_pool_size': [(2, 1), (4, 2)],
+        'timbre_pool_size': [(4, 2), (4, 2)],
         'timbre_num_layers': 2,
-        'timbre_dropout_drop_amts': [0.0, 0.0, 0.0],
+        'timbre_dropout_drop_amts': [0.25, 0.25, 0.25],
         'timbre_rnn_dropout_drop_amt': 0.0,
         'timbre_fc_size': 256,
-        'timbre_penultimate_fc_size': 512,
-        'timbre_fc_num_layers': 2,
+        'timbre_penultimate_fc_size': 256,
+        'timbre_fc_num_layers': 0,
         'timbre_fc_dropout_drop_amt': 0.0,
-        'timbre_local_conv': True,
+        'timbre_local_conv_size': 3,
+        'timbre_local_conv_num_filters': 64,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
-        'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 2, # include other and drums
+        'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 1, # include other and drums
         'timbre_lstm_units': 256,
         'timbre_rnn_stack_size': 1,
         'timbre_leaky_alpha': 0.33,  # per han et al 2016 OR no negatives
         'timbre_sharing_conv': True,
         'timbre_extra_conv': False,
+        'timbre_penultimate_activation': 'elu',
+        'timbre_final_activation': 'softmax',
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
         'timbre_bottleneck_filter_num': 0,
@@ -106,7 +109,7 @@ def get_default_hparams():
             9: 16000 / 5501,
             10: 16000 / 10753,
         },
-        'weight_correct_multiplier': 0.1,
+        'weight_correct_multiplier': 0.4, # DON'T trend towards the classes with most support
     }
 
 
@@ -159,7 +162,7 @@ def lstm_layer(hparams,
                 implementation=implementation,
                 return_sequences=i < hparams.timbre_rnn_stack_size - 1,
                 recurrent_dropout=hparams.timbre_rnn_dropout_drop_amt,
-                kernel_initializer=VarianceScaling(2, distribution='uniform')
+                kernel_initializer=he_uniform()
             )), hparams=hparams)(lstm_stack)
         return lstm_stack
 
@@ -195,9 +198,10 @@ def acoustic_dense_layer(hparams):
             outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_drop_amt),
                                                hparams=hparams)(outputs)
             outputs = time_distributed_wrapper(Dense(hparams.timbre_fc_size,
-                                                     kernel_initializer=he_normal(),
+                                                     kernel_initializer=he_uniform(),
                                                      kernel_regularizer=l2(
                                                          hparams.timbre_l2_regularizer),
+                                                     use_bias=False,
                                                      bias_regularizer=l2(
                                                          hparams.timbre_l2_regularizer),
                                                      name=f'acoustic_dense_{i}'),
@@ -217,11 +221,12 @@ def instrument_prediction_layer(hparams):
         outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_drop_amt),
                                            hparams=hparams)(outputs)
         outputs = time_distributed_wrapper(Dense(hparams.timbre_num_classes,
-                                                 activation='softmax',
+                                                 activation=hparams.timbre_final_activation,
                                                  name='timbre_prediction',
-                                                 kernel_initializer=he_normal(),
+                                                 kernel_initializer=glorot_uniform(),
                                                  kernel_regularizer=l2(
                                                      hparams.timbre_l2_regularizer),
+                                                 use_bias=False,
                                                  bias_regularizer=l2(
                                                      hparams.timbre_l2_regularizer),
                                                  ),
@@ -281,13 +286,14 @@ def timbre_prediction_model(hparams=None):
         output_shape=output_shape)(
         [filter_outputs, note_croppings])
 
-    if hparams.timbre_local_conv:
-        pooled_outputs = time_distributed_wrapper(LocallyConnected1D(
-            128,
-            3,
+    if hparams.timbre_local_conv_size:
+        pooled_outputs = ELU(hparams.timbre_leaky_alpha)(time_distributed_wrapper(LocallyConnected1D(
+            hparams.timbre_local_conv_num_filters,
+            hparams.timbre_local_conv_size,
+            use_bias=False,
             kernel_regularizer=l2(hparams.timbre_l2_regularizer),
-            kernel_initializer=he_normal(),
-        ), hparams)(pooled_outputs)
+            kernel_initializer=he_uniform(),
+        ), hparams)(pooled_outputs))
 
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
     # last 3 independently (time, frequency, and number of channels/filters)
@@ -318,17 +324,12 @@ def timbre_prediction_model(hparams=None):
 
     penultimate_outputs = time_distributed_wrapper(
         Dense(hparams.timbre_penultimate_fc_size,
-              activation='tanh',
-              kernel_initializer=VarianceScaling()),
+              use_bias=False,
+              activation=hparams.timbre_penultimate_activation,
+              kernel_initializer=he_uniform()), # glorot for tanh? https://towardsdatascience.com/hyper-parameters-in-action-part-ii-weight-initializers-35aee1a28404
         hparams)(
         timeless_outputs)
 
-    # Allows debugging
-    def passthrough(x):
-        return x
-
-    penultimate_outputs = Lambda(passthrough, output_shape=K.int_shape(penultimate_outputs)[1:],
-                                 dynamic=True)(penultimate_outputs)
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
     instrument_family_probs = instrument_prediction_layer(hparams)(penultimate_outputs)
@@ -349,12 +350,16 @@ def timbre_prediction_model(hparams=None):
                                   hparams.timbre_num_classes
                               )
                           )])
+    if hparams.timbre_final_activation == 'softmax':
+        # weigh based on predicted value (expand on 0) instead?
+        losses = {'family_probs': WeightedCategoricalCrossentropy(
+            weights=weights)}
 
-    # weigh based on predicted value (expand on 0) instead?
-    losses = {'family_probs': WeightedCategoricalCrossentropy(
-        weights=weights)}
+        accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
+    else:
+        losses = {'family_probs': flatten_weighted_logit_loss(.4)}
+        accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
 
-    accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
 
     return Model(inputs=[spec, note_croppings],
                  outputs=instrument_family_probs), losses, accuracies

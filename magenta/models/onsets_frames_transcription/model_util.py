@@ -128,7 +128,12 @@ class ModelWrapper:
         if self.model is None:
             self.build_model()
 
-        for i in range(self.steps_per_epoch):
+        if self.steps_per_epoch <=0:
+            steps = epoch_num
+        else:
+            steps = self.steps_per_epoch
+
+        for i in range(steps):
             x, y = self.generator.get()
             if self.type != ModelType.TIMBRE or not self.hparams.timbre_coagulate_mini_batches:
                 class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
@@ -288,6 +293,8 @@ class ModelWrapper:
             print('Model loaded successfully')
         except IndexError:
             print(f'No saved models exist at path: {self.model_dir}/{self.type.name}/{id}/')
+        except:
+            print(f'Couldn\'t load model at path: {self.model_dir}/{self.type.name}/{id}/')
 
     def load_model(self, frames_f1, onsets_f1=-1, id=-1, epoch_num=0):
         if not id:

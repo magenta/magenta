@@ -23,7 +23,7 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
 
     from keras import backend as K
-    from keras.initializers import VarianceScaling
+    from keras.initializers import VarianceScaling, he_uniform
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
     Input, MaxPooling2D, Reshape, concatenate, ELU
     from keras.models import Model
@@ -31,7 +31,7 @@ else:
     # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
     from tensorflow.keras import backend as K
-    from tensorflow.keras.initializers import VarianceScaling
+    from tensorflow.keras.initializers import VarianceScaling, he_uniform
     from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, \
         Dense, Dropout, \
         Input, LSTM, MaxPooling2D, Reshape, concatenate, ELU
@@ -42,7 +42,7 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'batch_size': 3,
+        'batch_size': 4,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 1e-4,
@@ -95,7 +95,7 @@ def lstm_layer(num_units,
                 implementation=implementation,
                 return_sequences=True,
                 recurrent_dropout=rnn_dropout_drop_amt,
-                kernel_initializer=VarianceScaling(2, distribution='uniform'))
+                kernel_initializer=he_uniform())
             )(lstm_stack)
         return lstm_stack
 
@@ -106,9 +106,8 @@ def acoustic_dense_layer(hparams, lstm_units):
     def acoustic_dense_fn(inputs):
         # shape: (None, None, 57, 96)
         outputs = Dense(hparams.fc_size, use_bias=False,
-                                   activation='sigmoid',
-                                   kernel_initializer=VarianceScaling(scale=2, mode='fan_avg',
-                                                                      distribution='uniform'))(
+                                   activation='elu',
+                                   kernel_initializer=he_uniform())(
             # Flatten while preserving batch and time dimensions.
             Reshape((-1, K.int_shape(inputs)[2] * K.int_shape(inputs)[3]))(
                 inputs))
@@ -130,7 +129,7 @@ def acoustic_model_layer(hparams):
             [conv_temporal_size, conv_freq_size],
             padding='same',
             use_bias=False,
-            kernel_initializer=VarianceScaling(scale=2, mode='fan_avg', distribution='uniform')
+            kernel_initializer=he_uniform()
         )(x))
 
     def acoustic_model_fn(inputs):

@@ -21,7 +21,7 @@ from magenta.models.onsets_frames_transcription.timbre_dataset_reader import Not
 def get_default_hparams():
     return {
         'prediction_generosity': 4,
-        'multiple_instruments_threshold': 0.2
+        'multiple_instruments_threshold': 0.16
     }
 
 
@@ -56,7 +56,7 @@ class FullModel:
             pianorolls = np.ones(
                 shape=(constants.MIDI_PITCHES,
                        batched_pianoroll_length[batch_idx][0],
-                       self.hparams.timbre_num_classes)) / self.hparams.timbre_num_classes
+                       self.hparams.timbre_num_classes)) / (1 + self.hparams.timbre_num_classes)
 
             def full_fill(i, pitch, start_idx, end_idx):
                 pianorolls[pitch:, start_idx:] = timbre_probs[i]
