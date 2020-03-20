@@ -17,11 +17,6 @@
 
 Uses flags to define operation.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
 import os
 import time
