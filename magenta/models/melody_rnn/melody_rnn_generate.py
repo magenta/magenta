@@ -12,13 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as: python3
 """Generate melodies from a trained checkpoint of a melody RNN model."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
 import os
 import time
