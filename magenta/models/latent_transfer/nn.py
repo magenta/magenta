@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Nerual network components.
 
 This library containts nerual network components in either raw TF or sonnet

@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Common functions/helpers for the joint model.
 
 This library contains many comman functions and helpers used to train (using
@@ -39,10 +40,6 @@ components are classified in the following categories:
         `prepare_dirs`
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import importlib
 import os
 

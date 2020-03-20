@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Reading MNIST dataset locally.
 
 This library contains functions used to read MNIST-family data such as vanilla
@@ -20,9 +21,6 @@ MNIST or Fashion-MNIST. Typical usage is:
   data_dir = ...
   train, validation, test = read_data_sets(data_dir)
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import gzip
 import os

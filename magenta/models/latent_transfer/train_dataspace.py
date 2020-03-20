@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Train VAE on dataspace.
 
 This script trains the models that model the data space as defined in
@@ -19,10 +20,6 @@ This script trains the models that model the data space as defined in
 would be used to encode and decode the latent space (z) to and from data
 space (x).
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import importlib
 import os

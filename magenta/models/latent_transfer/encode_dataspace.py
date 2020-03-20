@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Encode the data using pre-trained VAE on dataspace.
 
 This script encodes the instances in dataspace (x) from the training set into
 distributions in the latent space (z) using the pre-trained the models from
 `train_dataspace.py`
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import importlib
 import os

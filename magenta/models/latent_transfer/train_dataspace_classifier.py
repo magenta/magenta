@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Train classifier on dataspace.
 
 This script trains the data space classifier as defined in
@@ -20,10 +21,6 @@ would be used to classifier instances in the data space (x).
 """
 
 # pylint:disable=invalid-name
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import importlib
 import os
