@@ -1,32 +1,23 @@
 # load and save models
-import gc
 import glob
 import os
 import time
+import uuid
 from enum import Enum
 
 import librosa.display
-import numpy as np
-import uuid
 import matplotlib.pyplot as plt
-from keras.layers import Conv2D
-from memory_profiler import profile
-from sklearn.utils import class_weight
-from tensorflow.keras.layers import BatchNormalization
-
-from magenta.models.onsets_frames_transcription import infer_util, constants, \
-    instrument_family_mappings
-from magenta.models.onsets_frames_transcription.callback import MidiPredictionMetrics, \
-    TimbrePredictionMetrics, FullPredictionMetrics
-
+import numpy as np
 import tensorflow.compat.v1 as tf
 
+from magenta.models.onsets_frames_transcription import constants, infer_util, \
+    instrument_family_mappings
+from magenta.models.onsets_frames_transcription.callback import FullPredictionMetrics, \
+    MidiPredictionMetrics, TimbrePredictionMetrics
 from magenta.models.onsets_frames_transcription.full_model import FullModel
 from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
-from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
-from magenta.models.onsets_frames_transcription.timbre_dataset_reader import NoteCropping, get_cqt_index
-from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model, \
-    acoustic_model_layer
+from magenta.models.onsets_frames_transcription.timbre_dataset_reader import NoteCropping
+from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -36,12 +27,10 @@ if FLAGS.using_plaidml:
     import plaidml.keras
 
     plaidml.keras.install_backend()
-    from keras.models import load_model
     from keras.optimizers import Adam
     from keras.utils import plot_model
     import keras.backend as K
 else:
-    from tensorflow.keras.models import load_model
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.utils import plot_model
     import tensorflow.keras.backend as K
@@ -49,7 +38,7 @@ else:
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
 
 from magenta.models.onsets_frames_transcription.accuracy_util import AccuracyMetric, \
-    binary_accuracy_wrapper, convert_multi_instrument_probs_to_predictions
+    convert_multi_instrument_probs_to_predictions
 from magenta.models.onsets_frames_transcription.midi_model import midi_prediction_model
 
 
@@ -293,8 +282,8 @@ class ModelWrapper:
             print('Model loaded successfully')
         except IndexError:
             print(f'No saved models exist at path: {self.model_dir}/{self.type.name}/{id}/')
-        except:
-            print(f'Couldn\'t load model at path: {self.model_dir}/{self.type.name}/{id}/')
+        except Exception as e:
+            print(f'{e}\nCouldn\'t load model at path: {self.model_dir}/{self.type.name}/{id}/')
 
     def load_model(self, frames_f1, onsets_f1=-1, id=-1, epoch_num=0):
         if not id:

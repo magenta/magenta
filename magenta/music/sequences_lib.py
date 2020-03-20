@@ -1839,9 +1839,10 @@ def sequence_to_pianoroll(
       tf.logging.warn('Skipping out of range pitch: %d', note.pitch)
       continue
 
-    if not note.is_drum \
-            and instrument_family_mappings.midi_instrument_to_family[note.program].value >= timbre_num_classes\
-            or instrument_family_mappings.midi_instrument_to_family[note.program].value != instrument_family:
+    if not note.is_drum and \
+            instrument_family_mappings.midi_instrument_to_family[note.program].value >= timbre_num_classes or \
+            instrument_family is not None \
+            and instrument_family_mappings.midi_instrument_to_family[note.program].value != instrument_family:
       continue
     elif note.is_drum:
       if not use_drums or instrument_family is not instrument_family_mappings.Family.DRUMS:

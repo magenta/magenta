@@ -35,7 +35,7 @@ def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
         total_support = 1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), 0), 1 / support_inv_exp)
         # weigh those with less support more
         weighted_weights = total_support * weights / (
-                    1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), -1), 1 / support_inv_exp))
+                1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), -1), 1 / support_inv_exp))
 
         nb_cl = len(weighted_weights)
         final_mask = K.zeros_like(y_pred[:, 0])
@@ -141,7 +141,7 @@ def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.2, print
         # definitely don't use macro accuracy here because some instruments won't be present
         precision, recall, f1, _ = precision_recall_fscore_support(flat_y_true,
                                                                    flat_y_predictions,
-                                                                   average='micro',
+                                                                   average='samples',
                                                                    zero_division=0)  # TODO maybe 0
         scores = {
             'precision': K.constant(precision),
@@ -192,13 +192,14 @@ def flatten_f1_wrapper(hparams):
         reshaped_y_true = K.reshape(y_true, (-1, y_predictions.shape[-1]))
 
         # remove any predictions from padded values
-        y_predictions = y_predictions * K.expand_dims(K.cast_to_floatx(K.sum(reshaped_y_true, -1) > 0))
+        y_predictions = y_predictions * K.expand_dims(
+            K.cast_to_floatx(K.sum(reshaped_y_true, -1) > 0))
 
         print(classification_report(reshaped_y_true, y_predictions, digits=4, zero_division=0))
         print([f'{i}:{x}' for i, x in enumerate(K.cast(K.sum(y_predictions, 0), 'int32'))])
         precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true,
                                                                    y_predictions,
-                                                                   average='macro',
+                                                                   average='samples',
                                                                    zero_division=0)  # TODO maybe 'macro'
         scores = {
             'precision': K.constant(precision),
@@ -265,11 +266,14 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
             label_smoothing=0,
             reduction=Reduction.SUM_OVER_BATCH_SIZE,
             name='categorical_crossentropy',
+            pos_weight=0.25,  # increase precision
     ):
         super().__init__(
             from_logits, label_smoothing, reduction, name=f"weighted_{name}"
         )
+        self.from_logits = from_logits
         self.weights = weights
+        self.pos_weight = pos_weight
 
     def call(self, y_true_unshaped, y_pred_unshaped):
         y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
@@ -280,12 +284,12 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
         y_pred = y_pred * K.expand_dims(K.cast_to_floatx(K.sum(y_true, -1) > 0)) + 1e-9
 
         weights = self.weights
-        support_inv_exp = 1.0
-        total_support = 1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), 0),
-                                        1 / (0.5 + support_inv_exp))
+        support_inv_exp = 1.2
+        total_support = tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10, 0),
+                                        1 / (1.0 + support_inv_exp))
         # weigh those with less support more
         weighted_weights = total_support * weights / (
-                    1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), -1), 1 / support_inv_exp))
+                tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10, -1), 1 / support_inv_exp))
         # print(weighted_weights)
         nb_cl = len(weights)
         final_mask = K.zeros_like(y_pred[:, 0])
@@ -297,4 +301,9 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
         for c_p, c_t in product(range(nb_cl), range(nb_cl)):
             final_mask += (
                     weighted_weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
+
+        if self.from_logits:
+            return K.sum(tf.nn.weighted_cross_entropy_with_logits(y_true,
+                                                            y_pred,
+                                                            pos_weight=self.pos_weight), -1) * final_mask
         return super().call(y_true, y_pred) * final_mask

@@ -69,7 +69,7 @@ def conv_bn_elu_layer(num_filters, conv_temporal_size, conv_freq_size, pool_size
                     padding='same',
                     use_bias=False,
                     kernel_regularizer=l2(hparams.timbre_l2_regularizer),
-                    kernel_initializer=he_normal(),
+                    kernel_initializer='he_uniform',
                     # name = 'conv_{}_{}_{}'.format(num_filters, conv_temporal_size, conv_freq_size)
                 ), hparams=hparams)(x))
 
@@ -173,13 +173,20 @@ def get_croppings_for_single_image(conv_output, note_croppings,
         if end_idx[i] < 0:
             # is a padded value note
             trimmed_list.append(
-                np.zeros(shape=(1, *K.int_shape(conv_output)[1:]), dtype=K.floatx()))
+                np.zeros(shape=(1, K.int_shape(conv_output)[1], K.int_shape(conv_output)[2] + 1),
+                         dtype=K.floatx()))
         else:
             trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
+            length = K.int_shape(trimmed_spec)[1]
             if hparams.timbre_global_pool:
                 # GlobalAveragePooling1D supports masking
                 trimmed_spec = GlobalAveragePooling1D()(
                     K.permute_dimensions(trimmed_spec, (1, 0, 2)))
+            trimmed_spec = K.concatenate([trimmed_spec,
+                                          tf.repeat(K.cast_to_floatx(K.expand_dims([length], 0)),
+                                                    K.int_shape(trimmed_spec)[0],
+                                                    axis=0)],
+                                         axis=-1)
             trimmed_list.append(K.expand_dims(trimmed_spec, 0))
 
     broadcasted_spec = K.concatenate(trimmed_list, axis=0)

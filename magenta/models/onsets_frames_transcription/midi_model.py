@@ -8,6 +8,7 @@ from dotmap import DotMap
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
+
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper, \
     f1_wrapper, true_positive_wrapper
@@ -23,14 +24,16 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
 
     from keras import backend as K
+    from keras.regularizers import l2
     from keras.initializers import VarianceScaling, he_uniform
     from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
-    Input, MaxPooling2D, Reshape, concatenate, ELU
+        Input, MaxPooling2D, Reshape, concatenate, ELU
     from keras.models import Model
 else:
     # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
     from tensorflow.keras import backend as K
+    from tensorflow.keras.regularizers import l2
     from tensorflow.keras.initializers import VarianceScaling, he_uniform
     from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, \
         Dense, Dropout, \
@@ -42,11 +45,11 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'batch_size': 4,
+        'batch_size': 3,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 1e-4,
-        'clip_norm': 1.0,
+        'clip_norm': 3.0,
         'transform_audio': False,
         'onset_lstm_units': 256,
         'offset_lstm_units': 256,
@@ -60,14 +63,15 @@ def get_default_hparams():
         'stop_onset_gradient': True,
         'stop_offset_gradient': True,
         'weight_frame_and_activation_loss': False,
-        'share_conv_features': False,
-        'temporal_sizes': [3, 3, 3],
-        'freq_sizes': [3, 3, 3],
-        'num_filters': [48, 48, 96],
-        'pool_sizes': [1, 2, 2],
-        'dropout_drop_amts': [0.0, 0.25, 0.25],
+        'share_conv_features': True,
+        'temporal_sizes': [3, 7, 1, 3],
+        'freq_sizes': [3, 1, 21, 3],
+        'num_filters': [32, 48, 48, 96],
+        'pool_sizes': [1, 1, 2, 2],
+        'dropout_drop_amts': [0.0, 0.5, 0.5, 0.5],
+        'use_batch_normalization': True,
         'fc_size': 768,
-        'fc_dropout_drop_amt': 0.25,
+        'fc_dropout_drop_amt': 0.5,
         'use_lengths': False,
         'use_cudnn': True,
         'rnn_dropout_drop_amt': 0.0,
@@ -95,7 +99,7 @@ def lstm_layer(num_units,
                 implementation=implementation,
                 return_sequences=True,
                 recurrent_dropout=rnn_dropout_drop_amt,
-                kernel_initializer=he_uniform())
+                kernel_initializer='he_uniform')
             )(lstm_stack)
         return lstm_stack
 
@@ -106,8 +110,8 @@ def acoustic_dense_layer(hparams, lstm_units):
     def acoustic_dense_fn(inputs):
         # shape: (None, None, 57, 96)
         outputs = Dense(hparams.fc_size, use_bias=False,
-                                   activation='elu',
-                                   kernel_initializer=he_uniform())(
+                        activation='elu',
+                        kernel_initializer='he_uniform')(
             # Flatten while preserving batch and time dimensions.
             Reshape((-1, K.int_shape(inputs)[2] * K.int_shape(inputs)[3]))(
                 inputs))
@@ -121,7 +125,11 @@ def acoustic_dense_layer(hparams, lstm_units):
 
 
 def acoustic_model_layer(hparams):
-    bn_relu_fn = lambda x: ELU(hparams.timbre_leaky_alpha)(BatchNormalization(scale=False)(x))
+    if hparams.use_batch_normalization:
+        bn_relu_fn = lambda x: ELU(hparams.timbre_leaky_alpha)(BatchNormalization(scale=False)(x))
+    else:
+        bn_relu_fn = lambda x: ELU(hparams.timbre_leaky_alpha)(x)
+
     conv_bn_relu_layer = lambda num_filters, conv_temporal_size, conv_freq_size: lambda \
             x: bn_relu_fn(
         Conv2D(
@@ -129,7 +137,8 @@ def acoustic_model_layer(hparams):
             [conv_temporal_size, conv_freq_size],
             padding='same',
             use_bias=False,
-            kernel_initializer=he_uniform()
+            kernel_initializer='he_uniform',
+            kernel_regularizer=l2(hparams.timbre_l2_regularizer)
         )(x))
 
     def acoustic_model_fn(inputs):
