@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Tests for create_dataset_lib."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import itertools
 
@@ -32,7 +29,7 @@ class CreateDatasetLibTest(tf.test.TestCase):
                          ('source2', 'c'), ('source2', 'd')]
     exid_to_mixids = create_dataset_lib.generate_mixes(
         val='unused', num_mixes=100, sourceid_to_exids=sourceid_to_exids)
-    mix_ids = set(itertools.chain(*exid_to_mixids.values()))
+    mix_ids = set(itertools.chain(*list(exid_to_mixids.values())))
     # Requested 100, but there are only 4 unique mixes, so that's how many
     # we should end up with.
     self.assertEqual(4, len(mix_ids))
@@ -42,7 +39,7 @@ class CreateDatasetLibTest(tf.test.TestCase):
                          ('source2', 'd'), ('source2', 'e'), ('source2', 'f')]
     exid_to_mixids = create_dataset_lib.generate_mixes(
         val='unused', num_mixes=4, sourceid_to_exids=sourceid_to_exids)
-    mix_ids = set(itertools.chain(*exid_to_mixids.values()))
+    mix_ids = set(itertools.chain(*list(exid_to_mixids.values())))
     # Ensure we get the number of mixes we requested even when more unique mixes
     # would be possible.
     self.assertEqual(4, len(mix_ids))
@@ -53,7 +50,7 @@ class CreateDatasetLibTest(tf.test.TestCase):
                          ('source3', 'a'), ('source3', 'b'), ('source3', 'c')]
     exid_to_mixids = create_dataset_lib.generate_mixes(
         val='unused', num_mixes=100, sourceid_to_exids=sourceid_to_exids)
-    mix_ids = set(itertools.chain(*exid_to_mixids.values()))
+    mix_ids = set(itertools.chain(*list(exid_to_mixids.values())))
     # There are only 3 unique ids, but we're request mixes of 3 items, so only
     # 1 unique mix is possible.
     self.assertEqual(1, len(mix_ids))
@@ -75,6 +72,7 @@ class CreateDatasetLibTest(tf.test.TestCase):
     exid_to_mixids = create_dataset_lib.generate_mixes(
         val='unused', num_mixes=200, sourceid_to_exids=sourceid_to_exids)
     self.assertEqual(set(range(100)), exid_to_mixids.keys())
+
 
 if __name__ == '__main__':
   tf.test.main()

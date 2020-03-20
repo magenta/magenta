@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 r"""Beam job for creating tfrecord files from datasets.
 
 Expects a CSV with the following fields: audio_filename, midi_filename, split
@@ -26,10 +27,6 @@ onsets_frames_transcription_create_tfrecords \
   --expected_splits="train,validation,test"
 
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import copy
@@ -125,7 +122,7 @@ def main(argv):
            os.path.join(FLAGS.wav_dir, row['audio_filename'])))
 
   if sorted(splits.keys()) != sorted(FLAGS.expected_splits.split(',')):
-    raise ValueError('Got unexpected set of splits: %s' % splits.keys())
+    raise ValueError('Got unexpected set of splits: %s' % list(splits.keys()))
 
   pipeline_options = beam.options.pipeline_options.PipelineOptions(
       FLAGS.pipeline_options)

@@ -12,11 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Beam pipeline for dataset creation."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import hashlib
 import os
@@ -103,7 +100,8 @@ def split_wav(input_example, min_length, max_length, sample_rate,
         Metrics.counter('split_wav', 'split_example').inc()
         yield example
     except AssertionError:
-      output_file = 'badexample-' + hashlib.md5(ns.id).hexdigest() + '.proto'
+      output_file = 'badexample-' + hashlib.md5(
+          ns.id.encode('utf-8')).hexdigest() + '.proto'
       output_path = os.path.join(debug_output_directory, output_file)
       tf.logging.error('Exception processing %s. Writing file to %s', ns.id,
                        output_path)

@@ -12,16 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Inference for onset conditioned model.
 
 A histogram summary will be written for every example processed, and the
 resulting MIDI and pianoroll images will also be written for every example.
 The final summary value is the mean score for all examples.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import functools
@@ -36,6 +33,7 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
 import numpy as np
+import six
 import tensorflow.compat.v1 as tf
 
 
@@ -131,7 +129,7 @@ def model_inference(model_fn,
         predictions['sequence_labels'])
 
     # Make filenames UNIX-friendly.
-    filename_chars = predictions['sequence_ids'].decode('utf-8')
+    filename_chars = six.ensure_text(predictions['sequence_ids'], 'utf-8')
     filename_chars = [c if c.isalnum() else '_' for c in filename_chars]
     filename_safe = ''.join(filename_chars).rstrip()
     filename_safe = '{:04d}_{}'.format(file_num, filename_safe[:200])
