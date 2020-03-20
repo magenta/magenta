@@ -15,9 +15,6 @@
 # Lint as: python3
 """Helper functions for generating sounds.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from magenta import music as mm
 from magenta.models.gansynth.lib import util
