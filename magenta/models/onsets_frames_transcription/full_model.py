@@ -138,12 +138,15 @@ class FullModel:
 
         # decrease threshold to feed more notes into the timbre prediction
         # even if they don't make the final cut in accuracy_util.multi_track_accuracy_wrapper
-        frame_predictions = K.stop_gradient(frame_probs > self.hparams.predict_frame_threshold)
+        frame_predictions = Lambda(lambda x: K.stop_gradient(x))(
+            frame_probs > self.hparams.predict_frame_threshold)
         # generous onsets are used so that we can get more frame prediction data for the instruments
         # this will end up making our end-predicted notes much shorter though
-        generous_onset_predictions = K.stop_gradient(onset_probs > (
-                self.hparams.predict_onset_threshold / self.hparams.prediction_generosity))
-        offset_predictions = K.stop_gradient(offset_probs > self.hparams.predict_offset_threshold)
+        generous_onset_predictions = Lambda(lambda x: K.stop_gradient(x))(
+            onset_probs > (
+                        self.hparams.predict_onset_threshold / self.hparams.prediction_generosity))
+        offset_predictions = Lambda(lambda x: K.stop_gradient(x))(
+            offset_probs > self.hparams.predict_offset_threshold)
 
         note_croppings = Lambda(self.get_croppings,
                                 output_shape=(None, 3),
@@ -222,7 +225,7 @@ class FullModel:
                 multi_track_prf_wrapper(
                     self.hparams.predict_onset_threshold,
                     multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
-                    print_report=True)
+                    print_report=False)
             ],
             'multi_offsets': [
                 multi_track_present_accuracy_wrapper(

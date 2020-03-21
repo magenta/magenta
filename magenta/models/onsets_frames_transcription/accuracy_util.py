@@ -6,6 +6,7 @@ import tensorflow.keras.backend as K
 
 # 'name' should be a string
 # 'method' should be a string or a function
+from keras.layers import Multiply
 from tensorflow.keras.losses import categorical_crossentropy, CategoricalCrossentropy, Reduction
 from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
@@ -60,15 +61,17 @@ def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
                     permuted_y_true[instrument_idx]):
                 # ignore the non-present instruments
                 continue
-            loss_list.append(K.mean(tf_utils.log_loss(permuted_y_true[instrument_idx],
-                                                      permuted_y_probs[instrument_idx] + epsilon,
-                                                      epsilon=epsilon,
-                                                      recall_weighing=recall_weighing)))
+            loss_list.append(K.sum(tf_utils.log_loss(permuted_y_true[instrument_idx],
+                                                     permuted_y_probs[instrument_idx] + epsilon,
+                                                     epsilon=epsilon,
+                                                     recall_weighing=recall_weighing))
+                             / K.sum(permuted_y_true[instrument_idx]))
         # add instrument-independent loss
-        loss_list.append(K.mean(tf_utils.log_loss(K.max(y_true, axis=-1),
-                                                  K.sum(y_probs, axis=-1) + epsilon,
-                                                  epsilon=epsilon,
-                                                  recall_weighing=recall_weighing)))
+        loss_list.append(K.sum(tf_utils.log_loss(K.max(y_true, axis=-1),
+                                                 K.sum(y_probs, axis=-1) + epsilon,
+                                                 epsilon=epsilon,
+                                                 recall_weighing=recall_weighing))
+                         / K.sum(K.max(y_true, axis=-1)))
         return tf.reduce_mean(loss_list)
 
     return multi_track_loss
@@ -95,9 +98,9 @@ def convert_multi_instrument_probs_to_predictions(y_probs,
                          K.int_shape(y_probs)[-1])
     # only predict the best instrument at each location
     times_one_hot = thresholded_y_probs * one_hot
-    # y_predictions = tf.logical_or(thresholded_y_probs > multiple_instruments_threshold,
-    #                               times_one_hot > 0)
-    y_predictions = thresholded_y_probs > multiple_instruments_threshold
+    y_predictions = tf.logical_or(thresholded_y_probs > multiple_instruments_threshold,
+                                  times_one_hot > 0)
+    # y_predictions = thresholded_y_probs > multiple_instruments_threshold
     return y_predictions
 
 
@@ -132,16 +135,23 @@ def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.2, print
                                                                                   multiple_instruments_threshold)
 
         # remove any predictions from padded values
-        flat_y_predictions = flat_y_predictions * K.expand_dims(K.sum(flat_y_true, -1) > 0)
-        print(f'total predicted {K.sum(K.cast_to_floatx(flat_y_predictions))}')
+        flat_y_predictions = K.cast_to_floatx(flat_y_predictions)
+        flat_y_predictions = flat_y_predictions * K.expand_dims(
+            K.cast_to_floatx(K.sum(K.cast_to_floatx(flat_y_true), -1) > 0))
+        individual_sums = K.sum(K.cast(flat_y_predictions, 'int32'), 0)
+        print(f'total predicted {K.sum(individual_sums)}')
         if print_report:
             print(classification_report(flat_y_true, flat_y_predictions, digits=4, zero_division=0))
-            print([f'{i}:{x}' for i, x in enumerate(K.sum(flat_y_predictions, 0))])
+            print(classification_report(K.max(y_true, axis=-1),
+                                        K.sum(y_probs, axis=-1),
+                                        digits=4,
+                                        zero_division=0))
+            print([f'{i}:{x}' for i, x in enumerate(individual_sums)])
 
         # definitely don't use macro accuracy here because some instruments won't be present
         precision, recall, f1, _ = precision_recall_fscore_support(flat_y_true,
                                                                    flat_y_predictions,
-                                                                   average='samples',
+                                                                   average='weighted',
                                                                    zero_division=0)  # TODO maybe 0
         scores = {
             'precision': K.constant(precision),
@@ -286,10 +296,10 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
         weights = self.weights
         support_inv_exp = 1.2
         total_support = tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10, 0),
-                                        1 / (1.0 + support_inv_exp))
+                                    1 / (1.0 + support_inv_exp))
         # weigh those with less support more
         weighted_weights = total_support * weights / (
-                tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10, -1), 1 / support_inv_exp))
+            tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10, -1), 1 / support_inv_exp))
         # print(weighted_weights)
         nb_cl = len(weights)
         final_mask = K.zeros_like(y_pred[:, 0])
@@ -304,6 +314,7 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
 
         if self.from_logits:
             return K.sum(tf.nn.weighted_cross_entropy_with_logits(y_true,
-                                                            y_pred,
-                                                            pos_weight=self.pos_weight), -1) * final_mask
+                                                                  y_pred,
+                                                                  pos_weight=self.pos_weight),
+                         -1) * final_mask
         return super().call(y_true, y_pred) * final_mask

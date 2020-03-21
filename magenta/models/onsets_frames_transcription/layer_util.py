@@ -173,21 +173,23 @@ def get_croppings_for_single_image(conv_output, note_croppings,
         if end_idx[i] < 0:
             # is a padded value note
             trimmed_list.append(
-                np.zeros(shape=(1, K.int_shape(conv_output)[1], K.int_shape(conv_output)[2] + 1),
+                np.zeros(shape=(1, K.int_shape(conv_output)[1], 2 * K.int_shape(conv_output)[2] + 1),
                          dtype=K.floatx()))
         else:
             trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
             length = K.int_shape(trimmed_spec)[1]
-            if hparams.timbre_global_pool:
-                # GlobalAveragePooling1D supports masking
-                trimmed_spec = GlobalAveragePooling1D()(
-                    K.permute_dimensions(trimmed_spec, (1, 0, 2)))
-            trimmed_spec = K.concatenate([trimmed_spec,
+            # GlobalAveragePooling1D supports masking
+            avg_pool = GlobalAveragePooling1D()(
+                K.permute_dimensions(trimmed_spec, (1, 0, 2)))
+            max_pool = GlobalMaxPooling1D()(
+                K.permute_dimensions(trimmed_spec, (1, 0, 2)))
+            pools = K.concatenate([avg_pool, max_pool], -1)
+            single_note_data = K.concatenate([pools,
                                           tf.repeat(K.cast_to_floatx(K.expand_dims([length], 0)),
-                                                    K.int_shape(trimmed_spec)[0],
+                                                    K.int_shape(pools)[0],
                                                     axis=0)],
                                          axis=-1)
-            trimmed_list.append(K.expand_dims(trimmed_spec, 0))
+            trimmed_list.append(K.expand_dims(single_note_data, 0))
 
     broadcasted_spec = K.concatenate(trimmed_list, axis=0)
 

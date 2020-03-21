@@ -10,7 +10,8 @@ from dotmap import DotMap
 
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription.accuracy_util import \
-    WeightedCategoricalCrossentropy, flatten_accuracy_wrapper, flatten_weighted_logit_loss
+    WeightedCategoricalCrossentropy, flatten_accuracy_wrapper, flatten_weighted_logit_loss, \
+    flatten_f1_wrapper
 from magenta.models.onsets_frames_transcription.layer_util import conv_bn_elu_layer, \
     get_all_croppings, time_distributed_wrapper
 
@@ -24,9 +25,10 @@ if FLAGS.using_plaidml:
     from keras.initializers import he_normal, VarianceScaling, he_uniform, glorot_uniform
     from keras.activations import tanh
     from keras.layers import Conv2D, \
-        Dense, Dropout, \
-        Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D
+    Dense, Dropout, \
+    Input, concatenate, Lambda, Reshape, LSTM, \
+    Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, TimeDistributed, \
+    Conv1D
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -36,7 +38,8 @@ else:
     from tensorflow.keras.layers import Conv2D, \
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, TimeDistributed, \
+        Conv1D
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
@@ -48,10 +51,10 @@ def get_default_hparams():
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 1e-3,
         'timbre_clip_norm': 1.0,
-        'timbre_l2_regularizer': 1e-3,
-        'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 1)],  # [5, 80],
+        'timbre_l2_regularizer': 1e-7,
+        'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 2)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
-        'timbre_num_filters': [96, 64, 32],
+        'timbre_num_filters': [48, 32, 16],
         'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 8)),
         'timbre_vertical_filter': (1, 513),
         'timbre_vertical_num': 50,
@@ -59,24 +62,25 @@ def get_default_hparams():
         'timbre_horizontal_num': 30,
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_architecture': 'parallel',
-        'timbre_pool_size': [(2, 2), (2, 2)],
+        'timbre_pool_size': [(3, 2), (3, 2)],
         'timbre_num_layers': 2,
-        'timbre_dropout_drop_amts': [0.25, 0.25, 0.25],
-        'timbre_rnn_dropout_drop_amt': 0.0,
+        'timbre_dropout_drop_amts': [0.0, 0.5, 0.5],
+        'timbre_rnn_dropout_drop_amt': [0.3, 0.5],
         'timbre_fc_size': 256,
         'timbre_penultimate_fc_size': 256,
         'timbre_fc_num_layers': 0,
-        'timbre_fc_dropout_drop_amt': 0.0,
+        'timbre_fc_dropout_drop_amt': 0.5,
+        'timbre_final_dropout_amt': 0.2,
         'timbre_local_conv_size': 3,
         'timbre_local_conv_num_filters': 64,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 1,  # include other and drums
-        'timbre_lstm_units': 256,
+        'timbre_lstm_units': 171, # painless reshaping bc 171 % 57 == 0
         'timbre_rnn_stack_size': 1,
         'timbre_leaky_alpha': 0.33,  # per han et al 2016 OR no negatives
         'timbre_sharing_conv': True,
         'timbre_extra_conv': False,
-        'timbre_penultimate_activation': 'elu',
+        'timbre_penultimate_activation': 'sigmoid',
         'timbre_final_activation': None,
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
@@ -141,9 +145,12 @@ def filters_layer(hparams):
         parallel_layers = []
         for f_i in hparams.timbre_filter_frequency_sizes:
             for i, t_i in enumerate(hparams.timbre_filter_temporal_sizes):
-                parallel_layers.append(
-                    conv_bn_elu_layer(hparams.timbre_num_filters[i], t_i, f_i, pool_size, True,
-                                      hparams)(inputs))
+                outputs = conv_bn_elu_layer(hparams.timbre_num_filters[i], t_i, f_i, pool_size,
+                                            True,
+                                            hparams)(inputs)
+
+                outputs = Dropout(hparams.timbre_fc_dropout_drop_amt)(outputs)
+                parallel_layers.append(outputs)
 
         # K.print_tensor(parallel_layers[0], 'parallel')
         return concatenate(parallel_layers, axis=-1)
@@ -156,14 +163,14 @@ def lstm_layer(hparams,
     def lstm_layer_fn(inputs):
         lstm_stack = inputs
         for i in range(hparams.timbre_rnn_stack_size):
-            lstm_stack = time_distributed_wrapper(Bidirectional(LSTM(
+            lstm_stack = Bidirectional(LSTM(
                 hparams.timbre_lstm_units,
-                recurrent_activation='sigmoid',
                 implementation=implementation,
-                return_sequences=i < hparams.timbre_rnn_stack_size - 1,
-                recurrent_dropout=hparams.timbre_rnn_dropout_drop_amt,
-                kernel_initializer='he_uniform'
-            )), hparams=hparams)(lstm_stack)
+                return_sequences=True,
+                dropout=hparams.timbre_rnn_dropout_drop_amt[0],
+                recurrent_dropout=hparams.timbre_rnn_dropout_drop_amt[1],
+                kernel_initializer='he_uniform')
+            )(lstm_stack)
         return lstm_stack
 
     return lstm_layer_fn
@@ -177,10 +184,10 @@ def acoustic_model_layer(hparams):
         outputs = inputs
 
         for i in range(hparams.timbre_num_layers):
-            outputs = Dropout(hparams.timbre_fc_dropout_drop_amt)(outputs)
             outputs = conv_bn_elu_layer(num_filters, 3, 3, hparams.timbre_pool_size[i],
                                         time_distributed_bypass=True,
                                         hparams=hparams)(outputs)
+            outputs = Dropout(hparams.timbre_dropout_drop_amts[i])(outputs)
 
         return outputs
 
@@ -191,17 +198,18 @@ def acoustic_dense_layer(hparams):
     def acoustic_dense_fn(inputs):
         outputs = inputs
         for i in range(hparams.timbre_fc_num_layers):
-            outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_drop_amt),
-                                               hparams=hparams)(outputs)
             outputs = time_distributed_wrapper(Dense(hparams.timbre_fc_size,
                                                      kernel_initializer='he_uniform',
                                                      kernel_regularizer=l2(
                                                          hparams.timbre_l2_regularizer),
                                                      use_bias=False,
+                                                     activation='sigmoid',
                                                      name=f'acoustic_dense_{i}'),
                                                hparams=hparams)(outputs)
             # don't do batch normalization because our samples are no longer independent
-            outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
+            # outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
+            outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_drop_amt),
+                                               hparams=hparams)(outputs)
         return outputs
 
     return acoustic_dense_fn
@@ -212,7 +220,7 @@ def instrument_prediction_layer(hparams):
         # inputs should be of type keras.layers.*
         # outputs = Flatten()(inputs)
         outputs = inputs
-        outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_drop_amt),
+        outputs = time_distributed_wrapper(Dropout(hparams.timbre_final_dropout_amt),
                                            hparams=hparams)(outputs)
         outputs = time_distributed_wrapper(Dense(hparams.timbre_num_classes,
                                                  activation=hparams.timbre_final_activation,
@@ -260,20 +268,36 @@ def timbre_prediction_model(hparams=None):
 
     # simplify to save memory
     if hparams.timbre_bottleneck_filter_num:
-        filter_outputs = Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1))(filter_outputs)
+        filter_outputs = ELU(hparams.timbre_leaky_alpha)(
+            Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1))(filter_outputs))
+
+    if hparams.timbre_rnn_stack_size > 0:
+        flat = TimeDistributed(Flatten())(filter_outputs)
+        lstm_input = flat
+        # lstm_input = Dense(1024,
+        #                    use_bias=False,
+        #                    kernel_initializer='he_uniform',
+        #                    kernel_regularizer=l2(hparams.timbre_l2_regularizer),
+        #                    activation='elu')(flat)
+        lstm_outputs = lstm_layer(hparams)(lstm_input)
+        reshaped_outputs = TimeDistributed(Reshape((K.int_shape(filter_outputs)[2], -1)))(
+            lstm_outputs)
+
+    else:
+        reshaped_outputs = filter_outputs
 
     # batch_size is excluded from this shape as it gets automatically inferred
     # ouput_shape with coagulation: (batch_size*num_notes, freq_range, num_filters)
     # output_shape without coagulation: (batch_size, num_notes, freq_range, num_filters)
-    output_shape = (math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]),
-                    K.int_shape(filter_outputs)[3] + 1) \
+    output_shape = (math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
+                    2 * K.int_shape(reshaped_outputs)[3] + 1) \
         if hparams.timbre_coagulate_mini_batches \
-        else (None, math.ceil(K.int_shape(filter_outputs)[2] / hparams.timbre_filters_pool_size[1]),
-              K.int_shape(filter_outputs)[3] + 1)
+        else (None, math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
+              2 * K.int_shape(reshaped_outputs)[3] + 1)
     pooled_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
         output_shape=output_shape)(
-        [filter_outputs, note_croppings])
+        [reshaped_outputs, note_croppings])
 
     if hparams.timbre_local_conv_size:
         pooled_outputs = ELU(hparams.timbre_leaky_alpha)(
@@ -286,44 +310,27 @@ def timbre_prediction_model(hparams=None):
 
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
     # last 3 independently (time, frequency, and number of channels/filters)
-
     # flatten while preserving batch and time dimensions
     # shape: (None, None, None, 1792)
     # aka: (batch_size, num_notes, length, vec_size)
-    if hparams.timbre_global_pool:
-        if hparams.timbre_global_pool == 2:
-            pooled_outputs = time_distributed_wrapper(GlobalMaxPooling2D(),
-                                                      hparams=hparams)(pooled_outputs)
+    if hparams.timbre_global_pool == 2:
+        pooled_outputs = time_distributed_wrapper(GlobalMaxPooling2D(),
+                                                  hparams=hparams)(pooled_outputs)
 
-        flattened_outputs = time_distributed_wrapper(Flatten(), hparams=hparams)(
-            pooled_outputs)
-        timeless_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
-
-
-    else:
-        flattened_outputs = time_distributed_wrapper(Reshape(
-            (-1, K.int_shape(pooled_outputs)[-2] * K.int_shape(pooled_outputs)[-1])),
-            hparams=hparams)(pooled_outputs)
-
-        dense_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
-
-        # shape: (None, None, 512)
-        # aka: (batch_size, num_notes, lstm_units)
-        timeless_outputs = lstm_layer(hparams=hparams)(dense_outputs)
-
+    flattened_outputs = time_distributed_wrapper(Flatten(), hparams=hparams)(
+        pooled_outputs)
+    timeless_outputs = acoustic_dense_layer(hparams)(flattened_outputs)
     penultimate_outputs = time_distributed_wrapper(
         Dense(hparams.timbre_penultimate_fc_size,
               use_bias=False,
               activation=hparams.timbre_penultimate_activation,
               kernel_initializer='he_uniform'),
         # glorot for tanh? https://towardsdatascience.com/hyper-parameters-in-action-part-ii-weight-initializers-35aee1a28404
-        hparams)(
-        timeless_outputs)
+        hparams)(timeless_outputs)
 
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
     instrument_family_probs = instrument_prediction_layer(hparams)(penultimate_outputs)
-
     instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
 
     if hparams.timbre_weighted_loss:
@@ -345,13 +352,12 @@ def timbre_prediction_model(hparams=None):
         losses = {'family_probs': WeightedCategoricalCrossentropy(
             weights=weights)}
 
-        accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
     else:
-        #losses = {'family_probs': flatten_weighted_logit_loss(.4)}
+        # losses = {'family_probs': flatten_weighted_logit_loss(.4)}
         # this seems to decrease predicted support when you have bad precision, which is the goal?
         losses = {'family_probs': WeightedCategoricalCrossentropy(
-            weights=weights, from_logits=True, pos_weight=0.75)}
-        accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams)]}
+            weights=weights, from_logits=True, pos_weight=2.)}
+    accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams), lambda *x: flatten_f1_wrapper(hparams)(*x)['f1_score']]}
 
     return Model(inputs=[spec, note_croppings],
                  outputs=instrument_family_probs), losses, accuracies

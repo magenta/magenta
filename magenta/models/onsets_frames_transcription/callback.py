@@ -6,8 +6,10 @@ import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
 from memory_profiler import profile
 
+from magenta.models.onsets_frames_transcription import infer_util, constants
 from magenta.models.onsets_frames_transcription.accuracy_util import flatten_f1_wrapper, \
     multi_track_prf_wrapper
+from magenta.music import midi_io
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -25,13 +27,14 @@ TimbrePredictionOutputMetrics = collections.namedtuple('TimbrePredictionOutputMe
 
 
 class MetricsCallback(Callback):
-    def __init__(self, generator=None, hparams=None, metrics_history=None):
+    def __init__(self, generator=None, hparams=None, metrics_history=None, save_dir='./out'):
         super(MetricsCallback, self).__init__()
         if metrics_history is None:
             metrics_history = []
         self.generator = generator
         self.hparams = hparams
         self.metrics_history = metrics_history
+        self.save_dir = save_dir
 
     def on_train_batch_begin(self, *args):
         pass
@@ -40,15 +43,15 @@ class MetricsCallback(Callback):
         pass
 
     @abstractmethod
-    def predict(self, X, y):
+    def predict(self, X, y, epoch=None):
         pass
 
-    #@profile
+    # @profile
     def on_epoch_end(self, epoch, logs={}, model=None):
         if model:
             self.model = model
         x, y = self.generator.get()
-        metrics = self.predict(x, y)
+        metrics = self.predict(x, y, epoch=epoch)
         self.metrics_history.append(metrics)
         for name, value in metrics._asdict().items():
             print('{} metrics:'.format(name))
@@ -62,7 +65,35 @@ class MidiPredictionMetrics(MetricsCallback):
     def load_metrics(self, metrics_history):
         # convert to list of namedtuples
         self.metrics_history = [MidiPredictionOutputMetrics(*x) for x in metrics_history]
-    def predict(self, X, y):
+
+    def save_midi(self, y_probs, y_true, epoch):
+        frame_predictions = y_probs[0][0] > self.hparams.predict_frame_threshold
+        onset_predictions = y_probs[1][0] > self.hparams.predict_onset_threshold
+        offset_predictions = y_probs[2][0] > self.hparams.predict_offset_threshold
+
+        sequence = infer_util.predict_sequence(
+            frame_predictions=frame_predictions,
+            onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
+            velocity_values=None,
+            hparams=self.hparams,
+            min_pitch=constants.MIN_MIDI_PITCH,
+            instrument=1)
+        frame_predictions = y_true[0][0]
+        onset_predictions = y_true[1][0]
+        offset_predictions = y_true[2][0]
+        sequence.notes.extend(infer_util.predict_sequence(
+            frame_predictions=frame_predictions,
+            onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
+            velocity_values=None,
+            hparams=self.hparams,
+            min_pitch=constants.MIN_MIDI_PITCH,
+            instrument=0).notes)
+        midi_filename = f'{self.save_dir}/{epoch}_predicted.midi'
+        midi_io.sequence_proto_to_midi_file(sequence, midi_filename)
+
+    def predict(self, X, y, epoch=None):
         # 'frames': boolean_accuracy_wrapper(hparams.predict_frame_threshold),
         # 'onsets': boolean_accuracy_wrapper(hparams.predict_onset_threshold),
         # 'offsets': boolean_accuracy_wrapper(hparams.predict_offset_threshold)
@@ -74,6 +105,8 @@ class MidiPredictionMetrics(MetricsCallback):
         offset_metrics = calculate_frame_metrics(y[2],
                                                  y_probs[2] > self.hparams.predict_offset_threshold)
 
+        self.save_midi(y_probs, y, epoch)
+
         return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)
 
 
@@ -83,22 +116,26 @@ class TimbrePredictionMetrics(MetricsCallback):
         # convert to list of namedtuples
         self.metrics_history = [TimbrePredictionOutputMetrics(*x) for x in metrics_history]
 
-    def predict(self, X, y):
+    def predict(self, X, y, epoch=None):
         y_probs = self.model.predict_on_batch(X)
         print(y_probs + K.cast_to_floatx(y[0]))
         scores = flatten_f1_wrapper(self.hparams)(y[0], y_probs)
         del y_probs
         return TimbrePredictionOutputMetrics(scores)
 
+
 class FullPredictionMetrics(MetricsCallback):
     def load_metrics(self, metrics_history):
         # convert to list of namedtuples
         self.metrics_history = [MidiPredictionOutputMetrics(*x) for x in metrics_history]
 
-    def predict(self, X, y):
+    def predict(self, X, y, epoch=None):
         y_probs = self.model.predict_on_batch(X)
-        frame_metrics = multi_track_prf_wrapper(self.hparams.predict_frame_threshold, only_f1=False)(y[0], y_probs[0])
-        onset_metrics = multi_track_prf_wrapper(self.hparams.predict_onset_threshold, only_f1=False)(y[1], y_probs[1])
-        offset_metrics = multi_track_prf_wrapper(self.hparams.predict_offset_threshold, only_f1=False)(y[2], y_probs[2])
+        frame_metrics = multi_track_prf_wrapper(self.hparams.predict_frame_threshold,
+                                                only_f1=False)(y[0], y_probs[0])
+        onset_metrics = multi_track_prf_wrapper(self.hparams.predict_onset_threshold,
+                                                only_f1=False)(y[1], y_probs[1])
+        offset_metrics = multi_track_prf_wrapper(self.hparams.predict_offset_threshold,
+                                                 only_f1=False)(y[2], y_probs[2])
         del y_probs
         return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)

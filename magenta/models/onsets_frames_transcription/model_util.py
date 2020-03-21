@@ -84,12 +84,13 @@ class ModelWrapper:
             self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
                                            use_numpy=False,
                                            coagulate_mini_batches=type is not ModelType.MIDI and hparams.timbre_coagulate_mini_batches)
+        save_dir = f'{model_dir}/{type.name}/{id}'
         if self.type is ModelType.MIDI:
-            self.metrics = MidiPredictionMetrics(self.generator,self.hparams)
+            self.metrics = MidiPredictionMetrics(self.generator, self.hparams, save_dir=save_dir)
         elif self.type is ModelType.TIMBRE:
             self.metrics = TimbrePredictionMetrics(self.generator, self.hparams)
         else:
-            self.metrics = FullPredictionMetrics(self.generator, self.hparams)
+            self.metrics = FullPredictionMetrics(self.generator, self.hparams, save_dir=save_dir)
 
     def get_model(self):
         return self.model
@@ -278,12 +279,13 @@ class ModelWrapper:
                 np.load(model_history,
                         allow_pickle=True)[0])
             print('Loading pre-trained model: {}'.format(model_weights))
-            self.model.load_weights(model_weights)
+            self.model.load_weights(model_weights, by_name=self.type is not ModelType.FULL)
             print('Model loaded successfully')
         except IndexError:
             print(f'No saved models exist at path: {self.model_dir}/{self.type.name}/{id}/')
         except Exception as e:
             print(f'{e}\nCouldn\'t load model at path: {self.model_dir}/{self.type.name}/{id}/')
+            raise e
 
     def load_model(self, frames_f1, onsets_f1=-1, id=-1, epoch_num=0):
         if not id:

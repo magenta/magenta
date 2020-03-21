@@ -20,8 +20,8 @@ import copy
 import json
 
 import tensorflow.compat.v1 as tf
-import numpy as np
 from dotmap import DotMap
+
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
 
 FLAGS = tf.app.flags.FLAGS
@@ -56,11 +56,10 @@ tf.app.flags.DEFINE_string(
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
-from magenta.models.onsets_frames_transcription import configs, model_util, constants
+from magenta.models.onsets_frames_transcription import configs, model_util
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
 from magenta.music import midi_io
-from magenta.music.protobuf import music_pb2
 
 
 def run(argv, config_map, data_fn):
@@ -78,20 +77,23 @@ def run(argv, config_map, data_fn):
     hparams.truncated_length_secs = 0
 
     model_type = model_util.ModelType[FLAGS.model_type]
-    model = ModelWrapper('./models', type=model_type, id=hparams.model_id, hparams=hparams)
+    model = ModelWrapper('E:/models', type=model_type, id=hparams.model_id, hparams=hparams)
 
-    midi_model = ModelWrapper('./models', ModelType.MIDI, hparams=hparams)
-    midi_model.build_model(compile=False)
-    midi_model.load_newest()
-    timbre_model = ModelWrapper('./models', ModelType.TIMBRE, hparams=hparams)
-    timbre_model.build_model(compile=False)
-    timbre_model.load_newest()
+    if model_type is model_util.ModelType.FULL:
 
-    model.build_model(midi_model=midi_model.get_model(),
-                      timbre_model=timbre_model.get_model(),
-                      compile=False)
+        midi_model = ModelWrapper('E:/models', ModelType.MIDI, hparams=hparams)
+        midi_model.build_model(compile=False)
+        midi_model.load_newest()
+        timbre_model = ModelWrapper('E:/models', ModelType.TIMBRE, hparams=hparams)
+        timbre_model.build_model(compile=False)
+        timbre_model.load_newest()
 
-    # model.build_model()
+        model.build_model(midi_model=midi_model.get_model(),
+                          timbre_model=timbre_model.get_model(),
+                          compile=False)
+
+    else:
+        model.build_model(compile=False)
     try:
         model.load_newest()
     except:
