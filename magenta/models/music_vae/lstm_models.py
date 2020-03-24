@@ -432,7 +432,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     if c_input is None:
       c_input = tf.zeros([batch_size, tf.shape(x_input)[1], 0])
 
-    sampling_probability_static = tf.constant(self._sampling_probability)
+    sampling_probability_static = tf.get_static_value(
+        self._sampling_probability)
     if sampling_probability_static == 0.0:
       # Use teacher forcing.
       x_input = tf.concat([x_input, repeated_z, c_input], axis=2)
