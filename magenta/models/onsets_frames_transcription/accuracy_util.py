@@ -13,7 +13,8 @@ from sklearn.metrics import precision_recall_fscore_support, classification_repo
 
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
+from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics, \
+    accuracy_without_true_negatives
 
 AccuracyMetric = namedtuple('AccuracyMetric', ('name', 'method'))
 
@@ -26,17 +27,24 @@ def Dixon(yTrue, yPred):
     return 1 if pp == 0 and rp == 0 else tp / (pp + rp - tp + K.epsilon())
 
 
-def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
+def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
     def weighted_loss(y_true_unshaped, y_pred_unshaped):
         y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_pred_unshaped.shape[-1]))
-        weights = K.ones(K.int_shape(y_true)[0], K.int_shape(y_true)[0])
-        support_inv_exp = 1.0
-        total_support = 1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), 0), 1 / support_inv_exp)
+        weights = K.ones((K.int_shape(y_true)[-1], K.int_shape(y_true)[-1])) * (1 + tf.linalg.diag(
+                              tf.repeat(
+                                  hparams.weight_correct_multiplier - 1,
+                                  hparams.timbre_num_classes
+                              )
+                          ))
+        support_inv_exp = 2.
+        total_support = tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10., 0),
+                                    1 / (1 + support_inv_exp))
         # weigh those with less support more
         weighted_weights = total_support * weights / (
-                1 + tf.math.pow(K.expand_dims(K.sum(y_true, 0), -1), 1 / support_inv_exp))
+            tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10., -1),
+                        1 / support_inv_exp))
 
         nb_cl = len(weighted_weights)
         final_mask = K.zeros_like(y_pred[:, 0])
@@ -48,7 +56,7 @@ def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
         for c_p, c_t in product(range(nb_cl), range(nb_cl)):
             final_mask += (
                     weighted_weights[c_t, c_p] * y_pred_max_mat[:, c_p] * y_true[:, c_t])
-        return categorical_crossentropy(y_true, y_pred) * final_mask
+        return categorical_crossentropy(y_true, y_pred + epsilon) * final_mask
 
     def multi_track_loss(y_true, y_probs):
         # num_instruments, batch, time, pitch
@@ -57,34 +65,33 @@ def multi_track_loss_wrapper(recall_weighing=0, epsilon=1e-9):
 
         loss_list = []
         for instrument_idx in range(K.int_shape(permuted_y_true)[0]):
-            if 0 == K.sum(permuted_y_probs[instrument_idx]) == K.sum(
-                    permuted_y_true[instrument_idx]):
-                # ignore the non-present instruments
-                continue
-            loss_list.append(K.sum(tf_utils.log_loss(permuted_y_true[instrument_idx],
-                                                     permuted_y_probs[instrument_idx] + epsilon,
-                                                     epsilon=epsilon,
-                                                     recall_weighing=recall_weighing))
-                             / K.sum(permuted_y_true[instrument_idx]))
+            # if 0 == K.sum(permuted_y_probs[instrument_idx]) == K.sum(
+            #         permuted_y_true[instrument_idx]):
+            #     # ignore the non-present instruments
+            #     continue
+            loss_list.append(K.mean(tf_utils.log_loss(permuted_y_true[instrument_idx],
+                                                      permuted_y_probs[instrument_idx] + epsilon,
+                                                      epsilon=epsilon,
+                                                      recall_weighing=recall_weighing)))
         # add instrument-independent loss
-        loss_list.append(K.sum(tf_utils.log_loss(K.max(y_true, axis=-1),
-                                                 K.sum(y_probs, axis=-1) + epsilon,
-                                                 epsilon=epsilon,
-                                                 recall_weighing=recall_weighing))
-                         / K.sum(K.max(y_true, axis=-1)))
+        loss_list.append(K.mean(tf_utils.log_loss(K.max(y_true, axis=-1),
+                                                  K.sum(y_probs, axis=-1) + epsilon,
+                                                  epsilon=epsilon,
+                                                  recall_weighing=recall_weighing)))
         return tf.reduce_mean(loss_list)
 
-    return multi_track_loss
+    # return lambda *x: K.mean(weighted_loss(*x))
+    return lambda *x: multi_track_loss(*x) + K.mean(weighted_loss(*x))
 
 
 def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5,
                                             multiple_instruments_threshold=0.2):
-    y_predictions = convert_multi_instrument_probs_to_predictions(y_probs,
+    flat_y_predictions = tf.reshape(y_probs, (-1, K.int_shape(y_probs)[-1]))
+    y_predictions = convert_multi_instrument_probs_to_predictions(flat_y_predictions,
                                                                   threshold,
                                                                   multiple_instruments_threshold)
-    flat_y_predictions = tf.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
     flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
-    return flat_y_true, flat_y_predictions
+    return flat_y_true, y_predictions
 
 
 def convert_multi_instrument_probs_to_predictions(y_probs,
@@ -106,8 +113,15 @@ def convert_multi_instrument_probs_to_predictions(y_probs,
 
 def single_track_present_accuracy_wrapper(threshold):
     def single_present_acc(y_true, y_probs):
-        single_y_true = K.max(y_true, axis=-1)
-        single_y_predictions = K.sum(y_probs, axis=-1) > threshold
+        reshaped_y_true = K.reshape(y_true, (-1, y_true.shape[-1]))
+        reshaped_y_probs = K.reshape(y_probs, (-1, y_probs.shape[-1]))
+
+        single_y_true = K.max(reshaped_y_true, axis=-1)
+        single_y_predictions = K.sum(reshaped_y_probs, axis=-1) > threshold
+        frame_metrics = calculate_frame_metrics(single_y_true, single_y_predictions)
+        print('Precision: {}, Recall: {}, F1: {}'.format(frame_metrics['precision'].numpy() * 100,
+                                                           frame_metrics['recall'].numpy() * 100,
+                                                           frame_metrics['f1_score'].numpy() * 100))
         return calculate_frame_metrics(single_y_true, single_y_predictions)[
             'accuracy_without_true_negatives']
 
@@ -120,8 +134,29 @@ def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_thresho
                                                                                   y_probs,
                                                                                   threshold,
                                                                                   multiple_instruments_threshold)
-        return calculate_frame_metrics(flat_y_true, flat_y_predictions)[
-            'accuracy_without_true_negatives']
+        acc = tf.logical_and(tf.equal(K.sum(K.cast_to_floatx(flat_y_predictions), -1),
+                             K.sum(K.cast_to_floatx(flat_y_true), -1)),
+                             tf.equal(K.argmax(K.cast_to_floatx(flat_y_predictions), -1),
+                                      K.argmax(K.cast_to_floatx(flat_y_true), -1)))
+        print(f'acc: {K.mean(K.cast_to_floatx(acc))}')
+
+        frame_true_positives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
+            flat_y_true,
+            tf.equal(flat_y_true, flat_y_predictions))))
+        frame_false_positives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
+            K.max(K.cast_to_floatx(flat_y_true), -1) == 0,
+            K.sum(K.cast_to_floatx(flat_y_predictions), -1) > 0)))
+        frame_false_negatives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
+            K.max(K.cast_to_floatx(flat_y_true), -1) > 0,
+            K.max(K.cast_to_floatx(flat_y_true), -1) == 0))) \
+                                + tf.reduce_sum(K.cast_to_floatx(tf.logical_and(tf.logical_and(
+            K.max(K.cast_to_floatx(flat_y_true), -1) > 0,
+            K.max(K.cast_to_floatx(flat_y_predictions), -1) > 0),
+            tf.equal(K.argmax(K.cast_to_floatx(flat_y_true)),
+                     K.argmax(K.cast_to_floatx(flat_y_predictions))))))
+
+        return accuracy_without_true_negatives(
+            frame_true_positives, frame_false_positives, frame_false_negatives)
 
     return present_acc
 
@@ -134,18 +169,18 @@ def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.2, print
                                                                                   threshold,
                                                                                   multiple_instruments_threshold)
 
-        # remove any predictions from padded values
+        # remove any predictions from padded values <- Why would we do this? Ignore all empty????
         flat_y_predictions = K.cast_to_floatx(flat_y_predictions)
-        flat_y_predictions = flat_y_predictions * K.expand_dims(
-            K.cast_to_floatx(K.sum(K.cast_to_floatx(flat_y_true), -1) > 0))
+        # flat_y_predictions = flat_y_predictions * K.expand_dims(
+        #     K.cast_to_floatx(K.sum(K.cast_to_floatx(flat_y_true), -1) > 0))
         individual_sums = K.sum(K.cast(flat_y_predictions, 'int32'), 0)
         print(f'total predicted {K.sum(individual_sums)}')
         if print_report:
             print(classification_report(flat_y_true, flat_y_predictions, digits=4, zero_division=0))
-            print(classification_report(K.max(y_true, axis=-1),
-                                        K.sum(y_probs, axis=-1),
-                                        digits=4,
-                                        zero_division=0))
+            # print(classification_report(K.max(K.cast_to_floatx(flat_y_true), axis=-1) > threshold,
+            #                             K.sum(K.cast_to_floatx(flat_y_predictions), axis=-1) > 0,
+            #                             digits=4,
+            #                             zero_division=0))
             print([f'{i}:{x}' for i, x in enumerate(individual_sums)])
 
         # definitely don't use macro accuracy here because some instruments won't be present
@@ -209,7 +244,7 @@ def flatten_f1_wrapper(hparams):
         print([f'{i}:{x}' for i, x in enumerate(K.cast(K.sum(y_predictions, 0), 'int32'))])
         precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true,
                                                                    y_predictions,
-                                                                   average='samples',
+                                                                   average='micro',
                                                                    zero_division=0)  # TODO maybe 'macro'
         scores = {
             'precision': K.constant(precision),

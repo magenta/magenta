@@ -1949,7 +1949,8 @@ def pianoroll_to_note_sequence(frames,
                                min_midi_pitch=constants.MIN_MIDI_PITCH,
                                onset_predictions=None,
                                offset_predictions=None,
-                               velocity_values=None):
+                               velocity_values=None,
+                               active_onsets=None):
   """Convert frames to a NoteSequence."""
   frame_length_seconds = 1 / frames_per_second
 
@@ -1967,11 +1968,13 @@ def pianoroll_to_note_sequence(frames,
   if velocity_values is None:
     velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
 
-  if onset_predictions is not None:
+  if active_onsets is not None:
+    active_onsets = np.append(active_onsets,
+                                  [np.zeros(active_onsets[0].shape)], 0)
     onset_predictions = np.append(onset_predictions,
-                                  [np.zeros(onset_predictions[0].shape)], 0)
+                              [np.zeros(onset_predictions[0].shape)], 0)
     # Ensure that any frame with an onset prediction is considered active.
-    frames = np.logical_or(frames, onset_predictions)
+    frames = np.logical_or(frames, active_onsets)
 
   if offset_predictions is not None:
     offset_predictions = np.append(offset_predictions,

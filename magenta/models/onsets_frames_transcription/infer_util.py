@@ -21,18 +21,36 @@ from __future__ import print_function
 import collections
 
 from magenta.models.onsets_frames_transcription import data
-from magenta.music import sequences_lib
+from magenta.music import sequences_lib, constants
 import numpy as np
 
 
-def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
-                     velocity_values, min_pitch, hparams,
-                     onsets_only=False, instrument=0, program=0):
+def predict_sequence(frame_predictions,
+                     onset_predictions,
+                     offset_predictions,
+                     velocity_values,
+                     min_pitch,
+                     hparams,
+                     onsets_only=False,
+                     instrument=0,
+                     program=0,
+                     active_onsets=None,
+                     qpm=None):
   """Predict sequence given model output."""
+  if active_onsets is None:
+    # this allows us to set a higher threshold for onsets that we force-add to the frames
+    # vs onsets that determine the start of a note
+    active_onsets = onset_predictions
+
+  if qpm is None:
+      qpm = constants.DEFAULT_QUARTERS_PER_MINUTE
+
   if not hparams.predict_onset_threshold:
     onset_predictions = None
   if not hparams.predict_offset_threshold:
     offset_predictions = None
+  if not hparams.active_onset_threshold:
+    active_onsets = None
 
   if onsets_only:
     if onset_predictions is None:
@@ -45,7 +63,8 @@ def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
         min_midi_pitch=min_pitch,
         velocity_values=velocity_values,
         instrument=instrument,
-        program=program)
+        program=program,
+        qpm=qpm)
   else:
     sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
         frames=frame_predictions,
@@ -56,7 +75,9 @@ def predict_sequence(frame_predictions, onset_predictions, offset_predictions,
         offset_predictions=offset_predictions,
         velocity_values=velocity_values,
         instrument=instrument,
-        program=program)
+        program=program,
+        qpm=qpm,
+        active_onsets=active_onsets)
 
   return sequence_prediction
 

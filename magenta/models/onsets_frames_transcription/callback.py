@@ -70,11 +70,13 @@ class MidiPredictionMetrics(MetricsCallback):
         frame_predictions = y_probs[0][0] > self.hparams.predict_frame_threshold
         onset_predictions = y_probs[1][0] > self.hparams.predict_onset_threshold
         offset_predictions = y_probs[2][0] > self.hparams.predict_offset_threshold
+        active_onsets = y_probs[1][0] > self.hparams.active_onset_threshold
 
         sequence = infer_util.predict_sequence(
             frame_predictions=frame_predictions,
             onset_predictions=onset_predictions,
             offset_predictions=offset_predictions,
+            active_onsets=active_onsets,
             velocity_values=None,
             hparams=self.hparams,
             min_pitch=constants.MIN_MIDI_PITCH,

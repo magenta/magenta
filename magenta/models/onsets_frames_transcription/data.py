@@ -690,6 +690,7 @@ def read_examples(examples, is_training, shuffle_examples,
         #     name = hash(i.numpy())
         #     names[name] = names.get(name, 0) + 1
         # print(len(names))
+        print(f'count: {input_dataset.reduce(0, lambda x, _: x + 1).numpy()}')
         input_dataset = input_dataset.repeat()
     if skip_n_initial_records:
         input_dataset = input_dataset.skip(skip_n_initial_records)
@@ -815,4 +816,4 @@ def provide_batch(examples,
     # bar = input_tensors_to_model_input(foob, hparams=hparams, is_training=is_training)
 
     dataset = create_batch(model_input, hparams=hparams, is_training=is_training)
-    return dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    return dataset.prefetch(buffer_size=1)#tf.data.experimental.AUTOTUNE)

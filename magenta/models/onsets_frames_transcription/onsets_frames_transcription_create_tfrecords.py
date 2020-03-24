@@ -138,8 +138,10 @@ def main(argv):
     with beam.Pipeline(options=pipeline_options) as p:
         for split in splits:
             split_p = p | 'prepare_split_%s' % split >> beam.Create(splits[split])
+            split_p |= 'shuffle_input_%s' % split >> beam.Reshuffle()
             split_p |= 'create_examples_%s' % split >> beam.ParDo(
                 CreateExampleDoFn(FLAGS.base + split, FLAGS.add_wav_glob))
+            split_p |= 'shuffle_output_%s' % split >> beam.Reshuffle()
             split_p |= 'write_%s' % split >> beam.io.WriteToTFRecord(
                 os.path.join(FLAGS.output_directory, '%s.tfrecord' % split),
                 coder=beam.coders.ProtoCoder(tf.train.Example),

@@ -28,7 +28,7 @@ if FLAGS.using_plaidml:
     Dense, Dropout, \
     Input, concatenate, Lambda, Reshape, LSTM, \
     Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, TimeDistributed, \
-    Conv1D
+    Conv1D, Permute
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -39,7 +39,7 @@ else:
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
         Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, TimeDistributed, \
-        Conv1D
+        Conv1D, Permute
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
@@ -54,7 +54,7 @@ def get_default_hparams():
         'timbre_l2_regularizer': 1e-7,
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 2)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
-        'timbre_num_filters': [48, 32, 16],
+        'timbre_num_filters': [96, 64, 32],
         'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 8)),
         'timbre_vertical_filter': (1, 513),
         'timbre_vertical_num': 50,
@@ -113,7 +113,7 @@ def get_default_hparams():
             9: 16000 / 5501,
             10: 16000 / 10753,
         },
-        'weight_correct_multiplier': 0.4,  # DON'T trend towards the classes with most support
+        'weight_correct_multiplier': 0.08,  # DON'T trend towards the classes with most support
     }
 
 
@@ -163,14 +163,13 @@ def lstm_layer(hparams,
     def lstm_layer_fn(inputs):
         lstm_stack = inputs
         for i in range(hparams.timbre_rnn_stack_size):
-            lstm_stack = Bidirectional(LSTM(
+            lstm_stack = TimeDistributed(Bidirectional(LSTM(
                 hparams.timbre_lstm_units,
                 implementation=implementation,
                 return_sequences=True,
                 dropout=hparams.timbre_rnn_dropout_drop_amt[0],
                 recurrent_dropout=hparams.timbre_rnn_dropout_drop_amt[1],
-                kernel_initializer='he_uniform')
-            )(lstm_stack)
+                kernel_initializer='he_uniform')))(lstm_stack)
         return lstm_stack
 
     return lstm_layer_fn
@@ -252,7 +251,7 @@ def timbre_prediction_model(hparams=None):
 
     # num_notes = Input(shape=(1,), name='num_notes', dtype='int64')
 
-    spec_with_epsilon = spec + hparams.timbre_spec_epsilon
+    spec_with_epsilon = Lambda(lambda x: x + hparams.timbre_spec_epsilon)(spec)
 
     if hparams.timbre_architecture == 'vh':
         vertical_outputs = vertical_layer(hparams)(spec_with_epsilon)
@@ -272,16 +271,19 @@ def timbre_prediction_model(hparams=None):
             Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1))(filter_outputs))
 
     if hparams.timbre_rnn_stack_size > 0:
-        flat = TimeDistributed(Flatten())(filter_outputs)
-        lstm_input = flat
+        # run time distributed lstm distributing over pitch
+        lstm_input = Permute((2, 1, 3))(filter_outputs)
+        # flat = TimeDistributed(Flatten())(filter_outputs)
+        # lstm_input = flat
         # lstm_input = Dense(1024,
         #                    use_bias=False,
         #                    kernel_initializer='he_uniform',
         #                    kernel_regularizer=l2(hparams.timbre_l2_regularizer),
         #                    activation='elu')(flat)
         lstm_outputs = lstm_layer(hparams)(lstm_input)
-        reshaped_outputs = TimeDistributed(Reshape((K.int_shape(filter_outputs)[2], -1)))(
-            lstm_outputs)
+        reshaped_outputs = Permute((2, 1, 3))(lstm_outputs)
+        # reshaped_outputs = TimeDistributed(Reshape((K.int_shape(filter_outputs)[2], -1)))(
+        #     lstm_outputs)
 
     else:
         reshaped_outputs = filter_outputs
@@ -304,7 +306,6 @@ def timbre_prediction_model(hparams=None):
             time_distributed_wrapper(LocallyConnected1D(
                 hparams.timbre_local_conv_num_filters,
                 hparams.timbre_local_conv_size,
-                use_bias=True,
                 kernel_regularizer=l2(hparams.timbre_l2_regularizer),
             ), hparams)(pooled_outputs))
 
@@ -331,7 +332,16 @@ def timbre_prediction_model(hparams=None):
     # shape: (None, None, 11)
     # aka: (batch_size, num_notes, num_classes)
     instrument_family_probs = instrument_prediction_layer(hparams)(penultimate_outputs)
-    instrument_family_probs = Lambda(lambda x: x, name='family_probs')(instrument_family_probs)
+
+    # remove padded predictions
+    def remove_padded(input_list):
+        probs, croppings = input_list
+        end_indices = K.expand_dims(K.permute_dimensions(croppings, (2, 0, 1))[-1], -1)
+        # remove negative end_indices
+        return probs * K.cast_to_floatx(end_indices >= 0)
+
+    instrument_family_probs = Lambda(remove_padded, name='family_probs')(
+        [instrument_family_probs, note_croppings])
 
     if hparams.timbre_weighted_loss:
         weights = tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
@@ -340,13 +350,12 @@ def timbre_prediction_model(hparams=None):
         weights = tf.ones(shape=(hparams.timbre_num_classes, hparams.timbre_num_classes))
 
     # decrease loss for correct predictions TODO does this make any sense?
-    weights = Multiply()([weights,
-                          1 + tf.linalg.diag(
+    weights = weights * (1 + tf.linalg.diag(
                               tf.repeat(
                                   hparams.weight_correct_multiplier - 1,
                                   hparams.timbre_num_classes
                               )
-                          )])
+                          ))
     if hparams.timbre_final_activation == 'softmax':
         # this seems to work better than with logits
         losses = {'family_probs': WeightedCategoricalCrossentropy(

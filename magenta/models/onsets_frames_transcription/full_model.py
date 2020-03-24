@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 from dotmap import DotMap
 from tensorflow.keras import backend as K
-from tensorflow.keras.layers import Input, Lambda, Multiply
+from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 
 from magenta.models.onsets_frames_transcription import constants, data, infer_util
@@ -36,13 +36,15 @@ class FullModel:
     def fill_pianoroll_area(self, sorted_croppings, filling_fn):
         for i, eager_cropping in enumerate(sorted_croppings):
             cropping = NoteCropping(*eager_cropping)
+            if cropping.end_idx < 0:
+                # don't fill padded notes
+                continue
             pitch = cropping.pitch - constants.MIN_MIDI_PITCH
             start_idx = K.cast(cropping.start_idx / self.hparams.timbre_hop_length, 'int64')
             end_idx = K.cast(cropping.end_idx / self.hparams.timbre_hop_length, 'int64')
-            if pitch > 0:
-                # guess that anything higher and to the right of this note has these probs
-                # for each i, this area is partially overridden
-                filling_fn(i, pitch, start_idx, end_idx)
+            # guess that anything higher and to the right of this note has these probs
+            # for each i, this area is partially overridden
+            filling_fn(i, pitch, start_idx, end_idx)
 
     def note_croppings_to_pianorolls(self, input_list):
         batched_note_croppings, batched_timbre_probs, batched_pianoroll_length = input_list
@@ -57,15 +59,17 @@ class FullModel:
                 shape=(constants.MIDI_PITCHES,
                        batched_pianoroll_length[batch_idx][0],
                        self.hparams.timbre_num_classes)) / (1 + self.hparams.timbre_num_classes)
+            # Guess that things without timbre predictions are the instrument within one octave
+            fill_pitch_range = 12
 
             def full_fill(i, pitch, start_idx, end_idx):
-                pianorolls[pitch:, start_idx:] = timbre_probs[i]
+                pianorolls[pitch:pitch + fill_pitch_range, start_idx:] = timbre_probs[i]
 
             def time_fill(i, pitch, start_idx, end_idx):
                 pianorolls[pitch, start_idx:] = timbre_probs[i]
 
             def pitch_fill(i, pitch, start_idx, end_idx):
-                pianorolls[pitch:, start_idx:end_idx + 1] = timbre_probs[i]
+                pianorolls[pitch:pitch + fill_pitch_range, start_idx:end_idx + 1] = timbre_probs[i]
 
             def exact_fill(i, pitch, start_idx, end_idx):
                 pianorolls[pitch, start_idx:end_idx + 1] = timbre_probs[i]
@@ -81,7 +85,7 @@ class FullModel:
             # make time the first dimension
             pianoroll_list.append(K.permute_dimensions(pianorolls, (1, 0, 2)))
 
-        return pianoroll_list
+        return tf.convert_to_tensor(pianoroll_list)
 
     def sequence_to_note_croppings(self, sequence):
         note_croppings = []
@@ -114,8 +118,8 @@ class FullModel:
 
         padded = tf.keras.preprocessing.sequence.pad_sequences(croppings_list,
                                                                padding='post',
-                                                               dtype=K.floatx(),
-                                                               value=-1.0)
+                                                               dtype='int64',
+                                                               value=-1e+7)
         return padded
 
     def get_dynamic_length(self, batched_dynamic_tensor):
@@ -136,24 +140,22 @@ class FullModel:
 
         frame_probs, onset_probs, offset_probs = self.midi_model.call([spec_512])
 
+        stop_gradient = Lambda(lambda x: K.stop_gradient(x))
         # decrease threshold to feed more notes into the timbre prediction
         # even if they don't make the final cut in accuracy_util.multi_track_accuracy_wrapper
-        frame_predictions = Lambda(lambda x: K.stop_gradient(x))(
-            frame_probs > self.hparams.predict_frame_threshold)
+        frame_predictions = stop_gradient(frame_probs > self.hparams.predict_frame_threshold)
         # generous onsets are used so that we can get more frame prediction data for the instruments
         # this will end up making our end-predicted notes much shorter though
-        generous_onset_predictions = Lambda(lambda x: K.stop_gradient(x))(
-            onset_probs > (
-                        self.hparams.predict_onset_threshold / self.hparams.prediction_generosity))
-        offset_predictions = Lambda(lambda x: K.stop_gradient(x))(
-            offset_probs > self.hparams.predict_offset_threshold)
+        generous_onset_predictions = stop_gradient(onset_probs > (
+                self.hparams.predict_onset_threshold / self.hparams.prediction_generosity))
+        offset_predictions = stop_gradient(offset_probs > self.hparams.predict_offset_threshold)
 
         note_croppings = Lambda(self.get_croppings,
                                 output_shape=(None, 3),
-                                dynamic=True)(
+                                dynamic=True,
+                                dtype='int64')(
             [frame_predictions, generous_onset_predictions, offset_predictions])
 
-        note_croppings = K.cast(note_croppings, 'int64')
         # num_notes = Lambda(self.get_dynamic_length,
         #                    output_shape=(1,),
         #                    dtype='int64',
@@ -172,14 +174,18 @@ class FullModel:
                                   dynamic=True,
                                   output_shape=(None, self.hparams.timbre_num_classes))(
                 [timbre_probs])
+        expand_dims = Lambda(lambda x_list: K.expand_dims(x_list[0], axis=x_list[1]))
+        float_cast = Lambda(lambda x: K.cast_to_floatx(x))
 
-        expanded_present_instruments = K.expand_dims(present_instruments, 1)
-        present_timbre_probs = Multiply()([timbre_probs, expanded_present_instruments])
+        def print_fn(x):
+            print(x)
+            return x
 
-        norm_sum = Multiply()([1 / K.sum(timbre_probs, -1), K.sum(present_timbre_probs, -1)])
-        # normalize
-        present_timbre_probs = Multiply()([present_timbre_probs,
-                                           K.expand_dims(1 / norm_sum)])
+        print_layer = Lambda(print_fn)
+        expanded_present_instruments = float_cast(expand_dims([
+            print_layer(present_instruments), -2]))
+        present_timbre_probs = (
+            Multiply(name='apply_present')([timbre_probs, expanded_present_instruments]))
 
         timbre_pianoroll = Lambda(self.note_croppings_to_pianorolls,
                                   dynamic=True,
@@ -188,20 +194,31 @@ class FullModel:
                                                 self.hparams.timbre_num_classes))(
             [note_croppings, present_timbre_probs, pianoroll_length])
 
-        expanded_frames = K.cast_to_floatx(K.expand_dims(frame_probs))
-        expanded_onsets = K.cast_to_floatx(K.expand_dims(onset_probs))
-        expanded_offsets = K.cast_to_floatx(K.expand_dims(offset_probs))
+        norm_prod = Lambda(lambda pianoroll: 1 / (K.expand_dims(K.sum(pianoroll, -1) - 1e-9)),
+                           name='norm_prod')(timbre_pianoroll)
+        # normalize
+        present_pianoroll = Multiply()([timbre_pianoroll, norm_prod])
 
-        broadcasted_frames = Multiply(name='multi_frames')([timbre_pianoroll, expanded_frames])
-        broadcasted_onsets = Multiply(name='multi_onsets')([timbre_pianoroll, expanded_onsets])
-        broadcasted_offsets = Multiply(name='multi_offsets')([timbre_pianoroll, expanded_offsets])
+        expanded_frames = expand_dims([frame_probs, -1])
+        expanded_onsets = expand_dims([onset_probs, -1])
+        expanded_offsets = expand_dims([offset_probs, -1])
+
+        pianoroll_no_gradient = stop_gradient(present_pianoroll)
+
+        broadcasted_frames = Multiply(name='multi_frames')([present_pianoroll, expanded_frames])
+        broadcasted_onsets = Multiply(name='multi_onsets')([present_pianoroll, expanded_onsets])
+        broadcasted_offsets = Multiply(name='multi_offsets')(
+            [pianoroll_no_gradient, expanded_offsets])
 
         # multi_sequence = populate_instruments(sequence, timbre_probs, present_instruments)
 
         losses = {
-            'multi_frames': multi_track_loss_wrapper(self.hparams.frames_true_weighing),
-            'multi_onsets': multi_track_loss_wrapper(self.hparams.onsets_true_weighing),
-            'multi_offsets': multi_track_loss_wrapper(self.hparams.offsets_true_weighing),
+            'multi_frames': multi_track_loss_wrapper(self.hparams,
+                                                     self.hparams.frames_true_weighing),
+            'multi_onsets': multi_track_loss_wrapper(self.hparams,
+                                                     self.hparams.onsets_true_weighing),
+            'multi_offsets': multi_track_loss_wrapper(self.hparams,
+                                                      self.hparams.offsets_true_weighing),
         }
 
         accuracies = {
@@ -225,7 +242,7 @@ class FullModel:
                 multi_track_prf_wrapper(
                     self.hparams.predict_onset_threshold,
                     multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
-                    print_report=False)
+                    print_report=True)
             ],
             'multi_offsets': [
                 multi_track_present_accuracy_wrapper(

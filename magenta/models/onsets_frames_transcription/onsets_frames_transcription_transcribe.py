@@ -20,6 +20,7 @@ import copy
 import json
 
 import tensorflow.compat.v1 as tf
+import tensorflow.keras.backend as K
 from dotmap import DotMap
 
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
@@ -48,6 +49,9 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_string(
     'transcribed_file_suffix', 'predicted',
     'Optional suffix to add to transcribed files.')
+tf.app.flags.DEFINE_integer(
+    'qpm', None,
+    'Number of quarters (or beats) per minute. Default: 120')
 
 tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'FULL'],
                          'type of model to transcribe')
@@ -124,8 +128,15 @@ def run(argv, config_map, data_fn):
             timbre_spec = tf.reshape(timbre_spec, (1, *timbre_spec.shape, 1))
 
             tf.compat.v1.logging.info('Running inference...')
+
+            if hparams.present_instruments:
+                present_instruments = K.expand_dims(hparams.present_instruments, 0)
+            else:
+                present_instruments = None
+
             sequence_prediction = model.predict_multi_sequence(midi_spec=midi_spec,
-                                                               timbre_spec=timbre_spec)
+                                                               timbre_spec=timbre_spec,
+                                                               present_instruments=present_instruments)
         #assert len(prediction_list) == 1
 
         #sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)
