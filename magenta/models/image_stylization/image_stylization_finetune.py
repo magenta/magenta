@@ -18,11 +18,6 @@
 Training is done by finetuning the instance norm parameters of a pre-trained
 N-styles style transfer model.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
 import os
 

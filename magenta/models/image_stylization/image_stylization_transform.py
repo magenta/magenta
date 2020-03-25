@@ -14,11 +14,6 @@
 
 # Lint as: python3
 """Generates a stylized image given an unstylized image."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
 import os
 
