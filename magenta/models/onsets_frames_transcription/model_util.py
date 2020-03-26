@@ -113,7 +113,7 @@ class ModelWrapper:
         np.save(self.history_save_format.format(*id_tup), [self.metrics.metrics_history])
         print('Model weights saved at: ' + self.model_save_format.format(*id_tup))
 
-    #@profile
+    # @profile
     def train_and_save(self, epochs=1, epoch_num=0):
         if self.model is None:
             self.build_model()
@@ -154,9 +154,10 @@ class ModelWrapper:
     def plot_spectrograms(self, x, temporal_ds=16, freq_ds=4, max_batches=1):
         for batch_idx in range(max_batches):
             spec = K.pool2d(x[0], (temporal_ds, freq_ds), (temporal_ds, freq_ds), padding='same')
-            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx], self.hparams, temporal_ds)
+            croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
+                                                       self.hparams, temporal_ds)
             plt.figure(figsize=(10, 6))
-            num_crops = 0 # min(3, K.int_shape(x[1][batch_idx])[0])
+            num_crops = min(3, K.int_shape(x[1][batch_idx])[0])
             plt.subplot(int(num_crops / 2 + 1), 2, 1)
             y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
             librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
@@ -178,8 +179,12 @@ class ModelWrapper:
 
     def spec_to_db(self, spec_batch, i):
         if self.hparams.timbre_spec_log_amplitude:
-            db = tf.transpose(tf.reshape(spec_batch[i], spec_batch[i].shape[0:-1]) +
-                              librosa.power_to_db(np.array([0]))[0]).numpy()
+            db = K.permute_dimensions(K.reshape(spec_batch[i],
+                                                (spec_batch[i].shape[0],
+                                                 spec_batch[i].shape[1],
+                                                 -1)),
+                                      (2, 1, 0))[-1].numpy() + \
+                 librosa.power_to_db(np.array([0]))[0]
         else:
             db = librosa.power_to_db(
                 tf.transpose(tf.reshape(spec_batch[i], spec_batch[i].shape[0:-1])).numpy())
@@ -190,7 +195,7 @@ class ModelWrapper:
         return self.predict_from_spec(*x)
 
     def _predict_timbre(self, spec, note_croppings=None, num_notes=None):
-        if note_croppings is None: # or num_notes is None:
+        if note_croppings is None:  # or num_notes is None:
             pitch = librosa.note_to_midi('C3')
             start_idx = 0
             end_idx = self.hparams.timbre_hop_length * spec.shape[1]
@@ -232,43 +237,29 @@ class ModelWrapper:
             present_instruments = K.expand_dims(np.ones(self.hparams.timbre_num_classes), 0)
         y_pred = self.model.predict([midi_spec, timbre_spec, present_instruments])
         frame_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[0], self.hparams.predict_frame_threshold)[0]
+            y_pred[0],
+            self.hparams.predict_frame_threshold,
+            self.hparams.multiple_instruments_threshold)[0]
         onset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[1], self.hparams.predict_onset_threshold)[0]
+            y_pred[1],
+            self.hparams.predict_onset_threshold,
+            self.hparams.multiple_instruments_threshold)[0]
         offset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[2], self.hparams.predict_offset_threshold)[0]
+            y_pred[2],
+            self.hparams.predict_offset_threshold,
+            self.hparams.multiple_instruments_threshold)[0]
         active_onsets = convert_multi_instrument_probs_to_predictions(
-            y_pred[1], self.hparams.active_onset_threshold)[0]
+            y_pred[1],
+            self.hparams.active_onset_threshold,
+            self.hparams.multiple_instruments_threshold)[0]
 
-        permuted_frame_predictions = K.permute_dimensions(frame_predictions, (2, 0, 1))
-        permuted_onset_predictions = K.permute_dimensions(onset_predictions, (2, 0, 1))
-        permuted_offset_predictions = K.permute_dimensions(offset_predictions, (2, 0, 1))
-        permuted_active_onsets = K.permute_dimensions(active_onsets, (2, 0, 1))
+        return infer_util.predict_multi_sequence(frame_predictions, onset_predictions,
+                                                 offset_predictions, active_onsets, qpm=qpm,
+                                                 hparams=self.hparams,
+                                                 min_pitch=constants.MIN_MIDI_PITCH)
 
-        multi_sequence = None
-        for instrument_idx in range(K.int_shape(permuted_frame_predictions)[0]):
-            frame_predictions = permuted_frame_predictions[instrument_idx]
-            onset_predictions = permuted_onset_predictions[instrument_idx]
-            offset_predictions = permuted_offset_predictions[instrument_idx]
-            active_onsets = permuted_active_onsets[instrument_idx]
-            sequence = infer_util.predict_sequence(
-                frame_predictions=frame_predictions,
-                onset_predictions=onset_predictions,
-                offset_predictions=offset_predictions,
-                active_onsets=active_onsets,
-                velocity_values=None,
-                hparams=self.hparams,
-                min_pitch=constants.MIN_MIDI_PITCH,
-                program=instrument_family_mappings.family_to_midi_instrument[instrument_idx] - 1,
-                instrument=instrument_idx,
-                qpm=qpm)
-            if multi_sequence is None:
-                multi_sequence = sequence
-            else:
-                multi_sequence.notes.extend(sequence.notes)
-        return multi_sequence
-
-    def predict_from_spec(self, spec=None, num_croppings=None, additional_spec=None, num_notes=None, *args):
+    def predict_from_spec(self, spec=None, num_croppings=None, additional_spec=None, num_notes=None,
+                          *args):
         if self.type == ModelType.MIDI:
             return self._predict_sequence(spec)
         elif self.type == ModelType.TIMBRE:
@@ -281,7 +272,7 @@ class ModelWrapper:
             model_weights = \
                 sorted(glob.glob(
                     f'{self.model_dir}/{self.type.name}/{id}/*.hdf5'),
-                       key=os.path.getmtime)[-1]
+                    key=os.path.getmtime)[-1]
             model_history = \
                 sorted(glob.glob(f'{self.model_dir}/{self.type.name}/{id}/*.npy'),
                        key=os.path.getmtime)[-1]
@@ -290,8 +281,8 @@ class ModelWrapper:
                         allow_pickle=True)[0])
             print('Loading pre-trained model: {}'.format(model_weights))
             self.model.load_weights(model_weights,
-                                    by_name=True, #self.type is not ModelType.FULL,
-                                    skip_mismatch=True)# self.type is not ModelType.FULL)
+                                    by_name=True or self.type is not ModelType.FULL,
+                                    skip_mismatch=True or self.type is not ModelType.FULL)
             print('Model loaded successfully')
         except IndexError:
             print(f'No saved models exist at path: {self.model_dir}/{self.type.name}/{id}/')

@@ -33,11 +33,11 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_pred_unshaped.shape[-1]))
         weights = K.ones((K.int_shape(y_true)[-1], K.int_shape(y_true)[-1])) * (1 + tf.linalg.diag(
-                              tf.repeat(
-                                  hparams.weight_correct_multiplier - 1,
-                                  hparams.timbre_num_classes
-                              )
-                          ))
+            tf.repeat(
+                hparams.weight_correct_multiplier - 1,
+                hparams.timbre_num_classes
+            )
+        ))
         support_inv_exp = 2.
         total_support = tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10., 0),
                                     1 / (1 + support_inv_exp))
@@ -69,19 +69,30 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
             #         permuted_y_true[instrument_idx]):
             #     # ignore the non-present instruments
             #     continue
+
+            # more precision with classes with more support
+            # instrument_weighted_recall = recall_weighing / (
+            #         max(0.1, K.mean(permuted_y_true[instrument_idx]) ** 0.25))
+
+            # if there is little support, weigh heavily towards precision
+            # If there is more support, weigh more towards recall
+            instrument_weighted_recall = 8 \
+                                         * recall_weighing \
+                                         * (max(0.2, K.mean(permuted_y_true[instrument_idx]) ** 0.25)) \
+                                         - 1 / (max(0.2, K.mean(permuted_y_true[instrument_idx]) ** 0.25))
             loss_list.append(K.mean(tf_utils.log_loss(permuted_y_true[instrument_idx],
                                                       permuted_y_probs[instrument_idx] + epsilon,
                                                       epsilon=epsilon,
-                                                      recall_weighing=recall_weighing)))
+                                                      recall_weighing=instrument_weighted_recall)))
         # add instrument-independent loss
-        loss_list.append(K.mean(tf_utils.log_loss(K.max(y_true, axis=-1),
+        return tf.reduce_mean(loss_list) + K.mean(tf_utils.log_loss(K.max(y_true, axis=-1),
                                                   K.sum(y_probs, axis=-1) + epsilon,
                                                   epsilon=epsilon,
-                                                  recall_weighing=recall_weighing)))
-        return tf.reduce_mean(loss_list)
+                                                  recall_weighing=recall_weighing))
+        # return K.sum(loss_list)
 
     # return lambda *x: K.mean(weighted_loss(*x))
-    return lambda *x: multi_track_loss(*x) + K.mean(weighted_loss(*x))
+    return lambda *x: multi_track_loss(*x)  # + K.mean(weighted_loss(*x))
 
 
 def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5,
@@ -105,7 +116,9 @@ def convert_multi_instrument_probs_to_predictions(y_probs,
                          K.int_shape(y_probs)[-1])
     # only predict the best instrument at each location
     times_one_hot = thresholded_y_probs * one_hot
-    y_predictions = tf.logical_or(thresholded_y_probs > multiple_instruments_threshold,
+
+    present_mean = 1 / K.sum(K.cast_to_floatx(thresholded_y_probs > 0), -1)
+    y_predictions = tf.logical_or(thresholded_y_probs > K.expand_dims(present_mean),
                                   times_one_hot > 0)
     # y_predictions = thresholded_y_probs > multiple_instruments_threshold
     return y_predictions
@@ -120,8 +133,8 @@ def single_track_present_accuracy_wrapper(threshold):
         single_y_predictions = K.sum(reshaped_y_probs, axis=-1) > threshold
         frame_metrics = calculate_frame_metrics(single_y_true, single_y_predictions)
         print('Precision: {}, Recall: {}, F1: {}'.format(frame_metrics['precision'].numpy() * 100,
-                                                           frame_metrics['recall'].numpy() * 100,
-                                                           frame_metrics['f1_score'].numpy() * 100))
+                                                         frame_metrics['recall'].numpy() * 100,
+                                                         frame_metrics['f1_score'].numpy() * 100))
         return calculate_frame_metrics(single_y_true, single_y_predictions)[
             'accuracy_without_true_negatives']
 
@@ -135,7 +148,7 @@ def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_thresho
                                                                                   threshold,
                                                                                   multiple_instruments_threshold)
         acc = tf.logical_and(tf.equal(K.sum(K.cast_to_floatx(flat_y_predictions), -1),
-                             K.sum(K.cast_to_floatx(flat_y_true), -1)),
+                                      K.sum(K.cast_to_floatx(flat_y_true), -1)),
                              tf.equal(K.argmax(K.cast_to_floatx(flat_y_predictions), -1),
                                       K.argmax(K.cast_to_floatx(flat_y_true), -1)))
         print(f'acc: {K.mean(K.cast_to_floatx(acc))}')

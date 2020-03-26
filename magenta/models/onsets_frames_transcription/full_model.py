@@ -16,12 +16,15 @@ from magenta.models.onsets_frames_transcription.instrument_family_mappings impor
 from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
 from magenta.models.onsets_frames_transcription.timbre_dataset_reader import NoteCropping
 
-
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
+from magenta.music import midi_io
+
+
 def get_default_hparams():
     return {
         'prediction_generosity': 4,
-        'multiple_instruments_threshold': 0.16
+        'multiple_instruments_threshold': 0.1,
+        'use_all_instruments': False
     }
 
 
@@ -34,14 +37,14 @@ class FullModel:
         self.timbre_model = timbre_model
 
     def fill_pianoroll_area(self, sorted_croppings, filling_fn):
-        for i, eager_cropping in enumerate(sorted_croppings):
+        for *eager_cropping, i in sorted_croppings:
             cropping = NoteCropping(*eager_cropping)
             if cropping.end_idx < 0:
                 # don't fill padded notes
                 continue
             pitch = cropping.pitch - constants.MIN_MIDI_PITCH
-            start_idx = K.cast(cropping.start_idx / self.hparams.timbre_hop_length, 'int64')
-            end_idx = K.cast(cropping.end_idx / self.hparams.timbre_hop_length, 'int64')
+            start_idx = K.cast(cropping.start_idx / self.hparams.spec_hop_length, 'int64')
+            end_idx = K.cast(cropping.end_idx / self.hparams.spec_hop_length, 'int64')
             # guess that anything higher and to the right of this note has these probs
             # for each i, this area is partially overridden
             filling_fn(i, pitch, start_idx, end_idx)
@@ -51,6 +54,11 @@ class FullModel:
         pianoroll_list = []
         for batch_idx in range(K.int_shape(batched_note_croppings)[0]):
             note_croppings = batched_note_croppings[batch_idx]
+
+            # add the index here so that we still know it after sorting
+            note_croppings = K.concatenate([note_croppings,
+                                            K.expand_dims(K.arange(K.int_shape(note_croppings)[0],
+                                                                   dtype='int64'))])
             timbre_probs = batched_timbre_probs[batch_idx]
 
             # Make pitch the first dimension for easy manipulation
@@ -80,10 +88,24 @@ class FullModel:
             self.fill_pianoroll_area(pitch_first, full_fill)
             self.fill_pianoroll_area(time_first, time_fill)
             self.fill_pianoroll_area(pitch_first, pitch_fill)
-            self.fill_pianoroll_area(note_croppings, exact_fill)
+            self.fill_pianoroll_area(time_first, exact_fill)
 
+            permuted_time_first = K.permute_dimensions(pianorolls, (1, 0, 2))
+
+            frame_predictions = tf.logical_or(
+                tf.logical_and(
+                    tf.equal(permuted_time_first, K.expand_dims(K.max(permuted_time_first, -1))),
+                    permuted_time_first > (1 / self.hparams.timbre_num_classes)),
+                permuted_time_first > self.hparams.multiple_instruments_threshold)
+
+            sequence = infer_util.predict_multi_sequence(
+                frame_predictions=frame_predictions,
+                min_pitch=constants.MIN_MIDI_PITCH,
+                hparams=self.hparams)
+            midi_filename = f'./out/{batch_idx}-of-{K.int_shape(batched_note_croppings)[0]}.midi'
+            midi_io.sequence_proto_to_midi_file(sequence, midi_filename)
             # make time the first dimension
-            pianoroll_list.append(K.permute_dimensions(pianorolls, (1, 0, 2)))
+            pianoroll_list.append(permuted_time_first)
 
         return tf.convert_to_tensor(pianoroll_list)
 
@@ -182,31 +204,37 @@ class FullModel:
             return x
 
         print_layer = Lambda(print_fn)
-        expanded_present_instruments = float_cast(expand_dims([
-            print_layer(present_instruments), -2]))
-        present_timbre_probs = (
-            Multiply(name='apply_present')([timbre_probs, expanded_present_instruments]))
 
         timbre_pianoroll = Lambda(self.note_croppings_to_pianorolls,
                                   dynamic=True,
                                   output_shape=(None,
                                                 constants.MIDI_PITCHES,
                                                 self.hparams.timbre_num_classes))(
-            [note_croppings, present_timbre_probs, pianoroll_length])
+            [note_croppings, timbre_probs, pianoroll_length])
 
-        norm_prod = Lambda(lambda pianoroll: 1 / (K.expand_dims(K.sum(pianoroll, -1) - 1e-9)),
-                           name='norm_prod')(timbre_pianoroll)
+        expanded_present_instruments = float_cast(expand_dims([expand_dims([
+            print_layer(present_instruments), -2]), -2]))
+
+        present_pianoroll = (
+            Multiply(name='apply_present')([timbre_pianoroll, expanded_present_instruments]))
+
+        # if the normalize so the present_pianoroll has the same sum as the timbre_pianoroll
+        norm_prod = Lambda(lambda lst: K.expand_dims(K.sum(lst[0], -1))
+                                       / (K.expand_dims(K.sum(lst[1], -1) + 1e-9)),
+                           name='norm_prod')([timbre_pianoroll, present_pianoroll])
         # normalize
-        present_pianoroll = Multiply()([timbre_pianoroll, norm_prod])
+        normalized_pianoroll = Multiply()([present_pianoroll, norm_prod])
 
         expanded_frames = expand_dims([frame_probs, -1])
         expanded_onsets = expand_dims([onset_probs, -1])
         expanded_offsets = expand_dims([offset_probs, -1])
 
-        pianoroll_no_gradient = stop_gradient(present_pianoroll)
+        pianoroll_no_gradient = stop_gradient(normalized_pianoroll)
 
-        broadcasted_frames = Multiply(name='multi_frames')([present_pianoroll, expanded_frames])
-        broadcasted_onsets = Multiply(name='multi_onsets')([present_pianoroll, expanded_onsets])
+        broadcasted_frames = Multiply(name='multi_frames')(
+            [normalized_pianoroll, expanded_frames])
+        broadcasted_onsets = Multiply(name='multi_onsets')(
+            [normalized_pianoroll, expanded_onsets])
         broadcasted_offsets = Multiply(name='multi_offsets')(
             [pianoroll_no_gradient, expanded_offsets])
 

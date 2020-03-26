@@ -28,7 +28,7 @@ if FLAGS.using_plaidml:
     Dense, Dropout, \
     Input, concatenate, Lambda, Reshape, LSTM, \
     Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, TimeDistributed, \
-    Conv1D, Permute
+    Conv1D, Permute, ConvLSTM2D, SpatialDropout2D
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -39,7 +39,7 @@ else:
         Dense, Dropout, \
         Input, concatenate, Lambda, Reshape, LSTM, \
         Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, TimeDistributed, \
-        Conv1D, Permute
+        Conv1D, Permute, ConvLSTM2D, SpatialDropout2D
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
 
@@ -55,7 +55,7 @@ def get_default_hparams():
         'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 2)],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
         'timbre_num_filters': [96, 64, 32],
-        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 8)),
+        'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 14)),
         'timbre_vertical_filter': (1, 513),
         'timbre_vertical_num': 50,
         'timbre_horizontal_filter': (12, 1),
@@ -72,7 +72,7 @@ def get_default_hparams():
         'timbre_fc_dropout_drop_amt': 0.5,
         'timbre_final_dropout_amt': 0.2,
         'timbre_local_conv_size': 3,
-        'timbre_local_conv_num_filters': 64,
+        'timbre_local_conv_num_filters': 0,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 1,  # include other and drums
         'timbre_lstm_units': 171, # painless reshaping bc 171 % 57 == 0
@@ -84,7 +84,7 @@ def get_default_hparams():
         'timbre_final_activation': None,
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
-        'timbre_bottleneck_filter_num': 0,
+        'timbre_bottleneck_filter_num': 128,
         'timbre_gradient_exp': 16,  # 16 for cqt no-log
         'timbre_spec_epsilon': 1e-8,
         'timbre_class_weights_list': [
@@ -149,7 +149,7 @@ def filters_layer(hparams):
                                             True,
                                             hparams)(inputs)
 
-                outputs = Dropout(hparams.timbre_fc_dropout_drop_amt)(outputs)
+                outputs = SpatialDropout2D(hparams.timbre_fc_dropout_drop_amt)(outputs)
                 parallel_layers.append(outputs)
 
         # K.print_tensor(parallel_layers[0], 'parallel')
@@ -186,7 +186,7 @@ def acoustic_model_layer(hparams):
             outputs = conv_bn_elu_layer(num_filters, 3, 3, hparams.timbre_pool_size[i],
                                         time_distributed_bypass=True,
                                         hparams=hparams)(outputs)
-            outputs = Dropout(hparams.timbre_dropout_drop_amts[i])(outputs)
+            outputs = SpatialDropout2D(hparams.timbre_dropout_drop_amts[i])(outputs)
 
         return outputs
 
@@ -269,10 +269,27 @@ def timbre_prediction_model(hparams=None):
     if hparams.timbre_bottleneck_filter_num:
         filter_outputs = ELU(hparams.timbre_leaky_alpha)(
             Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1))(filter_outputs))
+        # start pre-dropout now
+
 
     if hparams.timbre_rnn_stack_size > 0:
         # run time distributed lstm distributing over pitch
-        lstm_input = Permute((2, 1, 3))(filter_outputs)
+        # lstm_input = Permute((2, 1, 3))(filter_outputs)
+        filter_outputs = SpatialDropout2D(hparams.timbre_fc_dropout_drop_amt)(filter_outputs)
+        lstm_input = Lambda(lambda x: K.expand_dims(x, -2))(filter_outputs)
+        lstm_outputs = Bidirectional(ConvLSTM2D(
+            hparams.timbre_lstm_units,
+            kernel_size=(5, 1),
+            padding='same',
+            return_sequences=True,
+            dropout=hparams.timbre_rnn_dropout_drop_amt[0],
+            recurrent_dropout=hparams.timbre_rnn_dropout_drop_amt[1],
+            kernel_initializer='he_uniform'))(lstm_input)
+        # Reshape "does not includ batch axis"
+        reshaped_outputs = Reshape((-1,
+                                    K.int_shape(lstm_outputs)[2] * K.int_shape(lstm_outputs)[3],
+                                    K.int_shape(lstm_outputs)[4]))(lstm_outputs)
+
         # flat = TimeDistributed(Flatten())(filter_outputs)
         # lstm_input = flat
         # lstm_input = Dense(1024,
@@ -280,8 +297,10 @@ def timbre_prediction_model(hparams=None):
         #                    kernel_initializer='he_uniform',
         #                    kernel_regularizer=l2(hparams.timbre_l2_regularizer),
         #                    activation='elu')(flat)
-        lstm_outputs = lstm_layer(hparams)(lstm_input)
-        reshaped_outputs = Permute((2, 1, 3))(lstm_outputs)
+
+        # lstm_outputs = lstm_layer(hparams)(lstm_input)
+        # reshaped_outputs = Permute((2, 1, 3))(lstm_outputs)
+
         # reshaped_outputs = TimeDistributed(Reshape((K.int_shape(filter_outputs)[2], -1)))(
         #     lstm_outputs)
 
@@ -292,21 +311,23 @@ def timbre_prediction_model(hparams=None):
     # ouput_shape with coagulation: (batch_size*num_notes, freq_range, num_filters)
     # output_shape without coagulation: (batch_size, num_notes, freq_range, num_filters)
     output_shape = (math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
-                    2 * K.int_shape(reshaped_outputs)[3] + 1) \
+                    2 * K.int_shape(reshaped_outputs)[3]) \
         if hparams.timbre_coagulate_mini_batches \
         else (None, math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
-              2 * K.int_shape(reshaped_outputs)[3] + 1)
+              2 * K.int_shape(reshaped_outputs)[3])
     pooled_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
         output_shape=output_shape)(
         [reshaped_outputs, note_croppings])
 
-    if hparams.timbre_local_conv_size:
+    if hparams.timbre_local_conv_num_filters:
+        pooled_outputs = Dropout(hparams.timbre_fc_dropout_drop_amt)(pooled_outputs)
         pooled_outputs = ELU(hparams.timbre_leaky_alpha)(
             time_distributed_wrapper(LocallyConnected1D(
                 hparams.timbre_local_conv_num_filters,
                 hparams.timbre_local_conv_size,
                 kernel_regularizer=l2(hparams.timbre_l2_regularizer),
+                name='local_conv',
             ), hparams)(pooled_outputs))
 
     # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the

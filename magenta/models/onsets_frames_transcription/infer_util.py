@@ -20,9 +20,55 @@ from __future__ import print_function
 
 import collections
 
-from magenta.models.onsets_frames_transcription import data
+from magenta.models.onsets_frames_transcription import data, instrument_family_mappings
 from magenta.music import sequences_lib, constants
 import numpy as np
+import tensorflow.keras.backend as K
+
+
+def predict_multi_sequence(frame_predictions, onset_predictions=None,
+                           offset_predictions=None, active_onsets=None, qpm=None, hparams=None,
+                           min_pitch=0):
+
+    permuted_frame_predictions = K.permute_dimensions(frame_predictions, (2, 0, 1))
+
+    if onset_predictions is not None:
+        permuted_onset_predictions = K.permute_dimensions(onset_predictions, (2, 0, 1))
+    else:
+        permuted_onset_predictions = [None for _ in range(K.int_shape(permuted_frame_predictions)[0])]
+
+    if offset_predictions is not None:
+        permuted_offset_predictions = K.permute_dimensions(offset_predictions, (2, 0, 1))
+    else:
+        permuted_offset_predictions = [None for _ in range(K.int_shape(permuted_frame_predictions)[0])]
+
+    if active_onsets is not None:
+        permuted_active_onsets = K.permute_dimensions(active_onsets, (2, 0, 1))
+    else:
+        permuted_active_onsets = permuted_onset_predictions
+
+    multi_sequence = None
+    for instrument_idx in range(K.int_shape(permuted_frame_predictions)[0]):
+        frame_predictions = permuted_frame_predictions[instrument_idx]
+        onset_predictions = permuted_onset_predictions[instrument_idx]
+        offset_predictions = permuted_offset_predictions[instrument_idx]
+        active_onsets = permuted_active_onsets[instrument_idx]
+        sequence = predict_sequence(
+            frame_predictions=frame_predictions,
+            onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
+            active_onsets=active_onsets,
+            velocity_values=None,
+            hparams=hparams,
+            min_pitch=min_pitch,
+            program=instrument_family_mappings.family_to_midi_instrument[instrument_idx] - 1,
+            instrument=instrument_idx,
+            qpm=qpm)
+        if multi_sequence is None:
+            multi_sequence = sequence
+        else:
+            multi_sequence.notes.extend(sequence.notes)
+    return multi_sequence
 
 
 def predict_sequence(frame_predictions,

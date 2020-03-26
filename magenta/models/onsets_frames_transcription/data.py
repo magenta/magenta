@@ -343,7 +343,8 @@ def get_present_instruments_op(sequence_tensor, hparams=None):
                 present_list[note_family.value] = True
 
         return present_list
-
+    if hparams.use_all_instruments:
+        return np.ones(hparams.timbre_num_classes)
     res = tf.py_function(
         get_present_instruments_fn,
         [sequence_tensor],
@@ -660,10 +661,10 @@ def read_examples(examples, is_training, shuffle_examples,
         # Read examples from a TFRecord file containing serialized NoteSequence
         # and audio.
         sharded_filenames = generate_sharded_filenames(examples)
-        if len(sharded_filenames) == 1:
+        if len(sharded_filenames) >= 1: # TODO better solution
             # Could be a glob pattern.
             filenames = tf.data.Dataset.list_files(
-                generate_sharded_filenames(examples), shuffle=shuffle_examples)
+                sharded_filenames, shuffle=shuffle_examples)
         else:
             # If we've already expanded the list of sharded filenames, don't send to
             # Dataset.list_files because that will attempt to execute a potentially
