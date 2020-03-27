@@ -15,10 +15,6 @@
 # Lint as: python3
 """Pipeline to create Performance dataset."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import magenta
 from magenta.music import MetricPerformance
 from magenta.music import Performance

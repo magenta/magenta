@@ -15,10 +15,6 @@
 # Lint as: python3
 """Pipeline to create Pianoroll dataset."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import magenta.music as mm
 from magenta.music import PianorollSequence
 from magenta.music import sequences_lib
