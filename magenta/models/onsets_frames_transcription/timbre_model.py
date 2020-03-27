@@ -84,7 +84,7 @@ def get_default_hparams():
         'timbre_sharing_conv': True,
         'timbre_extra_conv': False,
         'timbre_penultimate_activation': 'sigmoid',
-        'timbre_final_activation': 'softmax',
+        'timbre_final_activation': 'sigmoid',
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
         'timbre_bottleneck_filter_num': 0,

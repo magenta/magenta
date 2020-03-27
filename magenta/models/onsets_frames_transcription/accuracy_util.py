@@ -91,7 +91,7 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
         print(f'total mean: {total_mean} {[f"{i}:{x}" for i, x in enumerate(loss_list)]}')
         # add instrument-independent loss
         return tf.reduce_mean(loss_list) + K.mean(tf_utils.log_loss(K.max(y_true, axis=-1),
-                                                  K.sum(y_probs, axis=-1) + epsilon,
+                                                  K.max(y_probs, axis=-1) + epsilon,
                                                   epsilon=epsilon,
                                                   recall_weighing=recall_weighing))
         # return K.sum(loss_list)
@@ -101,18 +101,22 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
 
 
 def convert_to_multi_instrument_predictions(y_true, y_probs, threshold=0.5,
-                                            multiple_instruments_threshold=0.2):
+                                            multiple_instruments_threshold=0.2, hparams=None):
     flat_y_predictions = tf.reshape(y_probs, (-1, K.int_shape(y_probs)[-1]))
     y_predictions = convert_multi_instrument_probs_to_predictions(flat_y_predictions,
                                                                   threshold,
-                                                                  multiple_instruments_threshold)
+                                                                  multiple_instruments_threshold,
+                                                                  hparams)
     flat_y_true = tf.reshape(K.cast(y_true, 'bool'), (-1, K.int_shape(y_true)[-1]))
     return flat_y_true, y_predictions
 
 
 def convert_multi_instrument_probs_to_predictions(y_probs,
                                                   threshold,
-                                                  multiple_instruments_threshold=0.2):
+                                                  multiple_instruments_threshold=0.2,
+                                                  hparams=None):
+    if hparams is None or hparams.timbre_final_activation == 'sigmoid':
+        return y_probs > threshold
     sum_probs = K.sum(y_probs, axis=-1)
     # remove any where the original midi prediction is below the threshold
     thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
@@ -135,7 +139,7 @@ def single_track_present_accuracy_wrapper(threshold):
         reshaped_y_probs = K.reshape(y_probs, (-1, y_probs.shape[-1]))
 
         single_y_true = K.max(reshaped_y_true, axis=-1)
-        single_y_predictions = K.sum(reshaped_y_probs, axis=-1) > threshold
+        single_y_predictions = K.max(reshaped_y_probs, axis=-1) > threshold
         frame_metrics = calculate_frame_metrics(single_y_true, single_y_predictions)
         print('Precision: {}, Recall: {}, F1: {}'.format(frame_metrics['precision'].numpy() * 100,
                                                          frame_metrics['recall'].numpy() * 100,
@@ -146,12 +150,13 @@ def single_track_present_accuracy_wrapper(threshold):
     return single_present_acc
 
 
-def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_threshold=0.2):
+def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_threshold=0.2, hparams=None):
     def present_acc(y_true, y_probs):
         flat_y_true, flat_y_predictions = convert_to_multi_instrument_predictions(y_true,
                                                                                   y_probs,
                                                                                   threshold,
-                                                                                  multiple_instruments_threshold)
+                                                                                  multiple_instruments_threshold,
+                                                                                  hparams=hparams)
         acc = tf.logical_and(tf.equal(K.sum(K.cast_to_floatx(flat_y_predictions), -1),
                                       K.sum(K.cast_to_floatx(flat_y_true), -1)),
                              tf.equal(K.argmax(K.cast_to_floatx(flat_y_predictions), -1),
@@ -163,15 +168,14 @@ def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_thresho
             tf.equal(flat_y_true, flat_y_predictions))))
         frame_false_positives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
             K.max(K.cast_to_floatx(flat_y_true), -1) == 0,
-            K.sum(K.cast_to_floatx(flat_y_predictions), -1) > 0)))
+            K.max(K.cast_to_floatx(flat_y_predictions), -1) > 0)))
         frame_false_negatives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
             K.max(K.cast_to_floatx(flat_y_true), -1) > 0,
             K.max(K.cast_to_floatx(flat_y_true), -1) == 0))) \
                                 + tf.reduce_sum(K.cast_to_floatx(tf.logical_and(tf.logical_and(
             K.max(K.cast_to_floatx(flat_y_true), -1) > 0,
             K.max(K.cast_to_floatx(flat_y_predictions), -1) > 0),
-            tf.equal(K.argmax(K.cast_to_floatx(flat_y_true)),
-                     K.argmax(K.cast_to_floatx(flat_y_predictions))))))
+            K.min(K.cast_to_floatx(tf.not_equal(flat_y_true, flat_y_predictions)), -1) == 0)))
 
         return accuracy_without_true_negatives(
             frame_true_positives, frame_false_positives, frame_false_negatives)
@@ -180,12 +184,13 @@ def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_thresho
 
 
 def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.2, print_report=False,
-                            only_f1=True):
+                            only_f1=True, hparams=None):
     def multi_track_prf(y_true, y_probs):
         flat_y_true, flat_y_predictions = convert_to_multi_instrument_predictions(y_true,
                                                                                   y_probs,
                                                                                   threshold,
-                                                                                  multiple_instruments_threshold)
+                                                                                  multiple_instruments_threshold,
+                                                                                  hparams)
 
         # remove any predictions from padded values <- Why would we do this? Ignore all empty????
         flat_y_predictions = K.cast_to_floatx(flat_y_predictions)

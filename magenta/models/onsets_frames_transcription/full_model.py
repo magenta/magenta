@@ -24,7 +24,7 @@ def get_default_hparams():
     return {
         'full_learning_rate': 0.0005,
         'prediction_generosity': 4,
-        'multiple_instruments_threshold': 0.1,
+        'multiple_instruments_threshold': 0.5,
         'use_all_instruments': False
     }
 
@@ -97,7 +97,7 @@ class FullModel:
                 tf.logical_and(
                     tf.equal(permuted_time_first, K.expand_dims(K.max(permuted_time_first, -1))),
                     permuted_time_first > (1 / self.hparams.timbre_num_classes)),
-                permuted_time_first > self.hparams.multiple_instruments_threshold)
+                permuted_time_first > (self.hparams.multiple_instruments_threshold ** 2))
 
             sequence = infer_util.predict_multi_sequence(
                 frame_predictions=frame_predictions,
@@ -220,22 +220,22 @@ class FullModel:
             Multiply(name='apply_present')([timbre_pianoroll, expanded_present_instruments]))
 
         # if the normalize so the present_pianoroll has the same sum as the timbre_pianoroll
-        norm_prod = Lambda(lambda lst: K.expand_dims(K.sum(lst[0], -1))
-                                       / (K.expand_dims(K.sum(lst[1], -1) + 1e-9)),
-                           name='norm_prod')([timbre_pianoroll, present_pianoroll])
+        # norm_prod = Lambda(lambda lst: K.expand_dims(K.sum(lst[0], -1))
+        #                                / (K.expand_dims(K.sum(lst[1], -1) + 1e-9)),
+        #                    name='norm_prod')([timbre_pianoroll, present_pianoroll])
         # normalize
-        normalized_pianoroll = Multiply()([present_pianoroll, norm_prod])
+        # normalized_pianoroll = Multiply()([present_pianoroll, norm_prod])
 
         expanded_frames = expand_dims([frame_probs, -1])
         expanded_onsets = expand_dims([onset_probs, -1])
         expanded_offsets = expand_dims([offset_probs, -1])
 
-        pianoroll_no_gradient = stop_gradient(normalized_pianoroll)
+        pianoroll_no_gradient = stop_gradient(present_pianoroll)
 
         broadcasted_frames = Multiply(name='multi_frames')(
-            [normalized_pianoroll, expanded_frames])
+            [present_pianoroll, expanded_frames])
         broadcasted_onsets = Multiply(name='multi_onsets')(
-            [normalized_pianoroll, expanded_onsets])
+            [present_pianoroll, expanded_onsets])
         broadcasted_offsets = Multiply(name='multi_offsets')(
             [pianoroll_no_gradient, expanded_offsets])
 
