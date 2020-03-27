@@ -22,6 +22,7 @@ from magenta.music import midi_io
 
 def get_default_hparams():
     return {
+        'full_learning_rate': 0.0005,
         'prediction_generosity': 4,
         'multiple_instruments_threshold': 0.1,
         'use_all_instruments': False

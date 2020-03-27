@@ -30,10 +30,10 @@ else:
 
 
 # if we aren't coagulating the cropped mini-batches, then we use TimeDistributed
-def time_distributed_wrapper(x, hparams):
+def time_distributed_wrapper(x, hparams, name=None):
     if hparams.timbre_coagulate_mini_batches:
         return x
-    return TimeDistributed(x)
+    return TimeDistributed(x, name=name)
 
 
 # if we are bypassing this, then return a function that returns itself
@@ -118,7 +118,7 @@ def get_all_croppings(input_list, hparams):
     for batch_idx in range(K.int_shape(conv_output_list)[0]):
         if K.int_shape(note_croppings_list)[1] == 0:
             out = K.zeros(shape=(1, K.int_shape(conv_output_list[batch_idx])[1],
-                                 2 * K.int_shape(conv_output_list[batch_idx])[-1]))
+                                 K.int_shape(conv_output_list[batch_idx])[-1]))
         else:
             out = get_croppings_for_single_image(conv_output_list[batch_idx],
                                                  note_croppings_list[batch_idx],
@@ -174,7 +174,7 @@ def get_croppings_for_single_image(conv_output, note_croppings,
         if end_idx[i] < 0:
             # is a padded value note
             trimmed_list.append(
-                np.zeros(shape=(1, K.int_shape(conv_output)[1], 2 * K.int_shape(conv_output)[2]),
+                np.zeros(shape=(1, K.int_shape(conv_output)[1], K.int_shape(conv_output)[2]),
                          dtype=K.floatx()))
         else:
             trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
@@ -190,7 +190,7 @@ def get_croppings_for_single_image(conv_output, note_croppings,
                                                     K.int_shape(pools)[0],
                                                     axis=0)],
                                          axis=-1)
-            trimmed_list.append(K.expand_dims(pools, 0))
+            trimmed_list.append(K.expand_dims(max_pool, 0))
 
     broadcasted_spec = K.concatenate(trimmed_list, axis=0)
 

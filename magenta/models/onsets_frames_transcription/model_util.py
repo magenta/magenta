@@ -338,7 +338,7 @@ class ModelWrapper:
         if self.type == ModelType.FULL:  # self.type == ModelType.FULL:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()
-            self.model.compile(Adam(self.hparams.learning_rate / 4,
+            self.model.compile(Adam(self.hparams.full_learning_rate,
                                     decay=self.hparams.decay_rate,
                                     clipnorm=self.hparams.clip_norm),
                                metrics=accuracies, loss=losses)

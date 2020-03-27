@@ -64,6 +64,8 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
         permuted_y_probs = K.permute_dimensions(y_probs, (3, 0, 1, 2))
 
         loss_list = []
+        instrument_recalls = []
+        total_mean = K.mean(K.max(permuted_y_true, -1))
         for instrument_idx in range(K.int_shape(permuted_y_true)[0]):
             # if 0 == K.sum(permuted_y_probs[instrument_idx]) == K.sum(
             #         permuted_y_true[instrument_idx]):
@@ -78,12 +80,15 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
             # If there is more support, weigh more towards recall
             instrument_weighted_recall = 8 \
                                          * recall_weighing \
-                                         * (max(0.2, K.mean(permuted_y_true[instrument_idx]) ** 0.25)) \
-                                         - 1 / (max(0.2, K.mean(permuted_y_true[instrument_idx]) ** 0.25))
+                                         * (max(0.25*total_mean, K.mean(permuted_y_true[instrument_idx]) ** (1/3))) \
+                                         - total_mean / (max(0.25*total_mean, K.mean(permuted_y_true[instrument_idx]) ** (1/3)))
+            instrument_recalls.append(instrument_weighted_recall)
             loss_list.append(K.mean(tf_utils.log_loss(permuted_y_true[instrument_idx],
                                                       permuted_y_probs[instrument_idx] + epsilon,
                                                       epsilon=epsilon,
                                                       recall_weighing=instrument_weighted_recall)))
+
+        print(f'total mean: {total_mean} {[f"{i}:{x}" for i, x in enumerate(loss_list)]}')
         # add instrument-independent loss
         return tf.reduce_mean(loss_list) + K.mean(tf_utils.log_loss(K.max(y_true, axis=-1),
                                                   K.sum(y_probs, axis=-1) + epsilon,
