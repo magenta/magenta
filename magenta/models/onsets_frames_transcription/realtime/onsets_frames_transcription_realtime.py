@@ -20,9 +20,11 @@ import threading
 
 from absl import app
 from absl import flags
+from absl import logging
 import attr
 from colorama import Fore
 from colorama import Style
+import datetime
 from magenta.models.onsets_frames_transcription.realtime import audio_recorder
 from magenta.models.onsets_frames_transcription.realtime import tflite_model
 import numpy as np
@@ -97,6 +99,10 @@ class AudioQueue(object):
 
   def start(self):
     """Start processing the queue."""
+
+    # Used to step over audio chunks considering a possible overlap.
+    range_step = self._frame_length - self._overlap
+
     with self._recorder:
       timed_out = False
       while not timed_out:
@@ -108,12 +114,41 @@ class AudioQueue(object):
 
         # Extract overlapping
         first_unused_byte = 0
-        for pos in range(0, audio_samples.shape[0] - self._frame_length,
-                         self._frame_length - self._overlap):
+        logging.debug("Split the %d samples in range(0, %d, %d) processing threads = %s"
+                     % (audio_samples.shape[0],
+                        audio_samples.shape[0] - self._frame_length,
+                        range_step,
+                        list(range(0, audio_samples.shape[0] - self._frame_length, range_step))))
+
+        # What to do when too much sound flows in?
+        # If the audio surpasses what the model can proceed, then:
+        # 1. Fill the first model using 17920 bytes?
+        # 2. Fill as many subsequent models with audio chunks of `17920 - overlap (= 4096)` = 13824 bytes
+        #    and give then a serial > 1 to indicate that the first 4 timesteps represent an overlap.
+        # 3. Put what's left over into _audio_buffer.
+        #
+        # Ex 1: 24000 samples - 17920 = 6080 = range's stop. Not enough to fill a  => _audio_buffer
+        # Ex 2: 64000 samples - 17920 = 46080 = range's stop. Step is 17920 - overlap (= 4096) = 13824.
+        #    Will proceed with 4 threads, at:
+        #    - 0:0+17920
+        #    - 13824:13824+17920
+        #    - 27648:27648+17920
+        #    - 41472:41472+17920 (= 59392)
+        #    Keep 4608 of audio_buffer
+        for pos in range(0, audio_samples.shape[0] - self._frame_length, range_step):
           self._callback(
               AudioChunk(self._chunk_counter,
                          audio_samples[pos:pos + self._frame_length]))
-          self._chunk_counter += 1
+          # As soon as more than one thread is needed
+          # due to the quantity of audio collected bypassing model's input size.
+          # we give threads a incremental serial number.
+          # When this happens, all subsequent audio-chunk are prefixed by an overlap.
+          # The the first 4 timesteps of these inferences will be identical to
+          #   the last 4 timesteps of the previous result (see result_collector())
+          if pos > 0:
+            self._chunk_counter += 1
+          # Conversely, as long as no overlap exist, the same thread n°0 is reused
+          # and the first 4 timesteps are not discarded.
           first_unused_byte = pos + self._frame_length
 
         # Keep the remaining bytes for next time
@@ -130,11 +165,12 @@ class OnsetsTask(object):
 
   def __call__(self, model):
     samples = self.audio_chunk.samples[:, 0]
+    timestart = datetime.datetime.now()
     self.result = model.infer(samples)
     self.timestep = model.get_timestep()
+    self.timeto = datetime.datetime.now() - timestart
 
-
-def result_collector(result_queue):
+def result_collector(result_queue, overlap_timesteps):
   """Collect and display results."""
 
   def notename(n, space):
@@ -164,10 +200,18 @@ def result_collector(result_queue):
     serial = result.audio_chunk.serial
     result_roll = result.result
     if serial > 0:
-      result_roll = result_roll[4:]
-    for notes in result_roll:
-      for i in range(6, len(notes) - 6):
-        note = notes[i]
+      # If more than one thread were needed to proceed the audio samples,
+      # then the first {overlap_timesteps} timesteps were reserved to store
+      # the duplicated samples' inference results and must be skipped
+      result_roll = result_roll[overlap_timesteps:]
+
+    # Iterate of results buckets (there are up to 32 according to how much audio was recorded)
+    # Each of them represent the inference of 560 samples (= 35ms at 16khz), here called "bucket"
+    for bucket in result_roll:
+      # Only display the 88-12=76 middle notes (for tty columns limits?)
+      for i in range(6, len(bucket) - 6):
+        note = bucket[i]
+        # Output-tensor's [0] is the "frame" element. Means "onset" if > 0
         is_frame = note[0] > 0.0
         notestr = notename(i, not is_frame)
         print(notestr, end='')
@@ -179,13 +223,14 @@ def main(argv):
     raise app.UsageError('Too many command-line arguments.')
 
   results = multiprocessing.Queue()
-  results_thread = threading.Thread(target=result_collector, args=(results,))
+  overlap_timesteps = 4
+  results_thread = threading.Thread(target=result_collector, args=(results,overlap_timesteps,))
   results_thread.start()
 
   model = tflite_model.Model(model_path=FLAGS.model_path)
-  overlap_timesteps = 4
   overlap_wav = model.get_hop_size(
   ) * overlap_timesteps + model.get_window_length()
+  assert (model.get_input_wav_length() > overlap_wav)
 
   if FLAGS.wav_file:
     wav_data = open(FLAGS.wav_file, 'rb').read()
