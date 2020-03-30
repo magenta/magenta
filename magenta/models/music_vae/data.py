@@ -334,12 +334,8 @@ class BaseConverter(object):
 
   def to_tensors(self, item):
     """Python method that converts `item` into list of tensors."""
-    tensors = self._to_tensors(item)
-    sampled_results = self._maybe_sample_outputs(list(zip(*tensors)))
-    if sampled_results:
-      return ConverterTensors(*zip(*sampled_results))
-    else:
-      return ConverterTensors()
+    # TODO(b/152083777): To be removed.
+    return convert_to_tensors(self, item)
 
   def _combine_to_tensor_results(self, to_tensor_results):
     """Combines the results of multiple to_tensors calls into one result."""
@@ -358,50 +354,6 @@ class BaseConverter(object):
       return self._to_items(samples)
     else:
       return self._to_items(samples, controls)
-
-  # TODO(b/144556490): Remove `do_not_convert` when fixed.
-  @tf.autograph.experimental.do_not_convert
-  def tf_to_tensors(self, item_scalar):
-    """TensorFlow op that converts item into output tensors.
-
-    Sequences will be padded to match the length of the longest.
-
-    Args:
-      item_scalar: A scalar of type tf.String containing the raw item to be
-          converted to tensors.
-
-    Returns:
-      inputs: A Tensor, shaped [num encoded seqs, max(lengths), input_depth],
-          containing the padded input encodings.
-      outputs: A Tensor, shaped [num encoded seqs, max(lengths), output_depth],
-          containing the padded output encodings resulting from the input.
-      controls: A Tensor, shaped
-          [num encoded seqs, max(lengths), control_depth], containing the padded
-          control encodings.
-      lengths: A tf.int32 Tensor, shaped [num encoded seqs], containing the
-        unpadded lengths of the tensor sequences resulting from the input.
-    """
-    def _convert_and_pad(item_str):
-      item = self.str_to_item_fn(item_str.numpy())  # pylint:disable=not-callable
-      tensors = self.to_tensors(item)
-      inputs = _maybe_pad_seqs(
-          tensors.inputs, self.input_dtype, self.input_depth)
-      outputs = _maybe_pad_seqs(
-          tensors.outputs, self.output_dtype, self.output_depth)
-      controls = _maybe_pad_seqs(
-          tensors.controls, self.control_dtype, self.control_depth)
-      return inputs, outputs, controls, np.array(tensors.lengths, np.int32)
-    inputs, outputs, controls, lengths = tf.py_function(
-        _convert_and_pad,
-        inp=[item_scalar],
-        Tout=[
-            self.input_dtype, self.output_dtype, self.control_dtype, tf.int32],
-        name='convert_and_pad')
-    inputs.set_shape([None, None, self.input_depth])
-    outputs.set_shape([None, None, self.output_depth])
-    controls.set_shape([None, None, self.control_depth])
-    lengths.set_shape([None] + list(self.length_shape))
-    return inputs, outputs, controls, lengths
 
 
 def preprocess_notesequence(note_sequence, presplit_on_time_changes):
@@ -469,16 +421,6 @@ class BaseNoteSequenceConverter(BaseConverter):
   def to_notesequences(self, samples, controls=None):
     """Python method that decodes samples into list of NoteSequences."""
     return self._to_items(samples, controls)
-
-  def to_tensors(self, note_sequence):
-    """Python method that converts `note_sequence` into list of tensors."""
-    note_sequences = preprocess_notesequence(
-        note_sequence, self._presplit_on_time_changes)
-
-    results = []
-    for ns in note_sequences:
-      results.append(super(BaseNoteSequenceConverter, self).to_tensors(ns))
-    return self._combine_to_tensor_results(results)
 
   def _to_items(self, samples, controls=None):
     """Python method that decodes samples into list of NoteSequences."""
@@ -1189,6 +1131,73 @@ def count_examples(examples_path, tfds_name, data_converter,
   return num_examples
 
 
+# pylint:disable=protected-access
+def convert_to_tensors(converter, note_sequence):
+  """Python method that converts `note_sequence` into list of tensors."""
+  note_sequences = preprocess_notesequence(
+      note_sequence, converter._presplit_on_time_changes)
+  results = []
+  for ns in note_sequences:
+    tensors = converter._to_tensors(ns)
+    sampled_results = converter._maybe_sample_outputs(list(zip(*tensors)))
+    if sampled_results:
+      results.append(ConverterTensors(*zip(*sampled_results)))
+    else:
+      results.append(ConverterTensors())
+  return converter._combine_to_tensor_results(results)
+
+
+# TODO(b/144556490): Remove `do_not_convert` when fixed.
+@tf.autograph.experimental.do_not_convert
+def convert_to_tensors_op(converter, item_scalar):
+  """TensorFlow op that converts item into output tensors.
+
+  Sequences will be padded to match the length of the longest.
+
+  Args:
+    converter: The DataConverter to be used.
+    item_scalar: A scalar of type tf.String containing the raw item to be
+      converted to tensors.
+
+  Returns:
+    inputs: A Tensor, shaped [num encoded seqs, max(lengths), input_depth],
+        containing the padded input encodings.
+    outputs: A Tensor, shaped [num encoded seqs, max(lengths), output_depth],
+        containing the padded output encodings resulting from the input.
+    controls: A Tensor, shaped
+        [num encoded seqs, max(lengths), control_depth], containing the padded
+        control encodings.
+    lengths: A tf.int32 Tensor, shaped [num encoded seqs], containing the
+      unpadded lengths of the tensor sequences resulting from the input.
+  """
+
+  def _convert_and_pad(item_str):
+    item = converter.str_to_item_fn(item_str.numpy())  # pylint:disable=not-callable
+    tensors = converter.to_tensors(item)
+    inputs = _maybe_pad_seqs(tensors.inputs, converter.input_dtype,
+                             converter.input_depth)
+    outputs = _maybe_pad_seqs(tensors.outputs, converter.output_dtype,
+                              converter.output_depth)
+    controls = _maybe_pad_seqs(tensors.controls, converter.control_dtype,
+                               converter.control_depth)
+    return inputs, outputs, controls, np.array(tensors.lengths, np.int32)
+
+  inputs, outputs, controls, lengths = tf.py_function(
+      _convert_and_pad,
+      inp=[item_scalar],
+      Tout=[
+          converter.input_dtype, converter.output_dtype,
+          converter.control_dtype, tf.int32
+      ],
+      name='convert_and_pad')
+  inputs.set_shape([None, None, converter.input_depth])
+  outputs.set_shape([None, None, converter.output_depth])
+  controls.set_shape([None, None, converter.control_depth])
+  lengths.set_shape([None] + list(converter.length_shape))
+  return inputs, outputs, controls, lengths
+# pylint:enable=protected-access
+
+
 def get_dataset(
     config,
     num_threads=1,
@@ -1261,12 +1270,11 @@ def get_dataset(
   if note_sequence_augmenter is not None:
     dataset = dataset.map(note_sequence_augmenter.tf_augment)
 
-  dataset = (dataset
-             .map(data_converter.tf_to_tensors,
-                  num_parallel_calls=tf.data.experimental.AUTOTUNE)
-             .unbatch()
-             .map(_remove_pad_fn,
-                  num_parallel_calls=tf.data.experimental.AUTOTUNE))
+  dataset = (
+      dataset.map(
+          functools.partial(convert_to_tensors_op, converter=data_converter),
+          num_parallel_calls=tf.data.experimental.AUTOTUNE).unbatch().map(
+              _remove_pad_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE))
   if cache_dataset:
     dataset = dataset.cache()
   if is_training:

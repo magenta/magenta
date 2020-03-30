@@ -157,8 +157,8 @@ class BaseOneHotDataTest(BaseDataTest):
     converter = self.converter_class(steps_per_quarter=1, slice_bars=None)
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
-      input_tensors_, output_tensors_, _, lengths_ = converter.tf_to_tensors(
-          sequence)
+      input_tensors_, output_tensors_, _, lengths_ = data.convert_to_tensors_op(
+          converter, sequence)
       input_tensors, output_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})
@@ -210,8 +210,8 @@ class BaseOneHotDataTest(BaseDataTest):
         steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None)
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
-      input_tensors_, output_tensors_, _, lengths_ = converter.tf_to_tensors(
-          sequence)
+      input_tensors_, output_tensors_, _, lengths_ = data.convert_to_tensors_op(
+          converter, sequence)
       input_tensors, output_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})
@@ -249,7 +249,7 @@ class BaseChordConditionedOneHotDataTest(BaseOneHotDataTest):
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, control_tensors_, lengths_ = (
-          converter.tf_to_tensors(sequence))
+          data.convert_to_tensors_op(converter, sequence))
       input_tensors, output_tensors, control_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, control_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})
@@ -290,7 +290,7 @@ class BaseChordConditionedOneHotDataTest(BaseOneHotDataTest):
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, control_tensors_, lengths_ = (
-          converter.tf_to_tensors(sequence))
+          data.convert_to_tensors_op(converter, sequence))
       input_tensors, output_tensors, control_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, control_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})

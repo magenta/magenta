@@ -222,7 +222,12 @@ class BaseHierarchicalConverter(data.BaseConverter):
 
   def to_tensors(self, item):
     """Converts to tensors and adds hierarchical padding, if needed."""
-    unpadded_results = super(BaseHierarchicalConverter, self).to_tensors(item)
+    tensors = self._to_tensors(item)
+    sampled_results = self._maybe_sample_outputs(list(zip(*tensors)))
+    if sampled_results:
+      unpadded_results = data.ConverterTensors(*zip(*sampled_results))
+    else:
+      unpadded_results = data.ConverterTensors()
     if not self._max_lengths:
       return unpadded_results
 
