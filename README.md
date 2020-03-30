@@ -37,8 +37,8 @@ This and more, including [blog posts](https://magenta.tensorflow.org/blog) and [
 
 Magenta maintains a [pip package](https://pypi.python.org/pypi/magenta) for easy
 installation. We recommend using Anaconda to install it, but it can work in any
-standard Python environment. We support both Python 2 (>= 2.7) and Python 3 (>= 3.5).
-These instructions will assume you are using Anaconda.
+standard Python environment. We support Python 3 (>= 3.5). These instructions
+will assume you are using Anaconda.
 
 ### Automated Install (w/ Anaconda)
 
