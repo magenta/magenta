@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Tests for converting a directory of MIDIs to a NoteSequence TFRecord file."""
 
 import os
