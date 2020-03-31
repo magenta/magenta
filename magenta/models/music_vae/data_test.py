@@ -158,7 +158,7 @@ class BaseOneHotDataTest(BaseDataTest):
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, _, lengths_ = data.convert_to_tensors_op(
-          converter, sequence)
+          sequence, converter)
       input_tensors, output_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})
@@ -211,7 +211,7 @@ class BaseOneHotDataTest(BaseDataTest):
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, _, lengths_ = data.convert_to_tensors_op(
-          converter, sequence)
+          sequence, converter)
       input_tensors, output_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})
@@ -249,7 +249,7 @@ class BaseChordConditionedOneHotDataTest(BaseOneHotDataTest):
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, control_tensors_, lengths_ = (
-          data.convert_to_tensors_op(converter, sequence))
+          data.convert_to_tensors_op(sequence, converter))
       input_tensors, output_tensors, control_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, control_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})
@@ -290,7 +290,7 @@ class BaseChordConditionedOneHotDataTest(BaseOneHotDataTest):
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, control_tensors_, lengths_ = (
-          data.convert_to_tensors_op(converter, sequence))
+          data.convert_to_tensors_op(sequence, converter))
       input_tensors, output_tensors, control_tensors, lengths = sess.run(
           [input_tensors_, output_tensors_, control_tensors_, lengths_],
           feed_dict={sequence: self.sequence.SerializeToString()})

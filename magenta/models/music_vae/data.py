@@ -1147,17 +1147,15 @@ def convert_to_tensors(converter, note_sequence):
   return converter._combine_to_tensor_results(results)
 
 
-# TODO(b/144556490): Remove `do_not_convert` when fixed.
-@tf.autograph.experimental.do_not_convert
-def convert_to_tensors_op(converter, item_scalar):
+def convert_to_tensors_op(item_scalar, converter):
   """TensorFlow op that converts item into output tensors.
 
   Sequences will be padded to match the length of the longest.
 
   Args:
-    converter: The DataConverter to be used.
     item_scalar: A scalar of type tf.String containing the raw item to be
       converted to tensors.
+    converter: The DataConverter to be used.
 
   Returns:
     inputs: A Tensor, shaped [num encoded seqs, max(lengths), input_depth],
@@ -1282,7 +1280,7 @@ def get_dataset(
 
   dataset = dataset.padded_batch(
       batch_size,
-      dataset.output_shapes,
+      tf.data.get_output_shapes(dataset),
       drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
   return dataset
