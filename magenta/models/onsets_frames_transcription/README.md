@@ -1,6 +1,6 @@
-## Onsets and Frames: Dual-Objective Piano Transcription
+## Onsets and Frames Transcription
 
-State of the art piano transcription, including velocity estimation.
+State of the art piano and drum transcription models, including velocity estimation.
 
 For original model details, see our paper on arXiv,
 [Onsets and Frames: Dual-Objective Piano Transcription](https://goo.gl/magenta/onsets-frames-paper), and the accompanying [blog post](https://g.co/magenta/onsets-frames).
@@ -40,6 +40,17 @@ onsets_frames_transcription_transcribe \
   --model_dir="${CHECKPOINT_DIR}" \
   <piano_recording1.wav, piano_recording2.wav, ...>
 ```
+
+For drum transcription, use the [E-GMD checkpoint](https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/e-gmd_checkpoint.zip) and the following command:
+
+```bash
+MODEL_DIR=<path to directory containing checkpoint>
+onsets_frames_transcription_transcribe \
+  --model_dir="${CHECKPOINT_DIR}" \
+  --config="drums" \
+  <piano_recording1.wav, piano_recording2.wav, ...>
+```
+
 
 ## Train your own
 
