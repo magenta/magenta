@@ -53,10 +53,14 @@ flags.DEFINE_string('midi_dir', None, 'Directory for midi files.')
 flags.DEFINE_integer('num_shards', 0, 'number of output shards')
 flags.DEFINE_string('expected_splits', 'train,validation,test',
                     'Comma separated list of expected splits.')
-tf.app.flags.DEFINE_integer('min_length', 5, 'minimum length for a segment')
-tf.app.flags.DEFINE_integer('max_length', 20, 'maximum length for a segment')
-tf.app.flags.DEFINE_integer('sample_rate', 16000,
+flags.DEFINE_integer('min_length', 5, 'minimum length for a segment')
+flags.DEFINE_integer('max_length', 20, 'maximum length for a segment')
+flags.DEFINE_integer('sample_rate', 16000,
                             'sample_rate of the output files')
+
+# There seems to be inconsistency between all_src.mid and the stems in the slakh dataset.
+# The individual stems are what is actually being played in the wav file
+flags.DEFINE_boolean('use_midi_stems', True, 'If true, use midi stems instead of the single midi file')
 flags.DEFINE_boolean(
     'add_wav_glob', False,
     'If true, will add * to end of wav paths and use all matching files.')
@@ -64,6 +68,29 @@ flags.DEFINE_list(
     'pipeline_options', '--runner=DirectRunner',
     'A comma-separated list of command line arguments to be used as options '
     'for the Beam Pipeline.')
+
+def note_sequence_from_directory(dir):
+    midis = tf.io.gfile.glob(f'{dir}/MIDI/*.mid')
+    multi_sequence = None
+    for i, midi in enumerate(midis):
+        sequence = midi_io.midi_file_to_note_sequence(midi)
+        if multi_sequence is None:
+            multi_sequence = sequence
+        else:
+            for note in sequence.notes:
+                note.instrument = i
+            for pitch_bend in sequence.pitch_bends:
+                pitch_bend.instrument = i
+            for control_change in sequence.control_changes:
+                control_change.instrument = i
+            for instrument_info in sequence.instrument_infos:
+                instrument_info.instrument = i
+            multi_sequence.notes.extend(sequence.notes)
+            multi_sequence.pitch_bends.extend(sequence.pitch_bends)
+            multi_sequence.control_changes.extend(sequence.control_changes)
+            multi_sequence.instrument_infos.extend(sequence.instrument_infos)
+            multi_sequence.total_time = max(multi_sequence.total_time, sequence.total_time)
+    return multi_sequence
 
 
 class CreateExampleDoFn(beam.DoFn):
@@ -79,7 +106,10 @@ class CreateExampleDoFn(beam.DoFn):
         wav_path, midi_path = paths
 
         if midi_path:
-            base_ns = midi_io.midi_file_to_note_sequence(midi_path)
+            if FLAGS.use_midi_stems:
+                base_ns = note_sequence_from_directory(os.path.dirname(midi_path))
+            else:
+                base_ns = midi_io.midi_file_to_note_sequence(midi_path)
             base_ns.filename = midi_path
         else:
             base_ns = music_pb2.NoteSequence()

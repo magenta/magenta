@@ -136,7 +136,8 @@ def run(argv, config_map, data_fn):
 
             sequence_prediction = model.predict_multi_sequence(midi_spec=midi_spec,
                                                                timbre_spec=timbre_spec,
-                                                               present_instruments=present_instruments)
+                                                               present_instruments=present_instruments,
+                                                               qpm=FLAGS.qpm)
         #assert len(prediction_list) == 1
 
         #sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)

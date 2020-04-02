@@ -48,7 +48,7 @@ def predict_multi_sequence(frame_predictions, onset_predictions=None,
         permuted_active_onsets = permuted_onset_predictions
 
     multi_sequence = None
-    for instrument_idx in range(K.int_shape(permuted_frame_predictions)[0]):
+    for instrument_idx in range(hparams.timbre_num_classes):
         frame_predictions = permuted_frame_predictions[instrument_idx]
         onset_predictions = permuted_onset_predictions[instrument_idx]
         offset_predictions = permuted_offset_predictions[instrument_idx]

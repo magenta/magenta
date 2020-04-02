@@ -36,6 +36,35 @@ class MetricsCallback(Callback):
         self.metrics_history = metrics_history
         self.save_dir = save_dir
 
+    def save_midi(self, y_probs, y_true, epoch):
+        frame_predictions = y_probs[0][0] > self.hparams.predict_frame_threshold
+        onset_predictions = y_probs[1][0] > self.hparams.predict_onset_threshold
+        offset_predictions = y_probs[2][0] > self.hparams.predict_offset_threshold
+        active_onsets = y_probs[1][0] > self.hparams.active_onset_threshold
+
+        sequence = infer_util.predict_sequence(
+            frame_predictions=frame_predictions,
+            onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
+            active_onsets=active_onsets,
+            velocity_values=None,
+            hparams=self.hparams,
+            min_pitch=constants.MIN_MIDI_PITCH,
+            instrument=1)
+        frame_predictions = y_true[0][0]
+        onset_predictions = y_true[1][0]
+        offset_predictions = y_true[2][0]
+        sequence.notes.extend(infer_util.predict_sequence(
+            frame_predictions=frame_predictions,
+            onset_predictions=onset_predictions,
+            offset_predictions=offset_predictions,
+            velocity_values=None,
+            hparams=self.hparams,
+            min_pitch=constants.MIN_MIDI_PITCH,
+            instrument=0).notes)
+        midi_filename = f'{self.save_dir}/{epoch}_predicted.midi'
+        midi_io.sequence_proto_to_midi_file(sequence, midi_filename)
+
     def on_train_batch_begin(self, *args):
         pass
 
@@ -65,35 +94,6 @@ class MidiPredictionMetrics(MetricsCallback):
     def load_metrics(self, metrics_history):
         # convert to list of namedtuples
         self.metrics_history = [MidiPredictionOutputMetrics(*x) for x in metrics_history]
-
-    def save_midi(self, y_probs, y_true, epoch):
-        frame_predictions = y_probs[0][0] > self.hparams.predict_frame_threshold
-        onset_predictions = y_probs[1][0] > self.hparams.predict_onset_threshold
-        offset_predictions = y_probs[2][0] > self.hparams.predict_offset_threshold
-        active_onsets = y_probs[1][0] > self.hparams.active_onset_threshold
-
-        sequence = infer_util.predict_sequence(
-            frame_predictions=frame_predictions,
-            onset_predictions=onset_predictions,
-            offset_predictions=offset_predictions,
-            active_onsets=active_onsets,
-            velocity_values=None,
-            hparams=self.hparams,
-            min_pitch=constants.MIN_MIDI_PITCH,
-            instrument=1)
-        frame_predictions = y_true[0][0]
-        onset_predictions = y_true[1][0]
-        offset_predictions = y_true[2][0]
-        sequence.notes.extend(infer_util.predict_sequence(
-            frame_predictions=frame_predictions,
-            onset_predictions=onset_predictions,
-            offset_predictions=offset_predictions,
-            velocity_values=None,
-            hparams=self.hparams,
-            min_pitch=constants.MIN_MIDI_PITCH,
-            instrument=0).notes)
-        midi_filename = f'{self.save_dir}/{epoch}_predicted.midi'
-        midi_io.sequence_proto_to_midi_file(sequence, midi_filename)
 
     def predict(self, X, y, epoch=None):
         # 'frames': boolean_accuracy_wrapper(hparams.predict_frame_threshold),
@@ -134,10 +134,15 @@ class FullPredictionMetrics(MetricsCallback):
     def predict(self, X, y, epoch=None):
         y_probs = self.model.predict_on_batch(X)
         frame_metrics = multi_track_prf_wrapper(self.hparams.predict_frame_threshold,
+                                                self.hparams.multiple_instruments_threshold,
                                                 only_f1=False)(y[0], y_probs[0])
         onset_metrics = multi_track_prf_wrapper(self.hparams.predict_onset_threshold,
+                                                self.hparams.multiple_instruments_threshold,
                                                 only_f1=False)(y[1], y_probs[1])
         offset_metrics = multi_track_prf_wrapper(self.hparams.predict_offset_threshold,
+                                                self.hparams.multiple_instruments_threshold,
                                                  only_f1=False)(y[2], y_probs[2])
+        # save agnostic midi
+        self.save_midi([K.max(p, -1) for p in y_probs], [K.max(t, -1) for t in y], epoch)
         del y_probs
         return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)

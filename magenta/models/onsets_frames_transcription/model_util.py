@@ -38,7 +38,7 @@ else:
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
 
 from magenta.models.onsets_frames_transcription.accuracy_util import AccuracyMetric, \
-    convert_multi_instrument_probs_to_predictions
+    convert_multi_instrument_probs_to_predictions, multi_track_prf_wrapper
 from magenta.models.onsets_frames_transcription.midi_model import midi_prediction_model
 
 
@@ -133,8 +133,9 @@ class ModelWrapper:
 
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
+
             new_metrics = self.model.train_on_batch(x, y)
-            tf.random.set_random_seed(1)
+            # tf.random.set_random_seed(1)
             # self.model.evaluate(x, y)
             print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
             print([f'{x[0]}: {x[1]:0.4f}' for x in zip(self.model.metrics_names, new_metrics)])
@@ -235,7 +236,9 @@ class ModelWrapper:
     def predict_multi_sequence(self, midi_spec, timbre_spec, present_instruments=None, qpm=None):
         if present_instruments is None:
             present_instruments = K.expand_dims(np.ones(self.hparams.timbre_num_classes), 0)
-        y_pred = self.model.predict([midi_spec, timbre_spec, present_instruments])
+        y_pred = self.model.predict_on_batch([midi_spec, timbre_spec, present_instruments])
+        multi_track_prf_wrapper(threshold=self.hparams.predict_frame_threshold, multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
+                                hparams=self.hparams, print_report=True, only_f1=False)(y_pred[0] > self.hparams.predict_frame_threshold, y_pred[0])
         frame_predictions = convert_multi_instrument_probs_to_predictions(
             y_pred[0],
             self.hparams.predict_frame_threshold,

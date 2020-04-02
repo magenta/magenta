@@ -117,7 +117,7 @@ def get_all_croppings(input_list, hparams):
     # unbatch / do different things for each batch (we kinda create mini-batches)
     for batch_idx in range(K.int_shape(conv_output_list)[0]):
         if K.int_shape(note_croppings_list)[1] == 0:
-            out = K.zeros(shape=(1, K.int_shape(conv_output_list[batch_idx])[1],
+            out = np.zeros(shape=(1, K.int_shape(conv_output_list[batch_idx])[1],
                                  K.int_shape(conv_output_list[batch_idx])[-1]))
         else:
             out = get_croppings_for_single_image(conv_output_list[batch_idx],
@@ -126,10 +126,10 @@ def get_all_croppings(input_list, hparams):
                                                  temporal_scale=max(1, hparams.timbre_pool_size[0][0]
                                                                     * hparams.timbre_pool_size[1][0]))
 
-            if hparams.timbre_sharing_conv:
-                out = MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
-                                   padding='same')(out)
-            # out = tf.reshape(out, (-1, *out.shape[2:]))
+        if hparams.timbre_sharing_conv:
+            out = MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
+                               padding='same')(out)
+        # out = tf.reshape(out, (-1, *out.shape[2:]))
 
         all_outputs.append(out)
 

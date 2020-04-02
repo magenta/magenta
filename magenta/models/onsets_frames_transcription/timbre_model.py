@@ -65,17 +65,17 @@ def get_default_hparams():
         # (int(constants.BINS_PER_OCTAVE/2), 16),#(22, 32),
         'timbre_architecture': 'parallel',
         'timbre_pool_size': [(3, 2), (3, 2)],
-        'timbre_num_layers': 2,
+        'timbre_conv_num_layers': 2,
         'timbre_dropout_drop_amts': [0.1, 0.25, 0.25],
         'timbre_rnn_dropout_drop_amt': [0.3, 0.5],
-        'timbre_fc_size': 256,
-        'timbre_penultimate_fc_size': 256,
-        'timbre_fc_num_layers': 1,
+        'timbre_fc_size': 512,
+        'timbre_penultimate_fc_size': 512,
+        'timbre_fc_num_layers': 0,
         'timbre_fc_dropout_drop_amt': 0.5,
         'timbre_conv_drop_amt': 0.25,
-        'timbre_final_dropout_amt': 0.5,
+        'timbre_final_dropout_amt': 0.5 * 0,
         'timbre_local_conv_size': 5,
-        'timbre_local_conv_num_filters': 256,
+        'timbre_local_conv_num_filters': 128,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 1,  # include other and drums
         'timbre_lstm_units': 171,  # painless reshaping bc 171 % 57 == 0
@@ -83,12 +83,13 @@ def get_default_hparams():
         'timbre_leaky_alpha': 0.33,  # per han et al 2016 OR no negatives
         'timbre_sharing_conv': True,
         'timbre_extra_conv': False,
-        'timbre_penultimate_activation': 'sigmoid',
+        'timbre_penultimate_activation': 'tanh',
         'timbre_final_activation': 'sigmoid',
+        'timbre_spatial_dropout': False,
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
         'timbre_bottleneck_filter_num': 0,
-        'timbre_gradient_exp': 12,  # 16 for cqt no-log
+        'timbre_gradient_exp': 14,  # 16 for cqt no-log
         'timbre_spec_epsilon': 1e-8,
         'timbre_class_weights_list': [
             16000 / 68955,
@@ -127,11 +128,15 @@ def acoustic_model_layer(hparams):
         # inputs should be of type keras.layers.Input
         outputs = inputs
 
-        for i in range(hparams.timbre_num_layers):
+        for i in range(hparams.timbre_conv_num_layers):
             outputs = conv_bn_elu_layer(num_filters, 3, 3, hparams.timbre_pool_size[i],
                                         time_distributed_bypass=True,
                                         hparams=hparams)(outputs)
-            outputs = SpatialDropout2D(hparams.timbre_dropout_drop_amts[i])(outputs)
+            if hparams.timbre_spatial_dropout:
+                outputs = SpatialDropout2D(hparams.timbre_dropout_drop_amts[i])(outputs)
+            else:
+                outputs = Dropout(hparams.timbre_dropout_drop_amts[i])(outputs)
+
         return outputs
 
     return acoustic_model_fn
@@ -148,7 +153,10 @@ def parallel_filters_layer(hparams):
                 outputs = conv_bn_elu_layer(hparams.timbre_num_filters[i], t_i, f_i, pool_size,
                                             True,
                                             hparams)(inputs)
-                outputs = SpatialDropout2D(hparams.timbre_conv_drop_amt)(outputs)
+                if hparams.timbre_spatial_dropout:
+                    outputs = SpatialDropout2D(hparams.timbre_conv_drop_amt)(outputs)
+                else:
+                    outputs = Dropout(hparams.timbre_conv_drop_amt)(outputs)
                 parallel_layers.append(outputs)
         return concatenate(parallel_layers, axis=-1)
 
@@ -178,12 +186,12 @@ def local_conv_layer(hparams):
             time_distributed_wrapper(Conv1D(
                 hparams.timbre_local_conv_num_filters,
                 hparams.timbre_local_conv_size,
-                kernel_regularizer=l2(hparams.timbre_l2_regularizer),
                 padding='same',
-            ), hparams, name='conv_1d')(inputs))
-        outputs = time_distributed_wrapper(SpatialDropout1D(hparams.timbre_conv_drop_amt),
-                                           hparams,
-                                           name='conv_1d_dropout')(outputs)
+                use_bias=True,
+                bias_regularizer=l2(1e-3),
+                kernel_regularizer=l2(hparams.timbre_l2_regularizer),
+            ), hparams, name='roi_conv_1d')(inputs))
+        # outputs = Dropout(hparams.timbre_conv_drop_amt, name='conv_1d_dropout')(outputs)
         return outputs
 
     return local_conv_fn
@@ -197,23 +205,23 @@ def acoustic_dense_layer(hparams):
                                                      kernel_initializer='he_uniform',
                                                      kernel_regularizer=l2(
                                                          hparams.timbre_l2_regularizer),
-                                                     use_bias=False,
+                                                     bias_regularizer=l2(1e-3),
+                                                     use_bias=True,
                                                      activation='sigmoid',
                                                      name=f'acoustic_dense_{i}'),
                                                hparams=hparams)(outputs)
             # don't do batch normalization because our samples are no longer independent
             # outputs = ELU(hparams.timbre_leaky_alpha)(outputs)
-            outputs = time_distributed_wrapper(Dropout(hparams.timbre_fc_dropout_drop_amt),
-                                               hparams=hparams)(outputs)
+            outputs = Dropout(hparams.timbre_fc_dropout_drop_amt)(outputs)
 
         penultimate_outputs = time_distributed_wrapper(
             Dense(hparams.timbre_penultimate_fc_size,
-                  use_bias=False,
+                  use_bias=True,
+                  bias_regularizer=l2(1e-3),
                   activation=hparams.timbre_penultimate_activation,
                   kernel_initializer='he_uniform'),
             hparams, name='penultimate_dense')(outputs)
-        penultimate_outputs = time_distributed_wrapper(Dropout(hparams.timbre_final_dropout_amt),
-                                                       hparams=hparams)(penultimate_outputs)
+        # penultimate_outputs = Dropout(hparams.timbre_final_dropout_amt)(penultimate_outputs)
         return penultimate_outputs
 
     return acoustic_dense_fn
@@ -293,12 +301,12 @@ def timbre_prediction_model(hparams=None):
     # ouput_shape with coagulation: (batch_size*num_notes, freq_range, num_filters)
     # output_shape without coagulation: (batch_size, num_notes, freq_range, num_filters)
     output_shape = (
-    math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
-    K.int_shape(reshaped_outputs)[3]) \
+        math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
+        K.int_shape(reshaped_outputs)[3]) \
         if hparams.timbre_coagulate_mini_batches \
         else (
-    None, math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
-    K.int_shape(reshaped_outputs)[3])
+        None, math.ceil(K.int_shape(reshaped_outputs)[2] / hparams.timbre_filters_pool_size[1]),
+        K.int_shape(reshaped_outputs)[3])
     pooled_outputs = Lambda(
         functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
         output_shape=output_shape)(

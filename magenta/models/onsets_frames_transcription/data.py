@@ -238,6 +238,8 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
 
     def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor, instrument_family=None):
         """Converts sequence to pianorolls."""
+        if instrument_family < 0:
+            instrument_family = None
         velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor.numpy())
         sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
         sequence = sequences_lib.apply_sustain_control_changes(sequence)
@@ -265,7 +267,10 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         onsets_list = []
         velocities_list = []
         offsets_list = []
-        for i in range(hparams.timbre_num_classes):
+        for i in range(hparams.timbre_num_classes + 1):
+            # put instrument-agnostic in the last channel
+            if i == hparams.timbre_num_classes:
+                i = -1
             res, weighted_res, onsets, velocities, offsets = tf.py_function(
                 sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor, i],
                 [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
@@ -598,10 +603,10 @@ def input_tensors_to_model_input(
             # sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
         )
         labels = LabelTensors(
-            labels=tf.reshape(labels, (final_length, num_classes, hparams.timbre_num_classes)),
+            labels=tf.reshape(labels, (final_length, num_classes, hparams.timbre_num_classes + 1)),
             # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
-            onsets=tf.reshape(onsets, (final_length, num_classes, hparams.timbre_num_classes)),
-            offsets=tf.reshape(offsets, (final_length, num_classes, hparams.timbre_num_classes)),
+            onsets=tf.reshape(onsets, (final_length, num_classes, hparams.timbre_num_classes + 1)),
+            offsets=tf.reshape(offsets, (final_length, num_classes, hparams.timbre_num_classes + 1)),
             # velocities=tf.reshape(velocities, (final_length, num_classes)),
             # note_sequence=truncated_note_sequence
         )
@@ -744,9 +749,9 @@ def create_batch(dataset, hparams, is_training, batch_size=None):
                                     TensorShape([None, 229, 1]),
                                     TensorShape([hparams.timbre_num_classes])),  # , TensorShape([None, 88]),
                 # TensorShape([]), TensorShape([])),
-                LabelTensors(TensorShape([None, 88, hparams.timbre_num_classes]),
-                             TensorShape([None, 88, hparams.timbre_num_classes]),
-                             TensorShape([None, 88, hparams.timbre_num_classes]),
+                LabelTensors(TensorShape([None, 88, hparams.timbre_num_classes + 1]),
+                             TensorShape([None, 88, hparams.timbre_num_classes + 1]),
+                             TensorShape([None, 88, hparams.timbre_num_classes + 1]),
                              # TensorShape([None, 88]), TensorShape([None, 88]),
                              # TensorShape([])
                              )),
