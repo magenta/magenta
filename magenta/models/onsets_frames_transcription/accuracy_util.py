@@ -64,7 +64,6 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
         permuted_y_probs = K.permute_dimensions(y_probs, (3, 0, 1, 2))
 
         loss_list = []
-        instrument_recalls = []
         total_mean = K.mean(K.max(permuted_y_true, -1))
 
         for instrument_idx in range(hparams.timbre_num_classes):
@@ -80,7 +79,7 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
 
             loss_list.append(instrument_loss)
 
-        print(f'total mean: {total_mean} {[f"{i}:{x}/{instrument_recalls[i]}" for i, x in enumerate(loss_list)]}')
+        print(f'total mean: {total_mean} {[f"{i}:{x}" for i, x in enumerate(loss_list)]}')
 
         # add instrument-independent loss
         return tf.reduce_mean(loss_list) + K.mean(tf_utils.log_loss(permuted_y_true[-1],

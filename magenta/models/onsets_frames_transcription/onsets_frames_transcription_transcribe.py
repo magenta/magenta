@@ -19,11 +19,12 @@ from __future__ import absolute_import, division, print_function
 import copy
 import json
 
+import librosa
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
 from dotmap import DotMap
 
-from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
+from magenta.models.onsets_frames_transcription.data import wav_to_spec_op, samples_to_cqt
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -106,10 +107,12 @@ def run(argv, config_map, data_fn):
     for filename in argv[1:]:
         tf.compat.v1.logging.info('Starting transcription for %s...', filename)
 
-        wav_data = tf.gfile.Open(filename, 'rb').read()
+        # wav_data = tf.gfile.Open(filename, 'rb').read()
+        samples, sr = librosa.load(filename, hparams.sample_rate)
 
         if model_type is model_util.ModelType.MIDI:
-            spec = wav_to_spec_op(wav_data, hparams=hparams)
+            #spec = wav_to_spec_op(wav_data, hparams=hparams)
+            spec = samples_to_cqt(samples, hparams=hparams)
 
             # add "batch" and channel dims
             spec = tf.reshape(spec, (1, *spec.shape, 1))
@@ -117,12 +120,16 @@ def run(argv, config_map, data_fn):
             tf.compat.v1.logging.info('Running inference...')
             sequence_prediction = model.predict_from_spec(spec)
         else:
-            midi_spec = wav_to_spec_op(wav_data, hparams=hparams)
+            # midi_spec = wav_to_spec_op(wav_data, hparams=hparams)
+            midi_spec = samples_to_cqt(samples, hparams=hparams)
+
             temp_hparams = copy.deepcopy(hparams)
             temp_hparams.spec_hop_length = hparams.timbre_hop_length
             temp_hparams.spec_type = hparams.timbre_spec_type
             temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
-            timbre_spec = wav_to_spec_op(wav_data, hparams=temp_hparams)
+            # timbre_spec = wav_to_spec_op(wav_data, hparams=temp_hparams)
+            timbre_spec = samples_to_cqt(samples, hparams=temp_hparams)
+
             # add "batch" and channel dims
             midi_spec = tf.reshape(midi_spec, (1, *midi_spec.shape, 1))
             timbre_spec = tf.reshape(timbre_spec, (1, *timbre_spec.shape, 1))

@@ -68,6 +68,10 @@ def _wav_to_cqt(wav_audio, hparams):
     """Transforms the contents of a wav file into a series of CQT frames."""
     y = audio_io.wav_data_to_samples(wav_audio, hparams.sample_rate)
 
+    return samples_to_cqt(y, hparams)
+
+
+def samples_to_cqt(y, hparams):
     cqt = np.abs(
         librosa.core.cqt(
             y,
@@ -77,7 +81,6 @@ def _wav_to_cqt(wav_audio, hparams):
             n_bins=hparams.spec_n_bins,
             bins_per_octave=hparams.cqt_bins_per_octave),
         dtype=np.float32)
-
     # Transpose so that the data is in [frame, bins] format.
     cqt = cqt.T
     return cqt
