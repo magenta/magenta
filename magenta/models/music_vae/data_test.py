@@ -20,13 +20,17 @@ from __future__ import print_function
 
 import functools
 
+from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
 import magenta.music as mm
 from magenta.music import constants
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
+import mock
 import numpy as np
 import tensorflow.compat.v1 as tf
+from tensorflow.contrib import data as contrib_data
+from tensorflow.contrib.training import HParams
 
 NO_EVENT = constants.MELODY_NO_EVENT
 NOTE_OFF = constants.MELODY_NOTE_OFF
@@ -46,6 +50,7 @@ def filter_instrument(sequence, instrument):
 class NoteSequenceAugmenterTest(tf.test.TestCase):
 
   def setUp(self):
+    super(NoteSequenceAugmenterTest, self).setUp()
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
@@ -311,6 +316,7 @@ class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
                                 tf.test.TestCase):
 
   def setUp(self):
+    super(OneHotMelodyConverterTest, self).setUp()
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
@@ -454,6 +460,7 @@ class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
 class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
 
   def setUp(self):
+    super(OneHotDrumsConverterTest, self).setUp()
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
@@ -564,6 +571,7 @@ class RollInputsOneHotDrumsConverterTest(OneHotDrumsConverterTest):
 class RollOutputsDrumsConverterTest(BaseDataTest, tf.test.TestCase):
 
   def setUp(self):
+    super(RollOutputsDrumsConverterTest, self).setUp()
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
@@ -658,6 +666,7 @@ class RollOutputsDrumsConverterTest(BaseDataTest, tf.test.TestCase):
 class TrioConverterTest(BaseDataTest, tf.test.TestCase):
 
   def setUp(self):
+    super(TrioConverterTest, self).setUp()
     sequence = music_pb2.NoteSequence()
     sequence.tempos.add(qpm=60)
     # Mel 1, coverage bars: [3, 9] / [2, 9]
@@ -858,6 +867,7 @@ class GrooveConverterTest(tf.test.TestCase):
     return sequence
 
   def setUp(self):
+    super(GrooveConverterTest, self).setUp()
     self.one_bar_sequence = self.initialize_sequence()
     self.two_bar_sequence = self.initialize_sequence()
     self.tap_sequence = self.initialize_sequence()
@@ -1366,6 +1376,74 @@ class GrooveConverterTest(tf.test.TestCase):
     expected_infer_sequence.notes[0].pitch = 3
     expected_infer_sequence.notes[2].pitch = 1
     self.compare_seqs(expected_infer_sequence, infer_sequences[0])
+
+
+class GetDatasetTest(tf.test.TestCase):
+
+  @mock.patch.object(contrib_data, 'parallel_interleave')
+  @mock.patch.object(tf.data.Dataset, 'list_files')
+  @mock.patch.object(tf.gfile, 'Glob')
+  def testGetDatasetBasic(self, mock_glob, mock_list, mock_interleave):
+    # Create NoteSequence
+    sequence = music_pb2.NoteSequence()
+    sequence.tempos.add(qpm=60)
+    testing_lib.add_track_to_sequence(
+        sequence, 0,
+        [(32, 100, 2, 4), (33, 1, 6, 11), (34, 1, 11, 13),
+         (35, 1, 17, 19)])
+    testing_lib.add_track_to_sequence(
+        sequence, 1,
+        [(35, 127, 2, 4), (36, 50, 6, 8),
+         (71, 100, 33, 37), (73, 100, 34, 37),
+         (33, 1, 50, 55), (34, 1, 55, 56)])
+    testing_lib.add_chords_to_sequence(
+        sequence,
+        [('F', 2), ('C', 8), ('Am', 16), ('N.C.', 20),
+         ('Bb7', 32), ('G', 36), ('F', 48), ('C', 52)])
+    serialized = sequence.SerializeToString()
+
+    # Setup reader mocks
+    mock_glob.return_value = ['some_file']
+    mock_list.return_value = tf.data.Dataset.from_tensor_slices(['some_file'])
+    transform_fn = lambda _: tf.data.Dataset.from_tensor_slices([serialized])
+    mock_interleave.return_value = transform_fn
+
+    # Use a mock data converter to make the test robust
+    mock_converter = mock.create_autospec(
+        data.OneHotMelodyConverter, instance=True)
+    mock_converter.input_depth = 90
+    mock_converter.output_depth = 90
+    mock_converter.control_depth = 0
+    mock_converter.input_dtype = np.bool
+    mock_converter.output_dtype = np.bool
+    mock_converter.control_dtype = np.bool
+    c_inputs = np.ones((32, 90), dtype=np.bool)
+    c_outputs = np.ones((32, 90), dtype=np.bool)
+    c_controls = np.zeros((32, 0), dtype=np.bool)
+    mock_converter.to_tensors.return_value = data.ConverterTensors(
+        inputs=(c_inputs,), outputs=(c_outputs,), controls=(c_controls,))
+
+    # Create test config and verify results
+    config = configs.Config(
+        hparams=HParams(batch_size=1),
+        note_sequence_augmenter=None,
+        data_converter=mock_converter,
+        train_examples_path='some_path',
+        eval_examples_path='some_path',
+    )
+    ds = data.get_dataset(config, is_training=False)
+    it = tf.data.make_one_shot_iterator(ds)
+    with self.test_session() as sess:
+      result = sess.run(it.get_next())
+      self.assertLen(result, 4)  # inputs, outputs, controls, lengths
+      self.assertLen(result[0], 1)
+      self.assertLen(result[1], 1)
+      self.assertLen(result[2], 1)
+      self.assertLen(result[3], 1)
+      self.assertSameStructure(result[0][0].tolist(), c_inputs.tolist())
+      self.assertSameStructure(result[1][0].tolist(), c_outputs.tolist())
+      self.assertSameStructure(result[2][0].tolist(), c_controls.tolist())
+      self.assertSameStructure(result[3][0].tolist(), 32)
 
 
 if __name__ == '__main__':
