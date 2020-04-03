@@ -62,6 +62,10 @@ def get_z_notes(start_times, z_instruments, t_instruments):
   z_notes = []
   for t in start_times:
     idx = np.searchsorted(t_instruments, t, side='left') - 1
+    
+    if idx.item() == t_instruments.size - 1:
+      idx -= 1
+    
     t_left = t_instruments[idx]
     t_right = t_instruments[idx + 1]
     interp = (t - t_left) / (t_right - t_left)
