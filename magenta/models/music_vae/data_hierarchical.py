@@ -223,7 +223,8 @@ class BaseHierarchicalConverter(data.BaseConverter):
   def to_tensors(self, item):
     """Converts to tensors and adds hierarchical padding, if needed."""
     tensors = self._to_tensors(item)
-    sampled_results = self._maybe_sample_outputs(list(zip(*tensors)))
+    sampled_results = data.maybe_sample_items(
+        list(zip(*tensors)), self.max_tensors_per_item, self.is_training)
     if sampled_results:
       unpadded_results = data.ConverterTensors(*zip(*sampled_results))
     else:
@@ -366,7 +367,8 @@ class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
     for ns in note_sequences:
       results.append(
           super(BaseHierarchicalNoteSequenceConverter, self).to_tensors(ns))
-    return self._combine_to_tensor_results(results)
+    return data.combine_converter_tensors(results, self.max_tensors_per_item,
+                                          self.is_training)
 
   def _to_items(self, samples, controls=None):
     """Python method that decodes samples into list of NoteSequences."""
@@ -380,7 +382,7 @@ class MultiInstrumentPerformanceConverter(
     BaseHierarchicalNoteSequenceConverter):
   """Converts to/from multiple-instrument metric performances.
 
-  Args:
+  Attributes:
     num_velocity_bins: Number of velocity bins.
     max_tensors_per_notesequence: The maximum number of outputs to return
         for each NoteSequence.

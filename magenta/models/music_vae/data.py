@@ -106,6 +106,31 @@ def _extract_instrument(note_sequence, instrument):
   return extracted_ns
 
 
+def maybe_sample_items(seq, sample_size, randomize):
+  """Samples a seq if `sample_size` is provided and less than seq size."""
+  if not sample_size or len(seq) <= sample_size:
+    return seq
+  if randomize:
+    indices = set(np.random.choice(len(seq), size=sample_size, replace=False))
+    return [seq[i] for i in indices]
+  else:
+    return seq[:sample_size]
+
+
+def combine_converter_tensors(converter_tensors, max_num_tensors,
+                              randomize_sample):
+  """Combines multiple `ConverterTensors` into one and samples if required."""
+  results = []
+  for result in converter_tensors:
+    results.extend(zip(*result))
+  sampled_results = maybe_sample_items(results, max_num_tensors,
+                                       randomize_sample)
+  if sampled_results:
+    return ConverterTensors(*zip(*sampled_results))
+  else:
+    return ConverterTensors()
+
+
 def np_onehot(indices, depth, dtype=np.bool):
   """Converts 1D array of indices to a one-hot 2D array with given depth."""
   onehot_seq = np.zeros((len(indices), depth), dtype=dtype)
@@ -116,7 +141,7 @@ def np_onehot(indices, depth, dtype=np.bool):
 class NoteSequenceAugmenter(object):
   """Class for augmenting NoteSequences.
 
-  Args:
+  Attributes:
     transpose_range: A tuple containing the inclusive, integer range of
         transpose amounts to sample from. If None, no transposition is applied.
     stretch_range: A tuple containing the inclusive, float range of stretch
@@ -320,33 +345,10 @@ class BaseConverter(object):
     """Implementation that decodes model samples into list of items."""
     pass
 
-  def _maybe_sample_outputs(self, outputs):
-    """If should limit outputs, returns up to limit (randomly if training)."""
-    if (not self.max_tensors_per_item or
-        len(outputs) <= self.max_tensors_per_item):
-      return outputs
-    if self.is_training:
-      indices = set(np.random.choice(
-          len(outputs), size=self.max_tensors_per_item, replace=False))
-      return [outputs[i] for i in indices]
-    else:
-      return outputs[:self.max_tensors_per_item]
-
   def to_tensors(self, item):
     """Python method that converts `item` into list of tensors."""
     # TODO(b/152083777): To be removed.
     return convert_to_tensors(self, item)
-
-  def _combine_to_tensor_results(self, to_tensor_results):
-    """Combines the results of multiple to_tensors calls into one result."""
-    results = []
-    for result in to_tensor_results:
-      results.extend(zip(*result))
-    sampled_results = self._maybe_sample_outputs(results)
-    if sampled_results:
-      return ConverterTensors(*zip(*sampled_results))
-    else:
-      return ConverterTensors()
 
   def to_items(self, samples, controls=None):
     """Python method that decodes samples into list of items."""
@@ -437,7 +439,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
   uniquifies, and converts to encoding. Uses the OneHotEncoding's
   output encoding for both the input and output.
 
-  Args:
+  Attributes:
     event_list_fn: A function that returns a new EventSequence.
     event_extractor_fn: A function for extracing events into EventSequences. The
       sole input should be the quantized NoteSequence.
@@ -554,7 +556,9 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     # be mapped to identical tensors by the encoder_decoder (e.g., Drums).
 
     unique_event_tuples = list(set(tuple(l) for l in sliced_event_lists))
-    unique_event_tuples = self._maybe_sample_outputs(unique_event_tuples)
+    unique_event_tuples = maybe_sample_items(unique_event_tuples,
+                                             self.max_tensors_per_item,
+                                             self.is_training)
 
     if not unique_event_tuples:
       return ConverterTensors()
@@ -621,7 +625,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 class OneHotMelodyConverter(LegacyEventListOneHotConverter):
   """Converter for legacy MelodyOneHotEncoding.
 
-  Args:
+  Attributes:
     min_pitch: The minimum pitch to model. Those below this value will be
       ignored.
     max_pitch: The maximum pitch to model. Those above this value will be
@@ -704,7 +708,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
   The "roll" input encoding includes a final NOR bit (after the optional end
   token).
 
-  Args:
+  Attributes:
     max_bars: Optional maximum number of bars per extracted drums, before
       slicing.
     slice_bars: Optional size of window to slide over raw Melodies after
@@ -736,9 +740,9 @@ class DrumsConverter(BaseNoteSequenceConverter):
                roll_output=False, max_tensors_per_notesequence=5,
                presplit_on_time_changes=True):
     self._pitch_classes = pitch_classes or REDUCED_DRUM_PITCH_CLASSES
-    self._pitch_class_map = {
-        p: i for i, pitches in enumerate(self._pitch_classes) for p in pitches}
-
+    self._pitch_class_map = {}
+    for i, pitches in enumerate(self._pitch_classes):
+      self._pitch_class_map.update({p: i for p in pitches})
     self._steps_per_quarter = steps_per_quarter
     self._steps_per_bar = steps_per_quarter * quarters_per_bar
     self._slice_steps = self._steps_per_bar * slice_bars if slice_bars else None
@@ -819,7 +823,9 @@ class DrumsConverter(BaseNoteSequenceConverter):
       sliced_event_tuples = [tuple(l) for l in event_lists]
 
     unique_event_tuples = list(set(sliced_event_tuples))
-    unique_event_tuples = self._maybe_sample_outputs(unique_event_tuples)
+    unique_event_tuples = maybe_sample_items(unique_event_tuples,
+                                             self.max_tensors_per_item,
+                                             self.is_training)
 
     rolls = []
     oh_vecs = []
@@ -884,7 +890,7 @@ class TrioConverter(BaseNoteSequenceConverter):
   and OneHotDrumsConverter. Takes the cross products from the sets of
   instruments of each type.
 
-  Args:
+  Attributes:
     slice_bars: Optional size of window to slide over full converted tensor.
     gap_bars: The number of consecutive empty bars to allow for any given
       instrument. Note that this number is effectively doubled for internal
@@ -1139,12 +1145,15 @@ def convert_to_tensors(converter, note_sequence):
   results = []
   for ns in note_sequences:
     tensors = converter._to_tensors(ns)
-    sampled_results = converter._maybe_sample_outputs(list(zip(*tensors)))
+    sampled_results = maybe_sample_items(
+        list(zip(*tensors)), converter.max_tensors_per_item,
+        converter.is_training)
     if sampled_results:
       results.append(ConverterTensors(*zip(*sampled_results)))
     else:
       results.append(ConverterTensors())
-  return converter._combine_to_tensor_results(results)
+  return combine_converter_tensors(results, converter.max_tensors_per_item,
+                                   converter.is_training)
 
 
 def convert_to_tensors_op(item_scalar, converter):
@@ -1305,7 +1314,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
   at a single timestep is of length 9x3 = 27. So a single measure of drums
   at a 16th note grid is a matrix of shape (16, 27).
 
-  Args:
+  Attributes:
     split_bars: Optional size of window to slide over full converted tensor.
     steps_per_quarter: The number of quantization steps per quarter note.
     quarters_per_bar: The number of quarter notes per bar.
@@ -1432,7 +1441,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
     return self._pitch_classes
 
   @property
-  def pitch_class_map(self):
+  def pitch_class_map(self):  # pylint: disable=g-missing-from-attributes
     if self.is_inferring:
       return self._infer_pitch_class_map
     return self._pitch_class_map
