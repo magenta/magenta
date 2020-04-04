@@ -446,7 +446,8 @@ def model_fn(features, labels, mode, params, config):
     return tf.expand_dims(sequence, axis=0)
 
   predictions = {
-      'frame_probs': tf.expand_dims(frame_probs_flat, axis=0),
+      'frame_probs': frame_probs,
+      'onset_probs': onset_probs,
       'frame_predictions': frame_predictions,
       'onset_predictions': onset_predictions,
       'offset_predictions': offset_predictions,
@@ -457,6 +458,7 @@ def model_fn(features, labels, mode, params, config):
       'sequence_ids': features.sequence_id,
       'sequence_labels': labels.note_sequence,
       'frame_labels': labels.labels,
+      'onset_labels': labels.onsets,
   }
   for k, v in metrics_values.items():
     predictions[k] = tf.stack(v)
