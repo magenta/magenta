@@ -192,6 +192,61 @@ def pad_with_value(array, length, pad_value):
                 constant_values=pad_value)
 
 
+def hierarchical_pad_tensors(tensors, sample_size, randomize, max_lengths,
+                             end_token, input_depth, output_depth,
+                             control_depth, control_pad_token):
+  """Converts to tensors and adds hierarchical padding, if needed."""
+  sampled_results = data.maybe_sample_items(
+      list(zip(*tensors)), sample_size, randomize)
+  if sampled_results:
+    unpadded_results = data.ConverterTensors(*zip(*sampled_results))
+  else:
+    unpadded_results = data.ConverterTensors()
+  if not max_lengths:
+    return unpadded_results
+
+  # TODO(iansimon): The way control tensors are set in ConverterTensors is
+  # ugly when using a hierarchical converter. Figure out how to clean this up.
+
+  def _hierarchical_pad(input_, output, control):
+    """Pad and flatten hierarchical inputs, outputs, and controls."""
+    # Pad empty segments with end tokens and flatten hierarchy.
+    input_ = nest.flatten(
+        pad_with_element(input_, max_lengths[:-1],
+                         data.np_onehot([end_token], input_depth)))
+    output = nest.flatten(
+        pad_with_element(output, max_lengths[:-1],
+                         data.np_onehot([end_token], output_depth)))
+    length = np.squeeze(np.array([len(x) for x in input_], np.int32))
+
+    # Pad and concatenate flatten hierarchy.
+    input_ = np.concatenate(
+        [pad_with_value(x, max_lengths[-1], 0) for x in input_])
+    output = np.concatenate(
+        [pad_with_value(x, max_lengths[-1], 0) for x in output])
+
+    if np.size(control):
+      control = nest.flatten(
+          pad_with_element(control, max_lengths[:-1],
+                           data.np_onehot([control_pad_token], control_depth)))
+      control = np.concatenate(
+          [pad_with_value(x, max_lengths[-1], 0) for x in control])
+
+    return input_, output, control, length
+
+  padded_results = []
+  for i, o, c, _ in zip(*unpadded_results):
+    try:
+      padded_results.append(_hierarchical_pad(i, o, c))
+    except TooLongError:
+      continue
+
+  if padded_results:
+    return data.ConverterTensors(*zip(*padded_results))
+  else:
+    return data.ConverterTensors()
+
+
 class BaseHierarchicalConverter(data.BaseConverter):
   """Base class for data converters for hierarchical sequences.
 
@@ -232,60 +287,6 @@ class BaseHierarchicalConverter(data.BaseConverter):
         max_tensors_per_item=max_tensors_per_item,
         str_to_item_fn=str_to_item_fn,
         length_shape=length_shape)
-
-  def to_tensors(self, item):
-    """Converts to tensors and adds hierarchical padding, if needed."""
-    tensors = self._to_tensors(item)
-    sampled_results = data.maybe_sample_items(
-        list(zip(*tensors)), self.max_tensors_per_item, self.is_training)
-    if sampled_results:
-      unpadded_results = data.ConverterTensors(*zip(*sampled_results))
-    else:
-      unpadded_results = data.ConverterTensors()
-    if not self._max_lengths:
-      return unpadded_results
-
-    # TODO(iansimon): The way control tensors are set in ConverterTensors is
-    # ugly when using a hierarchical converter. Figure out how to clean this up.
-
-    def _hierarchical_pad(input_, output, control):
-      """Pad and flatten hierarchical inputs, outputs, and controls."""
-      # Pad empty segments with end tokens and flatten hierarchy.
-      input_ = nest.flatten(pad_with_element(
-          input_, self._max_lengths[:-1],
-          data.np_onehot([self.end_token], self.input_depth)))
-      output = nest.flatten(pad_with_element(
-          output, self._max_lengths[:-1],
-          data.np_onehot([self.end_token], self.output_depth)))
-      length = np.squeeze(np.array([len(x) for x in input_], np.int32))
-
-      # Pad and concatenate flatten hierarchy.
-      input_ = np.concatenate(
-          [pad_with_value(x, self._max_lengths[-1], 0) for x in input_])
-      output = np.concatenate(
-          [pad_with_value(x, self._max_lengths[-1], 0) for x in output])
-
-      if np.size(control):
-        control = nest.flatten(pad_with_element(
-            control, self._max_lengths[:-1],
-            data.np_onehot(
-                [self._control_pad_token], self.control_depth)))
-        control = np.concatenate(
-            [pad_with_value(x, self._max_lengths[-1], 0) for x in control])
-
-      return input_, output, control, length
-
-    padded_results = []
-    for i, o, c, _ in zip(*unpadded_results):
-      try:
-        padded_results.append(_hierarchical_pad(i, o, c))
-      except TooLongError:
-        continue
-
-    if padded_results:
-      return data.ConverterTensors(*zip(*padded_results))
-    else:
-      return data.ConverterTensors()
 
 
 class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
@@ -343,18 +344,6 @@ class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
   @max_tensors_per_notesequence.setter
   def max_tensors_per_notesequence(self, value):
     self.max_tensors_per_item = value
-
-  def to_tensors(self, note_sequence):
-    """Python method that converts `note_sequence` into list of tensors."""
-    note_sequences = data.preprocess_notesequence(
-        note_sequence, self._presplit_on_time_changes)
-
-    results = []
-    for ns in note_sequences:
-      results.append(
-          super(BaseHierarchicalNoteSequenceConverter, self).to_tensors(ns))
-    return data.combine_converter_tensors(results, self.max_tensors_per_item,
-                                          self.is_training)
 
 
 class MultiInstrumentPerformanceConverter(
@@ -573,7 +562,7 @@ class MultiInstrumentPerformanceConverter(
 
     return chunk_tensors, chunk_chord_tensors
 
-  def _to_tensors(self, note_sequence):
+  def _to_tensors_fn(self, note_sequence):
     # Performance sequences require sustain to be correctly interpreted.
     note_sequence = sequences_lib.apply_sustain_control_changes(note_sequence)
 
@@ -642,9 +631,20 @@ class MultiInstrumentPerformanceConverter(
         if self._chord_encoding:
           sequence_chord_tensors.append(chord_tensors)
 
-    return data.ConverterTensors(
+    tensors = data.ConverterTensors(
         inputs=sequence_tensors, outputs=sequence_tensors,
         controls=sequence_chord_tensors)
+    return hierarchical_pad_tensors(tensors, self.max_tensors_per_item,
+                                    self.is_training, self._max_lengths,
+                                    self.end_token, self.input_depth,
+                                    self.output_depth, self.control_depth,
+                                    self._control_pad_token)
+
+  def to_tensors(self, note_sequence):
+    return data.split_process_and_combine(note_sequence,
+                                          self._presplit_on_time_changes,
+                                          self.max_tensors_per_item,
+                                          self.is_training, self._to_tensors_fn)
 
   def _to_single_notesequence(self, samples, controls):
     qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
