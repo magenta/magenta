@@ -39,7 +39,7 @@ class MultipleExtractedExamplesError(Exception):
 class TrainedModel(object):
   """An interface to a trained model for encoding, decoding, and sampling.
 
-  Args:
+  Attributes:
     config: The Config to build the model graph with.
     batch_size: The batch size to build the model graph with.
     checkpoint_dir_or_path: The directory containing checkpoints for the model,
@@ -187,10 +187,10 @@ class TrainedModel(object):
       outputs.append(self._sess.run(self._outputs, feed_dict))
     samples = np.vstack(outputs)[:n]
     if self._c_input is not None:
-      return self._config.data_converter.to_items(
+      return self._config.data_converter.from_tensors(
           samples, np.tile(np.expand_dims(c_input, 0), [batch_size, 1, 1]))
     else:
-      return self._config.data_converter.to_items(samples)
+      return self._config.data_converter.from_tensors(samples)
 
   def encode(self, note_sequences, assert_same_length=False):
     """Encodes a collection of NoteSequences into latent vectors.
@@ -304,11 +304,13 @@ class TrainedModel(object):
     """
     tensors = self.decode_to_tensors(z, length, temperature, c_input)
     if self._c_input is not None:
-      return self._config.data_converter.to_items(
-          tensors, np.tile(np.expand_dims(c_input, 0),
-                           [self._config.hparams.batch_size, 1, 1]))
+      return self._config.data_converter.from_tensors(
+          tensors,
+          np.tile(
+              np.expand_dims(c_input, 0),
+              [self._config.hparams.batch_size, 1, 1]))
     else:
-      return self._config.data_converter.to_items(tensors)
+      return self._config.data_converter.from_tensors(tensors)
 
   def decode_to_tensors(self, z, length=None, temperature=1.0, c_input=None,
                         return_full_results=False):

@@ -122,6 +122,19 @@ def split_performance(performance, steps_per_segment, new_performance_fn,
   return segments
 
 
+def remove_padding(max_lengths, samples, controls=None):
+  """Remove padding."""
+  if not max_lengths:
+    return samples, controls
+  unpadded_samples = [sample.reshape(max_lengths + [-1])
+                      for sample in samples]
+  unpadded_controls = None
+  if controls is not None:
+    unpadded_controls = [control.reshape(max_lengths + [-1])
+                         for control in controls]
+  return unpadded_samples, unpadded_controls
+
+
 class TooLongError(Exception):
   """Exception for when an array is too long."""
   pass
@@ -274,31 +287,13 @@ class BaseHierarchicalConverter(data.BaseConverter):
     else:
       return data.ConverterTensors()
 
-  def to_items(self, samples, controls=None):
-    """Removes hierarchical padding and then converts samples into items."""
-    # First, remove padding.
-    if self._max_lengths:
-      unpadded_samples = [sample.reshape(self._max_lengths + [-1])
-                          for sample in samples]
-      if controls is not None:
-        unpadded_controls = [control.reshape(self._max_lengths + [-1])
-                             for control in controls]
-      else:
-        unpadded_controls = None
-    else:
-      unpadded_samples = samples
-      unpadded_controls = controls
-
-    return super(BaseHierarchicalConverter, self).to_items(
-        unpadded_samples, unpadded_controls)
-
 
 class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
   """Base class for hierarchical NoteSequence data converters.
 
   Inheriting classes must implement the following abstract methods:
     -`_to_tensors`
-    -`_to_notesequences`
+    -`from_tensors`
   """
 
   __metaclass__ = abc.ABCMeta
@@ -349,15 +344,6 @@ class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
   def max_tensors_per_notesequence(self, value):
     self.max_tensors_per_item = value
 
-  @abc.abstractmethod
-  def _to_notesequences(self, samples, controls=None):
-    """Implementation that decodes model samples into list of NoteSequences."""
-    return
-
-  def to_notesequences(self, samples, controls=None):
-    """Python method that decodes samples into list of NoteSequences."""
-    return self.to_items(samples, controls)
-
   def to_tensors(self, note_sequence):
     """Python method that converts `note_sequence` into list of tensors."""
     note_sequences = data.preprocess_notesequence(
@@ -369,13 +355,6 @@ class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
           super(BaseHierarchicalNoteSequenceConverter, self).to_tensors(ns))
     return data.combine_converter_tensors(results, self.max_tensors_per_item,
                                           self.is_training)
-
-  def _to_items(self, samples, controls=None):
-    """Python method that decodes samples into list of NoteSequences."""
-    if controls is None:
-      return self._to_notesequences(samples)
-    else:
-      return self._to_notesequences(samples, controls)
 
 
 class MultiInstrumentPerformanceConverter(
@@ -765,12 +744,12 @@ class MultiInstrumentPerformanceConverter(
 
     return seq
 
-  def _to_notesequences(self, samples, controls=None):
+  def from_tensors(self, samples, controls=None):
+    samples, controls = remove_padding(self._max_lengths, samples, controls)
     output_sequences = []
     for i in range(len(samples)):
       seq = self._to_single_notesequence(
-          samples[i],
-          controls[i] if self._chord_encoding and controls is not None else None
-      )
+          samples[i], controls[i]
+          if self._chord_encoding and controls is not None else None)
       output_sequences.append(seq)
     return output_sequences

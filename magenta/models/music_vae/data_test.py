@@ -428,7 +428,7 @@ class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
         steps_per_quarter=1, slice_bars=4, max_tensors_per_notesequence=1)
     tensors = converter.to_tensors(
         filter_instrument(self.sequence, 0))
-    sequences = converter.to_notesequences(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
 
     self.assertEqual(1, len(sequences))
     expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
@@ -444,7 +444,7 @@ class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
         chord_encoding=mm.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(
         filter_instrument(self.sequence, 0))
-    sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
+    sequences = converter.from_tensors(tensors.outputs, tensors.controls)
 
     self.assertEqual(1, len(sequences))
     expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
@@ -526,7 +526,7 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
         steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=1)
     tensors = converter.to_tensors(
         filter_instrument(self.sequence, 1))
-    sequences = converter.to_notesequences(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
 
     self.assertEqual(1, len(sequences))
     expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
@@ -643,7 +643,7 @@ class RollOutputsDrumsConverterTest(BaseDataTest, tf.test.TestCase):
         max_tensors_per_notesequence=None)
 
     tensors = converter.to_tensors(self.sequence)
-    sequences = converter.to_notesequences(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
 
     self.assertEqual(1, len(sequences))
     expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
@@ -784,7 +784,7 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     drums_oh = data.np_onehot(self.expected_sliced_labels[3][2], 512)
     output_tensors = np.concatenate([mel_oh, bass_oh, drums_oh], axis=-1)
 
-    sequences = converter.to_notesequences([output_tensors])
+    sequences = converter.from_tensors([output_tensors])
     self.assertEqual(1, len(sequences))
 
     self.assertProtoEquals(
@@ -823,7 +823,7 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
 
     output_tensors = np.concatenate([mel_oh, bass_oh, drums_oh], axis=-1)
 
-    sequences = converter.to_notesequences([output_tensors], [chords_oh])
+    sequences = converter.from_tensors([output_tensors], [chords_oh])
     self.assertEqual(1, len(sequences))
 
     self.assertProtoEquals(
@@ -1030,7 +1030,7 @@ class GrooveConverterTest(tf.test.TestCase):
     # Should output a tuple containing a tensor of shape (16,27)
     self.assertEqual((16, 27), tensors.outputs[0].shape)
 
-    sequences = converter.to_items(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(1, len(sequences))
 
     self.compare_seqs(self.one_bar_sequence, sequences[0])
@@ -1041,7 +1041,7 @@ class GrooveConverterTest(tf.test.TestCase):
     # Should output a tuple containing a tensor of shape (32,27)
     self.assertEqual((32, 27), tensors.outputs[0].shape)
 
-    sequences = converter.to_items(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(1, len(sequences))
 
     self.compare_seqs(self.two_bar_sequence, sequences[0])
@@ -1058,7 +1058,7 @@ class GrooveConverterTest(tf.test.TestCase):
     self.assertEqual(1, len(tensors.outputs))
     self.assertEqual((16, 27), tensors.outputs[0].shape)
 
-    sequences = converter.to_items(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(1, len(sequences))
 
     self.compare_seqs(self.one_bar_sequence, sequences[0])
@@ -1070,7 +1070,7 @@ class GrooveConverterTest(tf.test.TestCase):
     self.assertEqual((16, 27), tensors.outputs[0].shape)
     self.assertEqual((16, 27), tensors.outputs[1].shape)
 
-    sequences = converter.to_items(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(2, len(sequences))
 
     # Get notes in first bar
@@ -1095,13 +1095,13 @@ class GrooveConverterTest(tf.test.TestCase):
         max_tensors_per_notesequence=5, tapify=True)
 
     tensors = converter.to_tensors(self.one_bar_sequence)
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
 
     # Output sequence should match the initial input.
     self.compare_seqs(self.one_bar_sequence, output_sequences[0])
 
     # Input sequence should match the pre-defined tap_sequence.
-    input_sequences = converter.to_items(tensors.inputs)
+    input_sequences = converter.from_tensors(tensors.inputs)
     self.compare_seqs(self.tap_sequence, input_sequences[0])
 
   def testTapWithFixedVelocity(self):
@@ -1110,13 +1110,13 @@ class GrooveConverterTest(tf.test.TestCase):
         max_tensors_per_notesequence=5, tapify=True, fixed_velocities=True)
 
     tensors = converter.to_tensors(self.one_bar_sequence)
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
 
     # Output sequence should match the initial input.
     self.compare_seqs(self.one_bar_sequence, output_sequences[0])
 
     # Input sequence should match the pre-defined tap_sequence but with 0 vels.
-    input_sequences = converter.to_items(tensors.inputs)
+    input_sequences = converter.from_tensors(tensors.inputs)
 
     tap_notes = self.tap_sequence.notes
     for note in tap_notes:
@@ -1135,11 +1135,12 @@ class GrooveConverterTest(tf.test.TestCase):
         max_note_dropout_probability=0.8)
 
     tap_tensors = tap_converter.to_tensors(self.one_bar_sequence)
-    tap_input_sequences = tap_converter.to_items(tap_tensors.inputs)
+    tap_input_sequences = tap_converter.from_tensors(tap_tensors.inputs)
 
     dropout_tensors = dropout_converter.to_tensors(self.one_bar_sequence)
-    dropout_input_sequences = dropout_converter.to_items(dropout_tensors.inputs)
-    output_sequences = dropout_converter.to_items(dropout_tensors.outputs)
+    dropout_input_sequences = dropout_converter.from_tensors(
+        dropout_tensors.inputs)
+    output_sequences = dropout_converter.from_tensors(dropout_tensors.outputs)
 
     # Output sequence should match the initial input.
     self.compare_seqs(self.one_bar_sequence, output_sequences[0])
@@ -1154,13 +1155,13 @@ class GrooveConverterTest(tf.test.TestCase):
         max_tensors_per_notesequence=5, humanize=True)
 
     tensors = converter.to_tensors(self.one_bar_sequence)
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
 
     # Output sequence should match the initial input.
     self.compare_seqs(self.one_bar_sequence, output_sequences[0])
 
     # Input sequence should match the pre-defined quantized_sequence.
-    input_sequences = converter.to_items(tensors.inputs)
+    input_sequences = converter.from_tensors(tensors.inputs)
     self.compare_seqs(self.quantized_sequence, input_sequences[0])
 
   def testAddInstruments(self):
@@ -1170,13 +1171,13 @@ class GrooveConverterTest(tf.test.TestCase):
         max_tensors_per_notesequence=5, add_instruments=[2])
 
     tensors = converter.to_tensors(self.one_bar_sequence)
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
 
     # Output sequence should match the initial input.
     self.compare_seqs(self.one_bar_sequence, output_sequences[0])
 
     # Input sequence should match the pre-defined sequence.
-    input_sequences = converter.to_items(tensors.inputs)
+    input_sequences = converter.from_tensors(tensors.inputs)
     self.compare_seqs(self.no_closed_hh_sequence, input_sequences[0])
 
     # Remove snare from inputs.
@@ -1185,13 +1186,13 @@ class GrooveConverterTest(tf.test.TestCase):
         max_tensors_per_notesequence=5, add_instruments=[1])
 
     tensors = converter.to_tensors(self.one_bar_sequence)
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
 
     # Output sequence should match the initial input.
     self.compare_seqs(self.one_bar_sequence, output_sequences[0])
 
     # Input sequence should match the pre-defined sequence.
-    input_sequences = converter.to_items(tensors.inputs)
+    input_sequences = converter.from_tensors(tensors.inputs)
     self.compare_seqs(self.no_snare_sequence, input_sequences[0])
 
   def testCategorical(self):
@@ -1205,7 +1206,7 @@ class GrooveConverterTest(tf.test.TestCase):
 
     self.assertEqual((16, 585), tensors.outputs[0].shape)
 
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
     self.compare_seqs(self.one_bar_sequence, output_sequences[0],
                       categorical=True)
 
@@ -1221,7 +1222,7 @@ class GrooveConverterTest(tf.test.TestCase):
     for i, v in enumerate(np.argmax(tensors.controls[0], axis=-1)):
       self.assertEqual(i % 9, v)
 
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
     self.compare_seqs(self.one_bar_sequence, output_sequences[0],
                       categorical=True)
 
@@ -1239,7 +1240,7 @@ class GrooveConverterTest(tf.test.TestCase):
     for i, v in enumerate(np.argmax(tensors.controls[0], axis=-1)):
       self.assertEqual(i % 9, v)
 
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
     self.compare_seqs(self.one_bar_sequence, output_sequences[0],
                       categorical=True)
 
@@ -1253,7 +1254,7 @@ class GrooveConverterTest(tf.test.TestCase):
     for output in outputs:
       self.assertEqual(output.shape, (16, 27))
 
-    output_sequences = converter.to_items(tensors.outputs)
+    output_sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(len(output_sequences), 5)
 
   def testCycleDataSplitInstruments(self):
@@ -1265,7 +1266,7 @@ class GrooveConverterTest(tf.test.TestCase):
     tensors = converter.to_tensors(self.two_bar_sequence)
     outputs = tensors.outputs
     controls = tensors.controls
-    output_sequences = converter.to_items(outputs)
+    output_sequences = converter.from_tensors(outputs)
 
     self.assertEqual(len(outputs), 5)
     self.assertEqual(len(controls), 5)
@@ -1322,7 +1323,7 @@ class GrooveConverterTest(tf.test.TestCase):
     # Should output a tuple containing a tensor of shape (16, 12)
     self.assertEqual((16, 12), tensors.outputs[0].shape)
 
-    sequences = converter.to_items(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(1, len(sequences))
 
     self.compare_seqs(self.one_bar_sequence, sequences[0])
@@ -1354,7 +1355,7 @@ class GrooveConverterTest(tf.test.TestCase):
 
     # Test in default mode.
     default_tensors = converter.to_tensors(test_seq)
-    default_sequences = converter.to_items(default_tensors.outputs)
+    default_sequences = converter.from_tensors(default_tensors.outputs)
     expected_default_sequence = music_pb2.NoteSequence()
     expected_default_sequence.CopyFrom(test_seq)
     expected_default_sequence.notes[1].pitch = 0
@@ -1364,13 +1365,13 @@ class GrooveConverterTest(tf.test.TestCase):
     # Test in train mode.
     converter.set_mode('train')
     train_tensors = converter.to_tensors(test_seq)
-    train_sequences = converter.to_items(train_tensors.outputs)
+    train_sequences = converter.from_tensors(train_tensors.outputs)
     self.compare_seqs(expected_default_sequence, train_sequences[0])
 
     # Test in inference mode.
     converter.set_mode('infer')
     infer_tensors = converter.to_tensors(test_seq)
-    infer_sequences = converter.to_items(infer_tensors.outputs)
+    infer_sequences = converter.from_tensors(infer_tensors.outputs)
     expected_infer_sequence = music_pb2.NoteSequence()
     expected_infer_sequence.CopyFrom(test_seq)
     expected_infer_sequence.notes[0].pitch = 3

@@ -132,7 +132,7 @@ def run(config_map):
             FLAGS.output_dir,
             '%s_input%d-extractions_%s-*-of-%03d.mid' %
             (FLAGS.config, input_number, date_and_time, len(tensors)))
-        for i, ns in enumerate(config.data_converter.to_notesequences(tensors)):
+        for i, ns in enumerate(config.data_converter.from_tensors(tensors)):
           mm.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
         print(
             '%d valid inputs extracted from `%s`. Outputting these potential '

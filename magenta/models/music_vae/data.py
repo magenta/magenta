@@ -223,7 +223,7 @@ class BaseConverter(object):
 
   Inheriting classes must implement the following abstract methods:
     -`_to_tensors`
-    -`_to_items`
+    -`from_tensors`
   """
 
   __metaclass__ = abc.ABCMeta
@@ -340,22 +340,14 @@ class BaseConverter(object):
     """
     pass
 
-  @abc.abstractmethod
-  def _to_items(self, samples, controls=None):
-    """Implementation that decodes model samples into list of items."""
-    pass
-
   def to_tensors(self, item):
-    """Python method that converts `item` into list of tensors."""
+    """Python method that converts `item` into list of `ConverterTensors`."""
     # TODO(b/152083777): To be removed.
     return convert_to_tensors(self, item)
 
-  def to_items(self, samples, controls=None):
-    """Python method that decodes samples into list of items."""
-    if controls is None:
-      return self._to_items(samples)
-    else:
-      return self._to_items(samples, controls)
+  def from_tensors(self, samples, controls=None):
+    """Python method that decodes model samples into list of items."""
+    pass
 
 
 def preprocess_notesequence(note_sequence, presplit_on_time_changes):
@@ -374,7 +366,7 @@ class BaseNoteSequenceConverter(BaseConverter):
 
   Inheriting classes must implement the following abstract methods:
     -`_to_tensors`
-    -`_to_notesequences`
+    -`from_tensors`
   """
 
   __metaclass__ = abc.ABCMeta
@@ -414,22 +406,6 @@ class BaseNoteSequenceConverter(BaseConverter):
   @max_tensors_per_notesequence.setter
   def max_tensors_per_notesequence(self, value):
     self.max_tensors_per_item = value
-
-  @abc.abstractmethod
-  def _to_notesequences(self, samples, controls=None):
-    """Implementation that decodes model samples into list of NoteSequences."""
-    pass
-
-  def to_notesequences(self, samples, controls=None):
-    """Python method that decodes samples into list of NoteSequences."""
-    return self._to_items(samples, controls)
-
-  def _to_items(self, samples, controls=None):
-    """Python method that decodes samples into list of NoteSequences."""
-    if controls is None:
-      return self._to_notesequences(samples)
-    else:
-      return self._to_notesequences(samples, controls)
 
 
 class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
@@ -593,7 +569,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 
     return ConverterTensors(inputs=seqs, outputs=seqs, controls=control_seqs)
 
-  def _to_notesequences(self, samples, controls=None):
+  def from_tensors(self, samples, controls=None):
+    """Converts model samples to a list of `NoteSequence`s."""
     output_sequences = []
     for i, sample in enumerate(samples):
       s = np.argmax(sample, axis=-1)
@@ -858,7 +835,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
 
     return ConverterTensors(inputs=input_seqs, outputs=output_seqs)
 
-  def _to_notesequences(self, samples):
+  def from_tensors(self, samples, unused_controls=None):
     output_sequences = []
     for s in samples:
       if self._roll_output:
@@ -1082,16 +1059,16 @@ class TrioConverter(BaseNoteSequenceConverter):
 
     return ConverterTensors(inputs=seqs, outputs=seqs, controls=control_seqs)
 
-  def _to_notesequences(self, samples, controls=None):
+  def from_tensors(self, samples, controls=None):
     output_sequences = []
     dim_ranges = np.cumsum(self._split_output_depths)
     for i, s in enumerate(samples):
-      mel_ns = self._melody_converter.to_notesequences(
+      mel_ns = self._melody_converter.from_tensors(
           [s[:, :dim_ranges[0]]],
           [controls[i]] if controls is not None else None)[0]
-      bass_ns = self._melody_converter.to_notesequences(
+      bass_ns = self._melody_converter.from_tensors(
           [s[:, dim_ranges[0]:dim_ranges[1]]])[0]
-      drums_ns = self._drums_converter.to_notesequences(
+      drums_ns = self._drums_converter.from_tensors(
           [s[:, dim_ranges[1]:]])[0]
 
       for n in bass_ns.notes:
@@ -1695,7 +1672,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
 
     return ConverterTensors(inputs=input_seqs, outputs=seqs, controls=controls)
 
-  def _to_notesequences(self, samples, controls=None):
+  def from_tensors(self, samples, controls=None):
 
     def _zero_one_to_velocity(val):
       output = int(np.round(val*127))

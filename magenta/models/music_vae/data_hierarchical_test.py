@@ -30,6 +30,7 @@ import tensorflow.compat.v1 as tf
 class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
 
   def setUp(self):
+    super(MultiInstrumentPerformanceConverterTest, self).setUp()
     self.sequence = music_pb2.NoteSequence()
     self.sequence.ticks_per_quarter = 220
     self.sequence.tempos.add().qpm = 120.0
@@ -51,7 +52,7 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         hop_size_bars=2, chunk_size_bars=2)
     tensors = converter.to_tensors(sequence)
     self.assertEqual(2, len(tensors.outputs))
-    sequences = converter.to_notesequences(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(2, len(sequences))
 
     sequence1 = copy.deepcopy(self.sequence)
@@ -92,7 +93,7 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         chord_encoding=mm.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
     self.assertEqual(2, len(tensors.outputs))
-    sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
+    sequences = converter.from_tensors(tensors.outputs, tensors.controls)
     self.assertEqual(2, len(sequences))
 
     sequence1 = copy.deepcopy(self.sequence)
@@ -134,7 +135,7 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         hop_size_bars=4, chunk_size_bars=2)
     tensors = converter.to_tensors(sequence)
     self.assertEqual(1, len(tensors.outputs))
-    sequences = converter.to_notesequences(tensors.outputs)
+    sequences = converter.from_tensors(tensors.outputs)
     self.assertEqual(1, len(sequences))
     self.assertProtoEquals(sequence, sequences[0])
 
@@ -158,7 +159,7 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
         chord_encoding=mm.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
     self.assertEqual(1, len(tensors.outputs))
-    sequences = converter.to_notesequences(tensors.outputs, tensors.controls)
+    sequences = converter.from_tensors(tensors.outputs, tensors.controls)
     self.assertEqual(1, len(sequences))
     self.assertProtoEquals(sequence, sequences[0])
 
