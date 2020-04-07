@@ -17,11 +17,13 @@
 from __future__ import absolute_import, division, print_function
 
 import copy
+import glob
 import json
 
 import librosa
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
+import numpy as np
 from dotmap import DotMap
 
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op, samples_to_cqt
@@ -90,11 +92,11 @@ def run(argv, config_map, data_fn):
         midi_model.build_model(compile=False)
         midi_model.load_newest()
         timbre_model = ModelWrapper('E:/models', ModelType.TIMBRE, hparams=hparams)
-        timbre_model.build_model(compile=False)
-        timbre_model.load_newest()
+        #timbre_model.build_model(compile=False)
+        #timbre_model.load_newest()
 
         model.build_model(midi_model=midi_model.get_model(),
-                          timbre_model=timbre_model.get_model(),
+                          timbre_model=None,
                           compile=False)
 
     else:
@@ -104,7 +106,13 @@ def run(argv, config_map, data_fn):
     except:
         pass
 
-    for filename in argv[1:]:
+    try:
+        argv[1].index('*')
+        files = glob.glob(argv[1])
+    except ValueError:
+        files = argv[1:]
+
+    for filename in files:
         tf.compat.v1.logging.info('Starting transcription for %s...', filename)
 
         # wav_data = tf.gfile.Open(filename, 'rb').read()
@@ -113,6 +121,8 @@ def run(argv, config_map, data_fn):
         if model_type is model_util.ModelType.MIDI:
             #spec = wav_to_spec_op(wav_data, hparams=hparams)
             spec = samples_to_cqt(samples, hparams=hparams)
+            if hparams.spec_log_amplitude:
+                spec = librosa.power_to_db(spec)
 
             # add "batch" and channel dims
             spec = tf.reshape(spec, (1, *spec.shape, 1))
@@ -122,6 +132,8 @@ def run(argv, config_map, data_fn):
         else:
             # midi_spec = wav_to_spec_op(wav_data, hparams=hparams)
             midi_spec = samples_to_cqt(samples, hparams=hparams)
+            if hparams.spec_log_amplitude:
+                midi_spec = librosa.power_to_db(midi_spec)
 
             temp_hparams = copy.deepcopy(hparams)
             temp_hparams.spec_hop_length = hparams.timbre_hop_length
@@ -129,6 +141,10 @@ def run(argv, config_map, data_fn):
             temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
             # timbre_spec = wav_to_spec_op(wav_data, hparams=temp_hparams)
             timbre_spec = samples_to_cqt(samples, hparams=temp_hparams)
+            if hparams.timbre_spec_log_amplitude:
+                timbre_spec = librosa.power_to_db(timbre_spec)
+                timbre_spec = timbre_spec - K.min(timbre_spec)
+                timbre_spec /= K.max(timbre_spec)
 
             # add "batch" and channel dims
             midi_spec = tf.reshape(midi_spec, (1, *midi_spec.shape, 1))

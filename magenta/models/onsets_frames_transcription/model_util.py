@@ -31,8 +31,10 @@ if FLAGS.using_plaidml:
     from keras.utils import plot_model
     import keras.backend as K
 else:
+    from tensorflow.keras import optimizers
     from tensorflow.keras.optimizers import Adam
     from tensorflow.keras.utils import plot_model
+    from tensorflow.keras import Model
     import tensorflow.keras.backend as K
 
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
@@ -73,7 +75,7 @@ class ModelWrapper:
         self.batch_size = batch_size
         self.steps_per_epoch = steps_per_epoch
         self.accuracy_metric = accuracy_metric
-        self.model = model
+        self.model: Model = model
         self.hist = hist
         self.hparams = hparams
 
@@ -137,6 +139,8 @@ class ModelWrapper:
             new_metrics = self.model.train_on_batch(x, y)
             # tf.random.set_random_seed(1)
             # self.model.evaluate(x, y)
+            print(self.model.trainable_weights[-1])
+
             print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
             print([f'{x[0]}: {x[1]:0.4f}' for x in zip(self.model.metrics_names, new_metrics)])
 
@@ -237,8 +241,13 @@ class ModelWrapper:
         if present_instruments is None:
             present_instruments = K.expand_dims(np.ones(self.hparams.timbre_num_classes), 0)
         y_pred = self.model.predict_on_batch([midi_spec, timbre_spec, present_instruments])
-        multi_track_prf_wrapper(threshold=self.hparams.predict_frame_threshold, multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
-                                hparams=self.hparams, print_report=True, only_f1=False)(y_pred[0] > self.hparams.predict_frame_threshold, y_pred[0])
+        multi_track_prf_wrapper(threshold=self.hparams.predict_frame_threshold,
+                                multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
+                                hparams=self.hparams, print_report=True, only_f1=False)(
+            K.cast_to_floatx(y_pred[1] > self.hparams.predict_frame_threshold), y_pred[1])
+        permuted_y_probs = K.permute_dimensions(y_pred[1][0], (2, 0, 1))
+        print(f'total mean: {[f"{i}:{x}/{K.max(permuted_y_probs[i])}" for i, x in enumerate(permuted_y_probs)]}')
+
         frame_predictions = convert_multi_instrument_probs_to_predictions(
             y_pred[0],
             self.hparams.predict_frame_threshold,
@@ -328,7 +337,7 @@ class ModelWrapper:
                                        metrics=accuracies, loss=losses)
                 self.model = midi_model
 
-        if self.type == ModelType.TIMBRE or self.type == ModelType.FULL and timbre_model is None:
+        if False and self.type == ModelType.TIMBRE or self.type == ModelType.FULL and timbre_model is None:
             timbre_model, losses, accuracies = timbre_prediction_model(self.hparams)
 
             if self.type == ModelType.TIMBRE:
@@ -341,9 +350,9 @@ class ModelWrapper:
         if self.type == ModelType.FULL:  # self.type == ModelType.FULL:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()
-            self.model.compile(Adam(self.hparams.full_learning_rate,
-                                    decay=self.hparams.decay_rate,
-                                    clipnorm=self.hparams.clip_norm),
+            # self.model.compile(Adam(self.hparams.full_learning_rate),
+            #                    metrics=accuracies, loss=losses)
+            self.model.compile(optimizers.Adadelta(),
                                metrics=accuracies, loss=losses)
 
         # only save the model image if we are training on it
@@ -354,4 +363,7 @@ class ModelWrapper:
                        to_file=f'{self.model_dir}/{self.type.name}/{self.id}/model.png',
                        show_shapes=True,
                        show_layer_names=False)
-        print(self.model.summary())
+        try:
+            print(self.model.summary())
+        except Exception as e:
+            print(e)

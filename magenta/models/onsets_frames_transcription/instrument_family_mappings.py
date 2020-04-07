@@ -105,7 +105,7 @@ midi_instrument_to_family.update({
     82: Family.SYNTH_LEAD,
     83: Family.SYNTH_LEAD,
     84: Family.SYNTH_LEAD,
-    85: Family.SYNTH_LEAD,
+    85: Family.VOCAL,
     86: Family.SYNTH_LEAD,
     87: Family.SYNTH_LEAD,
     105: Family.GUITAR,

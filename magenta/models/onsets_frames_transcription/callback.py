@@ -8,7 +8,7 @@ from memory_profiler import profile
 
 from magenta.models.onsets_frames_transcription import infer_util, constants
 from magenta.models.onsets_frames_transcription.accuracy_util import flatten_f1_wrapper, \
-    multi_track_prf_wrapper
+    multi_track_prf_wrapper, get_last_channel
 from magenta.music import midi_io
 
 FLAGS = tf.app.flags.FLAGS
@@ -143,6 +143,6 @@ class FullPredictionMetrics(MetricsCallback):
                                                 self.hparams.multiple_instruments_threshold,
                                                  only_f1=False)(y[2], y_probs[2])
         # save agnostic midi
-        self.save_midi([K.max(p, -1) for p in y_probs], [K.max(t, -1) for t in y], epoch)
+        self.save_midi([get_last_channel(p) for p in y_probs], [get_last_channel(t) for t in y], epoch)
         del y_probs
         return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)

@@ -137,6 +137,9 @@ def get_note_croppings(record, hparams=None, is_training=True):
     temp_hparams.spec_type = hparams.timbre_spec_type
     temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
     spec = data.wav_to_spec_op(audio, hparams=temp_hparams)
+    if hparams.timbre_spec_log_amplitude:
+        spec = spec - librosa.power_to_db(np.array([0]))[0]
+        spec /= K.max(spec)
 
     def get_note_croppings_fn(sequence_tensor):
         note_sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())

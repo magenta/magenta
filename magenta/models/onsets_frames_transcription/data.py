@@ -241,7 +241,7 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
 
     def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor, instrument_family=None):
         """Converts sequence to pianorolls."""
-        if instrument_family < 0:
+        if instrument_family is not None and instrument_family < 0:
             instrument_family = None
         velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor.numpy())
         sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
@@ -445,7 +445,11 @@ def preprocess_example(example_proto, hparams, is_training):
         temp_hparams.spec_hop_length = hparams.timbre_hop_length
         temp_hparams.spec_type = hparams.timbre_spec_type
         temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
-        spec = (spec, wav_to_spec_op(audio, hparams=temp_hparams))
+        timbre_spec = wav_to_spec_op(audio, hparams=temp_hparams)
+        if hparams.timbre_spec_log_amplitude:
+            timbre_spec = timbre_spec - K.min(timbre_spec)
+            timbre_spec /= K.max(timbre_spec)
+        spec = (spec, timbre_spec)
 
     labels, label_weights, onsets, offsets, velocities = sequence_to_pianoroll_op(
         sequence, velocity_range, hparams=hparams)
