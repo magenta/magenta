@@ -218,7 +218,7 @@ class ConverterTensors(collections.namedtuple(
         cls, inputs, outputs, controls, lengths)
 
 
-class BaseConverter(object):
+class BaseNoteSequenceConverter(object):
   """Base class for data converters between items and tensors.
 
   Inheriting classes must implement the following abstract methods:
@@ -228,11 +228,18 @@ class BaseConverter(object):
 
   __metaclass__ = abc.ABCMeta
 
-  def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
-               control_depth=0, control_dtype=np.bool, end_token=None,
-               max_tensors_per_item=None,
-               str_to_item_fn=lambda s: s, length_shape=()):
-    """Initializes BaseConverter.
+  def __init__(self,
+               input_depth,
+               input_dtype,
+               output_depth,
+               output_dtype,
+               control_depth=0,
+               control_dtype=np.bool,
+               end_token=None,
+               max_tensors_per_notesequence=None,
+               length_shape=(),
+               presplit_on_time_changes=True):
+    """Initializes BaseNoteSequenceConverter.
 
     Args:
       input_depth: Depth of final dimension of input (encoder) tensors.
@@ -243,11 +250,11 @@ class BaseConverter(object):
           conditioning on control tensors.
       control_dtype: DType of control tensors.
       end_token: Optional end token.
-      max_tensors_per_item: The maximum number of outputs to return for each
-          input.
-      str_to_item_fn: Callable to convert raw string input into an item for
-          conversion.
+      max_tensors_per_notesequence: The maximum number of outputs to return for
+          each input.
       length_shape: Shape of length returned by `to_tensor`.
+      presplit_on_time_changes: Whether to split NoteSequence on time changes
+        before converting.
     """
     self._input_depth = input_depth
     self._input_dtype = input_dtype
@@ -256,10 +263,11 @@ class BaseConverter(object):
     self._control_depth = control_depth
     self._control_dtype = control_dtype
     self._end_token = end_token
-    self._max_tensors_per_input = max_tensors_per_item
-    self._str_to_item_fn = str_to_item_fn
+    self._max_tensors_per_input = max_tensors_per_notesequence
+    self._str_to_item_fn = music_pb2.NoteSequence.FromString
     self._mode = None
     self._length_shape = length_shape
+    self._presplit_on_time_changes = presplit_on_time_changes
 
   def set_mode(self, mode):
     if mode not in ['train', 'eval', 'infer']:
@@ -279,11 +287,11 @@ class BaseConverter(object):
     return self._str_to_item_fn
 
   @property
-  def max_tensors_per_item(self):
+  def max_tensors_per_notesequence(self):
     return self._max_tensors_per_input
 
-  @max_tensors_per_item.setter
-  def max_tensors_per_item(self, value):
+  @max_tensors_per_notesequence.setter
+  def max_tensors_per_notesequence(self, value):
     self._max_tensors_per_input = value
 
   @property
@@ -335,53 +343,6 @@ class BaseConverter(object):
   def from_tensors(self, samples, controls=None):
     """Python method that decodes model samples into list of items."""
     pass
-
-
-class BaseNoteSequenceConverter(BaseConverter):
-  """Base class for NoteSequence data converters.
-
-  Inheriting classes must implement the following abstract methods:
-    -`to_tensors`
-    -`from_tensors`
-  """
-
-  __metaclass__ = abc.ABCMeta
-
-  def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
-               control_depth=0, control_dtype=np.bool, end_token=None,
-               presplit_on_time_changes=True,
-               max_tensors_per_notesequence=None):
-    """Initializes BaseNoteSequenceConverter.
-
-    Args:
-      input_depth: Depth of final dimension of input (encoder) tensors.
-      input_dtype: DType of input (encoder) tensors.
-      output_depth: Depth of final dimension of output (decoder) tensors.
-      output_dtype: DType of output (decoder) tensors.
-      control_depth: Depth of final dimension of control tensors, or zero if not
-          conditioning on control tensors.
-      control_dtype: DType of control tensors.
-      end_token: Optional end token.
-      presplit_on_time_changes: Whether to split NoteSequence on time changes
-        before converting.
-      max_tensors_per_notesequence: The maximum number of outputs to return
-        for each NoteSequence.
-    """
-    super(BaseNoteSequenceConverter, self).__init__(
-        input_depth, input_dtype, output_depth, output_dtype,
-        control_depth, control_dtype, end_token,
-        max_tensors_per_item=max_tensors_per_notesequence,
-        str_to_item_fn=music_pb2.NoteSequence.FromString)
-
-    self._presplit_on_time_changes = presplit_on_time_changes
-
-  @property
-  def max_tensors_per_notesequence(self):
-    return self.max_tensors_per_item
-
-  @max_tensors_per_notesequence.setter
-  def max_tensors_per_notesequence(self, value):
-    self.max_tensors_per_item = value
 
 
 class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
@@ -509,7 +470,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 
     unique_event_tuples = list(set(tuple(l) for l in sliced_event_lists))
     unique_event_tuples = maybe_sample_items(unique_event_tuples,
-                                             self.max_tensors_per_item,
+                                             self.max_tensors_per_notesequence,
                                              self.is_training)
 
     if not unique_event_tuples:
@@ -654,7 +615,7 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
   def to_tensors(self, note_sequence):
     return split_process_and_combine(note_sequence,
                                      self._presplit_on_time_changes,
-                                     self.max_tensors_per_item,
+                                     self.max_tensors_per_notesequence,
                                      self.is_training, self._to_tensors_fn)
 
 
@@ -783,7 +744,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
 
     unique_event_tuples = list(set(sliced_event_tuples))
     unique_event_tuples = maybe_sample_items(unique_event_tuples,
-                                             self.max_tensors_per_item,
+                                             self.max_tensors_per_notesequence,
                                              self.is_training)
 
     rolls = []
@@ -820,7 +781,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
   def to_tensors(self, note_sequence):
     return split_process_and_combine(note_sequence,
                                      self._presplit_on_time_changes,
-                                     self.max_tensors_per_item,
+                                     self.max_tensors_per_notesequence,
                                      self.is_training, self._to_tensors_fn)
 
   def from_tensors(self, samples, unused_controls=None):
@@ -1051,7 +1012,7 @@ class TrioConverter(BaseNoteSequenceConverter):
   def to_tensors(self, note_sequence):
     return split_process_and_combine(note_sequence,
                                      self._presplit_on_time_changes,
-                                     self.max_tensors_per_item,
+                                     self.max_tensors_per_notesequence,
                                      self.is_training, self._to_tensors_fn)
 
   def from_tensors(self, samples, controls=None):

@@ -247,7 +247,7 @@ def hierarchical_pad_tensors(tensors, sample_size, randomize, max_lengths,
     return data.ConverterTensors()
 
 
-class BaseHierarchicalConverter(data.BaseConverter):
+class BaseHierarchicalNoteSequenceConverter(data.BaseNoteSequenceConverter):
   """Base class for data converters for hierarchical sequences.
 
   Output sequences will be padded hierarchically and flattened if `max_lengths`
@@ -265,38 +265,6 @@ class BaseHierarchicalConverter(data.BaseConverter):
     -`_to_items`
   """
 
-  def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
-               control_depth=0, control_dtype=np.bool, control_pad_token=None,
-               end_token=None, max_lengths=None, max_tensors_per_item=None,
-               str_to_item_fn=lambda s: s, flat_output=False):
-    self._control_pad_token = control_pad_token
-    self._max_lengths = [] if max_lengths is None else max_lengths
-    if max_lengths and not flat_output:
-      length_shape = (np.prod(max_lengths[:-1]),)
-    else:
-      length_shape = ()
-
-    super(BaseHierarchicalConverter, self).__init__(
-        input_depth=input_depth,
-        input_dtype=input_dtype,
-        output_depth=output_depth,
-        output_dtype=output_dtype,
-        control_depth=control_depth,
-        control_dtype=control_dtype,
-        end_token=end_token,
-        max_tensors_per_item=max_tensors_per_item,
-        str_to_item_fn=str_to_item_fn,
-        length_shape=length_shape)
-
-
-class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
-  """Base class for hierarchical NoteSequence data converters.
-
-  Inheriting classes must implement the following abstract methods:
-    -`_to_tensors`
-    -`from_tensors`
-  """
-
   __metaclass__ = abc.ABCMeta
 
   def __init__(self, input_depth, input_dtype, output_depth, output_dtype,
@@ -304,46 +272,23 @@ class BaseHierarchicalNoteSequenceConverter(BaseHierarchicalConverter):
                control_pad_token=None, end_token=None,
                max_lengths=None, presplit_on_time_changes=True,
                max_tensors_per_notesequence=None, flat_output=False):
-    """Initializes BaseNoteSequenceConverter.
-
-    Args:
-      input_depth: Depth of final dimension of input (encoder) tensors.
-      input_dtype: DType of input (encoder) tensors.
-      output_depth: Depth of final dimension of output (decoder) tensors.
-      output_dtype: DType of output (decoder) tensors.
-      control_depth: Depth of final dimension of control tensors, or zero if not
-          conditioning on control tensors.
-      control_dtype: DType of control tensors.
-      control_pad_token: Corresponding control token to use when padding
-          input/output sequences with `end_token`.
-      end_token: Optional end token.
-      max_lengths: The maximum length at each level of the nested list to
-        pad to.
-      presplit_on_time_changes: Whether to split NoteSequence on time changes
-        before converting.
-      max_tensors_per_notesequence: The maximum number of outputs to return
-        for each NoteSequence.
-      flat_output: If True, the output of the converter should be flattened
-        before being sent to the model. Useful for testing with a
-        non-hierarchical model.
-    """
+    self._control_pad_token = control_pad_token
+    self._max_lengths = [] if max_lengths is None else max_lengths
+    if max_lengths and not flat_output:
+      length_shape = (np.prod(max_lengths[:-1]),)
+    else:
+      length_shape = ()
     super(BaseHierarchicalNoteSequenceConverter, self).__init__(
-        input_depth, input_dtype, output_depth, output_dtype,
-        control_depth, control_dtype, control_pad_token, end_token,
-        max_lengths=max_lengths,
-        max_tensors_per_item=max_tensors_per_notesequence,
-        str_to_item_fn=music_pb2.NoteSequence.FromString,
-        flat_output=flat_output)
-
-    self._presplit_on_time_changes = presplit_on_time_changes
-
-  @property
-  def max_tensors_per_notesequence(self):
-    return self.max_tensors_per_item
-
-  @max_tensors_per_notesequence.setter
-  def max_tensors_per_notesequence(self, value):
-    self.max_tensors_per_item = value
+        input_depth=input_depth,
+        input_dtype=input_dtype,
+        output_depth=output_depth,
+        output_dtype=output_dtype,
+        control_depth=control_depth,
+        control_dtype=control_dtype,
+        end_token=end_token,
+        max_tensors_per_notesequence=max_tensors_per_notesequence,
+        length_shape=length_shape,
+        presplit_on_time_changes=presplit_on_time_changes)
 
 
 class MultiInstrumentPerformanceConverter(
@@ -634,7 +579,7 @@ class MultiInstrumentPerformanceConverter(
     tensors = data.ConverterTensors(
         inputs=sequence_tensors, outputs=sequence_tensors,
         controls=sequence_chord_tensors)
-    return hierarchical_pad_tensors(tensors, self.max_tensors_per_item,
+    return hierarchical_pad_tensors(tensors, self.max_tensors_per_notesequence,
                                     self.is_training, self._max_lengths,
                                     self.end_token, self.input_depth,
                                     self.output_depth, self.control_depth,
@@ -643,7 +588,7 @@ class MultiInstrumentPerformanceConverter(
   def to_tensors(self, note_sequence):
     return data.split_process_and_combine(note_sequence,
                                           self._presplit_on_time_changes,
-                                          self.max_tensors_per_item,
+                                          self.max_tensors_per_notesequence,
                                           self.is_training, self._to_tensors_fn)
 
   def _to_single_notesequence(self, samples, controls):
