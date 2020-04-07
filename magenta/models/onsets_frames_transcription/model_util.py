@@ -139,7 +139,7 @@ class ModelWrapper:
             new_metrics = self.model.train_on_batch(x, y)
             # tf.random.set_random_seed(1)
             # self.model.evaluate(x, y)
-            print(self.model.trainable_weights[-1])
+            # print(self.model.trainable_weights[-1])
 
             print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
             print([f'{x[0]}: {x[1]:0.4f}' for x in zip(self.model.metrics_names, new_metrics)])
@@ -246,7 +246,8 @@ class ModelWrapper:
                                 hparams=self.hparams, print_report=True, only_f1=False)(
             K.cast_to_floatx(y_pred[1] > self.hparams.predict_frame_threshold), y_pred[1])
         permuted_y_probs = K.permute_dimensions(y_pred[1][0], (2, 0, 1))
-        print(f'total mean: {[f"{i}:{x}/{K.max(permuted_y_probs[i])}" for i, x in enumerate(permuted_y_probs)]}')
+        print(
+            f'total mean: {[f"{i}:{x}/{K.max(permuted_y_probs[i])}" for i, x in enumerate(permuted_y_probs)]}')
 
         frame_predictions = convert_multi_instrument_probs_to_predictions(
             y_pred[0],
@@ -337,7 +338,7 @@ class ModelWrapper:
                                        metrics=accuracies, loss=losses)
                 self.model = midi_model
 
-        if False and self.type == ModelType.TIMBRE or self.type == ModelType.FULL and timbre_model is None:
+        if self.type == ModelType.TIMBRE or self.type == ModelType.FULL and timbre_model is None:
             timbre_model, losses, accuracies = timbre_prediction_model(self.hparams)
 
             if self.type == ModelType.TIMBRE:
@@ -350,10 +351,12 @@ class ModelWrapper:
         if self.type == ModelType.FULL:  # self.type == ModelType.FULL:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()
-            # self.model.compile(Adam(self.hparams.full_learning_rate),
-            #                    metrics=accuracies, loss=losses)
-            self.model.compile(optimizers.Adadelta(),
+            self.model.compile(Adam(self.hparams.full_learning_rate,
+                                    decay=self.hparams.timbre_decay_rate,
+                                    clipnorm=self.hparams.timbre_clip_norm),
                                metrics=accuracies, loss=losses)
+            # self.model.compile(optimizers.Adadelta(),
+            #                    metrics=accuracies, loss=losses)
 
         # only save the model image if we are training on it
         if compile:

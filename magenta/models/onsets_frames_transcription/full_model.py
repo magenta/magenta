@@ -24,11 +24,11 @@ from magenta.music import midi_io
 
 def get_default_hparams():
     return {
-        'full_learning_rate': 0.1,
+        'full_learning_rate': 1e-4,
         'prediction_generosity': 1,
         'multiple_instruments_threshold': 0.5,
         'use_all_instruments': False,
-        'midi_trainable': False,
+        'midi_trainable': True,
     }
 
 
@@ -135,13 +135,14 @@ class FullModel:
         spec_256 = Input(shape=(None, constants.SPEC_BANDS, 1), name='timbre_spec')
         present_instruments = Input(shape=(self.hparams.timbre_num_classes,))
 
-        self.midi_model.trainable = True#self.hparams.midi_trainable
-        frame_probs, onset_probs, offset_probs = self.midi_model([spec_512])
+        self.midi_model.trainable = self.hparams.midi_trainable
+        frame_probs, onset_probs, offset_probs = self.midi_model.call([spec_512])
 
-        stop_gradient = Lambda(lambda x: (x))
+        stop_gradient = Lambda(lambda x: K.stop_gradient(x))
         # decrease threshold to feed more notes into the timbre prediction
         # even if they don't make the final cut in accuracy_util.multi_track_accuracy_wrapper
-        frame_predictions = stop_gradient(frame_probs > self.hparams.predict_frame_threshold)
+        frame_predictions = stop_gradient(
+            frame_probs > self.hparams.predict_frame_threshold / self.hparams.prediction_generosity)
         # generous onsets are used so that we can get more frame prediction data for the instruments
         # this will end up making our end-predicted notes much shorter though
         generous_onset_predictions = stop_gradient(onset_probs > (
@@ -159,8 +160,8 @@ class FullModel:
                                   dtype='int64',
                                   dynamic=True)(frame_predictions)
 
-        # timbre_probs = self.timbre_model([spec_256, note_croppings])
-        timbre_probs = get_timbre_output_layer(self.hparams)([spec_256, note_croppings])
+        timbre_probs = self.timbre_model.call([spec_256, note_croppings])
+        # timbre_probs = get_timbre_output_layer(self.hparams)([spec_256, note_croppings])
 
         if self.hparams.timbre_coagulate_mini_batches:
             # re-separate
@@ -191,11 +192,14 @@ class FullModel:
         expanded_present_instruments = float_cast(expand_dims([expand_dims([
             print_layer(present_instruments), -2]), -2]))
 
-        # present_pianoroll = (
-        #     Multiply(name='apply_present')([timbre_pianoroll, expanded_present_instruments]))
-        present_pianoroll = timbre_pianoroll
+        present_pianoroll = (
+            Multiply(name='apply_present')([timbre_pianoroll, expanded_present_instruments]))
 
         pianoroll_no_gradient = stop_gradient(present_pianoroll)
+
+        # roll the pianoroll to get instrument predictions for offsets which is normally where
+        # we stop the pianoroll fill
+        rolled_pianoroll = Lambda(lambda x: tf.roll(x, 1, axis=-3))(pianoroll_no_gradient)
 
         expanded_frames = expand_dims([frame_probs, -1])
         expanded_onsets = expand_dims([onset_probs, -1])
@@ -222,7 +226,7 @@ class FullModel:
         broadcasted_onsets = Concatenate(name='multi_onsets')(
             [present_pianoroll, expanded_onsets])
         broadcasted_offsets = Concatenate(name='multi_offsets')(
-            [present_pianoroll, expanded_offsets])
+            [rolled_pianoroll, expanded_offsets])
 
         losses = {
             'multi_frames': multi_track_loss_wrapper(self.hparams,
@@ -231,12 +235,6 @@ class FullModel:
                                                      self.hparams.onsets_true_weighing),
             'multi_offsets': multi_track_loss_wrapper(self.hparams,
                                                       self.hparams.offsets_true_weighing),
-        }
-
-        losses = {
-            'multi_frames': 'categorical_crossentropy',
-            'multi_onsets': 'categorical_crossentropy',
-            'multi_offsets': 'categorical_crossentropy',
         }
 
         accuracies = {
@@ -249,7 +247,8 @@ class FullModel:
                 multi_track_prf_wrapper(
                     self.hparams.predict_frame_threshold,
                     multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
-                    print_report=True)
+                    print_report=True,
+                    hparams=self.hparams)
             ],
             'multi_onsets': [
                 multi_track_present_accuracy_wrapper(
@@ -260,7 +259,8 @@ class FullModel:
                 multi_track_prf_wrapper(
                     self.hparams.predict_onset_threshold,
                     multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
-                    print_report=True)
+                    print_report=True,
+                    hparams=self.hparams)
             ],
             'multi_offsets': [
                 multi_track_present_accuracy_wrapper(
@@ -270,7 +270,8 @@ class FullModel:
                     self.hparams.predict_offset_threshold),
                 multi_track_prf_wrapper(
                     self.hparams.predict_offset_threshold,
-                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold)
+                    multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
+                    hparams=self.hparams)
             ]
         }
 

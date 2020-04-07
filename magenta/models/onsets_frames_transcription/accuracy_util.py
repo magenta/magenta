@@ -64,17 +64,17 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
         permuted_y_probs = K.permute_dimensions(y_probs, (3, 0, 1, 2))
 
         loss_list = []
-        #total_mean = K.mean(K.max(y_true, -1))
+        total_mean = K.mean(K.max(y_true, -1))
 
         for instrument_idx in range(hparams.timbre_num_classes):
             ignore_melodic_probs = permuted_y_probs[instrument_idx] \
-                                   #* K.cast_to_floatx(permuted_y_true[-1])
+                                   * K.cast_to_floatx(permuted_y_true[-1])
             weight = 0 if instrument_idx > 0 else 0  # temp increase bass
             instrument_loss = K.mean(
                 tf_utils.log_loss(permuted_y_true[instrument_idx],
                                   ignore_melodic_probs + epsilon,
                                   epsilon=epsilon,
-                                  recall_weighing=2))
+                                  recall_weighing=recall_weighing / 2))
 
             if K.sum(permuted_y_true[instrument_idx]) == 0:
                 # Still learn a little from samples without the instrument present
@@ -84,7 +84,7 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
             loss_list.append(instrument_loss)
 
         print(
-            f'total mean: {[f"{i}:{x}/{K.max(permuted_y_probs[i])}" for i, x in enumerate(loss_list)]}')
+            f'total mean: {total_mean} {[f"{i}:{x}/{K.max(permuted_y_probs[i])}" for i, x in enumerate(loss_list)]}')
 
         # add instrument-independent loss
         return tf.reduce_mean(loss_list) + K.mean(
@@ -225,8 +225,9 @@ def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.5, print
         # flat_y_predictions = flat_y_predictions * K.expand_dims(
         #     K.cast_to_floatx(K.sum(K.cast_to_floatx(flat_y_true), -1) > 0))
         individual_sums = K.sum(K.cast(ignoring_melodic, 'int32'), 0)
-        print(f'num_agnostic: {K.sum(K.cast_to_floatx(get_last_channel(y_probs) > threshold))}')
+        print(f'num_agnostic: {K.sum(K.cast_to_floatx(get_last_channel(y_probs) > threshold / hparams.prediction_generosity))}')
         print(f'true_num_agnostic: {K.sum(K.cast_to_floatx(get_last_channel(y_true) > 0))}')
+        print(f'both: {K.sum(K.cast_to_floatx(get_last_channel(y_probs) > threshold / hparams.prediction_generosity) * K.cast_to_floatx(get_last_channel(y_true) > 0))}')
         print(f'total predicted {K.sum(individual_sums)}')
         if print_report:
             print(classification_report(flat_y_true, ignoring_melodic, digits=4, zero_division=0))

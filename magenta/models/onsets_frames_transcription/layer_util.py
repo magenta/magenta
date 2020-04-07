@@ -73,7 +73,7 @@ def conv_bn_elu_layer(num_filters, conv_temporal_size, conv_freq_size, pool_size
                     [conv_temporal_size, conv_freq_size],
                     padding='same',
                     use_bias=False,
-                    kernel_regularizer=l2(hparams.timbre_l2_regularizer),
+                    # kernel_regularizer=l2(hparams.timbre_l2_regularizer),
                     kernel_initializer='he_uniform',
                     # name = 'conv_{}_{}_{}'.format(num_filters, conv_temporal_size, conv_freq_size)
                 ), hparams=hparams)(x))
@@ -219,11 +219,6 @@ def get_croppings_for_single_image(conv_output, note_croppings,
 class NoteCroppingsToPianorolls(layers.Layer):
     def __init__(self, hparams, **kwargs):
         self.hparams = hparams
-        self.batched_pianorolls_variable: tf.Variable = tf.Variable(0., shape=tf.TensorShape(None),
-                                                                    validate_shape=False,
-                                                                    trainable=True)
-        # self.batched_pianorolls_variable: tf.Variable = tf.Variable(K.zeros((1,1,constants.MIDI_PITCHES,hparams.timbre_num_classes)), shape=(None, None, constants.MIDI_PITCHES, hparams.timbre_num_classes), validate_shape=False, trainable=False)
-
         super(NoteCroppingsToPianorolls, self).__init__(**kwargs)
 
     def call(self, input_list, **kwargs):
@@ -234,27 +229,12 @@ class NoteCroppingsToPianorolls(layers.Layer):
         :return: a pianoroll with shape (batches, pianoroll_length, 88, timbre_num_classes + 1)
         """
         batched_note_croppings, batched_timbre_probs, batched_pianorolls = input_list
-        self.batched_pianorolls_variable.load(batched_pianorolls)
 
         pianoroll_list = []
         for batch_idx in range(K.int_shape(batched_note_croppings)[0]):
             note_croppings = batched_note_croppings[batch_idx]
-
-            # add the index here so that we still know it after sorting
-            # note_croppings = K.concatenate([note_croppings,
-            #                                 K.expand_dims(K.arange(K.int_shape(note_croppings)[0],
-            #                                                        dtype='int64'))])
             timbre_probs = batched_timbre_probs[batch_idx]
 
-            # Make pitch the first dimension for easy manipulation
-            # default to equal guess for the instruments
-            # pianorolls = np.ones(
-            #     shape=(constants.MIDI_PITCHES,
-            #            batched_pianoroll_length[batch_idx][0],
-            #            self.hparams.timbre_num_classes)) \
-            #              * self.hparams.multiple_instruments_threshold \
-            #              * 0.9
-            pianorolls = batched_pianorolls[batch_idx]
             pianorolls = K.zeros(
                 shape=(K.int_shape(batched_pianorolls[batch_idx])[0],
                        constants.MIDI_PITCHES,
@@ -263,39 +243,6 @@ class NoteCroppingsToPianorolls(layers.Layer):
                 shape=(K.int_shape(batched_pianorolls[batch_idx])[0],
                        constants.MIDI_PITCHES,
                        self.hparams.timbre_num_classes))
-            # Guess that things without timbre predictions are the instrument within one octave
-            fill_pitch_range = 12
-
-            def negative_pitch_fill(i, pitch, start_idx, end_idx):
-                """1. Fill the pitches below and until the end of the pianoroll"""
-                pianorolls[:pitch, start_idx:] = timbre_probs[i]
-
-            def full_fill(i, pitch, start_idx, end_idx):
-                """2. Fill the upward octave and until the end of the pianoroll"""
-                pianorolls[pitch:pitch + fill_pitch_range, start_idx:] = timbre_probs[i]
-
-            def time_fill(i, pitch, start_idx, end_idx):
-                """3. Fill the exact pitch to the end of the pianoroll"""
-                pianorolls[pitch, start_idx:] = timbre_probs[i]
-
-            def pitch_fill(i, pitch, start_idx, end_idx):
-                """4. Fill the upward octave for the exact duration"""
-                pianorolls[pitch:pitch + fill_pitch_range, start_idx:end_idx + 1] = timbre_probs[i]
-
-            def exact_fill(i, pitch, start_idx, end_idx):
-                """5. Fill exactly the note cropping that the probs is for"""
-                pianorolls[pitch, start_idx:end_idx + 1] = timbre_probs[i]
-
-            pitch_sorted = sorted(note_croppings, key=operator.itemgetter(0, 1))
-            start_time_sorted = sorted(note_croppings, key=operator.itemgetter(1, 0))
-
-            # pitch is more important than start time for what an instrument is
-            # we also don't want to overwrite definitive predictions
-            # self.fill_pianoroll_area(reversed(pitch_sorted), negative_pitch_fill)
-            # self.fill_pianoroll_area(pitch_sorted, full_fill)
-            # self.fill_pianoroll_area(start_time_sorted, time_fill)
-            # self.fill_pianoroll_area(pitch_sorted, pitch_fill)
-            # self.fill_pianoroll_area(start_time_sorted, exact_fill)
 
             for i, note_cropping in enumerate(note_croppings):
                 cropping = NoteCropping(*note_cropping)
@@ -305,12 +252,7 @@ class NoteCroppingsToPianorolls(layers.Layer):
                     continue
                 start_idx = K.cast(cropping.start_idx / self.hparams.spec_hop_length, 'int64')
                 end_idx = K.cast(cropping.end_idx / self.hparams.spec_hop_length, 'int64')
-                # guess that anything higher and to the right of this note has these probs
-                # for each i, this area is partially overridden
-                # mask = create_pianoroll_mask(pianorolls, timbre_probs[i], cropping)
-                # for idx in range(start_idx, end_idx):
-                #     self.batched_pianorolls_variable = self.batched_pianorolls_variable[batch_idx, idx, pitch].assign(timbre_probs[i])
-                # self.batched_pianorolls_variable *= (timbre_probs[i])
+
                 start_pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
                     pitch, constants.MIDI_PITCHES
                 )), tf.float32)
@@ -319,12 +261,12 @@ class NoteCroppingsToPianorolls(layers.Layer):
                 ), tf.float32)
                 pitch_mask = start_pitch_mask * end_pitch_mask
                 end_time_mask = K.cast(tf.sequence_mask(
-                    end_idx + 1,
+                    end_idx,
                     maxlen=K.int_shape(batched_pianorolls[batch_idx])[0]
                 ), tf.float32)
                 start_time_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
                     start_idx,
-                    maxlen=K.int_shape(batched_pianorolls[batch_idx])[0]  # K.int_shape(end_mask)[2]
+                    maxlen=K.int_shape(batched_pianorolls[batch_idx])[0]
                 )), tf.float32)
                 time_mask = start_time_mask * end_time_mask
                 # constant time for the pitch mask
@@ -334,26 +276,15 @@ class NoteCroppingsToPianorolls(layers.Layer):
                 mask = ones * pitch_mask
                 mask = mask * time_mask
                 cropped_probs = mask * timbre_probs[i]
-                # cropped_probs = tf.reshape(cropped_probs, K.int_shape(cropped_probs)[1:])
-
-
                 pianorolls = pianorolls + cropped_probs
 
-            # permuted_time_first = K.permute_dimensions(pianorolls, (1, 0, 2))
-
-            # frame_predictions = tf.logical_or(
-            #     tf.logical_and(
-            #         tf.equal(permuted_time_first, K.expand_dims(K.max(permuted_time_first, -1))),
-            #         permuted_time_first > (1 / self.hparams.timbre_num_classes)),
-            #     permuted_time_first > self.hparams.predict_frame_threshold)
-
-            # frame_predictions = self.batched_pianorolls_variable[batch_idx] > self.hparams.multiple_instruments_threshold
-            # sequence = infer_util.predict_multi_sequence(
-            #     frame_predictions=frame_predictions,
-            #     min_pitch=constants.MIN_MIDI_PITCH,
-            #     hparams=self.hparams)
-            # midi_filename = f'./out/{batch_idx}-of-{K.int_shape(batched_note_croppings)[0]}.midi'
-            # midi_io.sequence_proto_to_midi_file(sequence, midi_filename)
+            frame_predictions = pianorolls > self.hparams.multiple_instruments_threshold
+            sequence = infer_util.predict_multi_sequence(
+                frame_predictions=frame_predictions,
+                min_pitch=constants.MIN_MIDI_PITCH,
+                hparams=self.hparams)
+            midi_filename = f'./out/{batch_idx}-of-{K.int_shape(batched_note_croppings)[0]}.midi'
+            midi_io.sequence_proto_to_midi_file(sequence, midi_filename)
             # make time the first dimension
             pianoroll_list.append(pianorolls)
 

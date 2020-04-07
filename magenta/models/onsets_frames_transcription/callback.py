@@ -135,13 +135,13 @@ class FullPredictionMetrics(MetricsCallback):
         y_probs = self.model.predict_on_batch(X)
         frame_metrics = multi_track_prf_wrapper(self.hparams.predict_frame_threshold,
                                                 self.hparams.multiple_instruments_threshold,
-                                                only_f1=False)(y[0], y_probs[0])
+                                                only_f1=False, hparams=self.hparams)(y[0], y_probs[0])
         onset_metrics = multi_track_prf_wrapper(self.hparams.predict_onset_threshold,
                                                 self.hparams.multiple_instruments_threshold,
-                                                only_f1=False)(y[1], y_probs[1])
+                                                only_f1=False, hparams=self.hparams)(y[1], y_probs[1])
         offset_metrics = multi_track_prf_wrapper(self.hparams.predict_offset_threshold,
                                                 self.hparams.multiple_instruments_threshold,
-                                                 only_f1=False)(y[2], y_probs[2])
+                                                 only_f1=False, hparams=self.hparams)(y[2], y_probs[2])
         # save agnostic midi
         self.save_midi([get_last_channel(p) for p in y_probs], [get_last_channel(t) for t in y], epoch)
         del y_probs

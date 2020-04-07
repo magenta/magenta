@@ -154,10 +154,10 @@ def train(data_fn,
         midi_model.build_model(compile=False)
         midi_model.load_newest()
         timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, hparams=hparams)
-        # timbre_model.build_model(compile=False)
-        # timbre_model.load_newest()
+        timbre_model.build_model(compile=False)
+        timbre_model.load_newest()
 
-        model.build_model(midi_model=midi_model.get_model(), timbre_model=None)
+        model.build_model(midi_model=midi_model.get_model(), timbre_model=timbre_model.get_model())
 
         model.load_newest(hparams.load_id)
 

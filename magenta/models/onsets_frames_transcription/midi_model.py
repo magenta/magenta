@@ -144,7 +144,7 @@ def acoustic_model_layer(stack_name, hparams):
             padding='same',
             use_bias=False,
             kernel_initializer='he_uniform',
-            kernel_regularizer=l2(hparams.timbre_l2_regularizer),
+            # kernel_regularizer=l2(hparams.timbre_l2_regularizer),
             name=name
         )(x), name=name)
 
