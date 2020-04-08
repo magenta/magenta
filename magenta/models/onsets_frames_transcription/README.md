@@ -2,14 +2,23 @@
 
 State of the art piano and drum transcription models, including velocity estimation.
 
-For original model details, see our paper on arXiv,
-[Onsets and Frames: Dual-Objective Piano Transcription](https://goo.gl/magenta/onsets-frames-paper), and the accompanying [blog post](https://g.co/magenta/onsets-frames).
+For more information, see our papers and blog posts:
 
-We have since made improvements to the model and released a new [training dataset](https://g.co/magenta/maestro-dataset). These are detailed in our paper, [Enabling Factorized Piano Music Modeling and Generation with the MAESTRO Dataset
-](https://goo.gl/magenta/maestro-paper), and blog post, [The MAESTRO Dataset and Wave2Midi2Wave
-](https://g.co/magenta/maestro-wave2midi2wave).
+*  Onsets and Frames: Dual-Objective Piano Transcription
+  * [arXiv paper](https://goo.gl/magenta/onsets-frames-paper)
+  * [blog post](https://g.co/magenta/onsets-frames)
+  * [commit for model in paper](https://github.com/tensorflow/magenta/tree/9885adef56d134763a89de5584f7aa18ca7d53b6)
+* Enabling Factorized Piano Music Modeling and Generation with the MAESTRO Dataset
+  * [arXiv paper](https://goo.gl/magenta/maestro-paper)
+  * [blog post](https://g.co/magenta/maestro-wave2midi2wave)
+  * [commit for model in paper](https://github.com/tensorflow/magenta/tree/541240ea7ed5b046951b54881163db2853894bbc)
+* Improving Perceptual Quality of Drum Transcription with the Expanded Groove MIDI Dataset
+  * [arXiv paper](https://goo.gl/magenta/e-gmd-paper)
+  * [blog post](https://g.co/magenta/oaf-drums)
+  * [commit for model in paper](https://github.com/tensorflow/magenta/tree/94529798dfbbb14c27ddfd76f23027dc8e2ce185)
 
-The code in this directory corresponds to the latest version from the MAESTRO paper. For code corresponding to the Onsets and Frames paper, please browse the repository at commit [9885adef](https://github.com/tensorflow/magenta/tree/9885adef56d134763a89de5584f7aa18ca7d53b6). Note that we can only provide support for the code at HEAD.
+
+Note that while we provide commits for code used in papers, we can provide support only for the code at HEAD.
 
 You may also be interested in a [PyTorch Onsets and Frames](https://github.com/jongwook/onsets-and-frames) implementation by [Jong Wook Kim](https://github.com/jongwook) (not supported by the Magenta team).
 
@@ -17,18 +26,18 @@ Finally, we have also open sourced the [align_fine](/magenta/music/alignment) to
 
 ## JavaScript App
 
-The easiest way to try out the model is with our web app: [Piano Scribe](https://goo.gl/magenta/piano-scribe). You can try transcribing audio files right in your browser without installing any software. You can read more about it on our blog post, [Piano Transcription in the Browser with Onsets and Frames](http://g.co/magenta/oaf-js).
+The easiest way to try out the piano transcription model is with our web app: [Piano Scribe](https://goo.gl/magenta/piano-scribe). You can try transcribing audio files right in your browser without installing any software. You can read more about it on our blog post, [Piano Transcription in the Browser with Onsets and Frames](http://g.co/magenta/oaf-js).
 
 ## Colab Notebook
 
-We also provide an [Onsets and Frames Colab Notebook](https://goo.gl/magenta/onsets-frames-colab).
+We also provide an [Onsets and Frames Colab Notebook](https://goo.gl/magenta/onsets-frames-colab) for both piano and drum transcription models.
 
 ## Transcription Script
 
 If you would like to run transcription locally, you can use the transcribe
 script. First, set up your [Magenta environment](/README.md).
 
-Next, download our pre-trained
+For piano transcription, download our pre-trained
 [checkpoint](https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/maestro_checkpoint.zip),
 which is trained on the [MAESTRO dataset](https://g.co/magenta/maestro-dataset).
 
@@ -41,14 +50,14 @@ onsets_frames_transcription_transcribe \
   <piano_recording1.wav, piano_recording2.wav, ...>
 ```
 
-For drum transcription, use the [E-GMD checkpoint](https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/e-gmd_checkpoint.zip) and the following command:
+For drum transcription, use the [checkpoint](https://storage.googleapis.com/magentadata/models/onsets_frames_transcription/e-gmd_checkpoint.zip) trained on the [E-GMD dataset](https://g.co/magenta/e-gmd) and run the following command:
 
 ```bash
 MODEL_DIR=<path to directory containing checkpoint>
 onsets_frames_transcription_transcribe \
   --model_dir="${CHECKPOINT_DIR}" \
   --config="drums" \
-  <piano_recording1.wav, piano_recording2.wav, ...>
+  <drums_recording1.wav, drums_recording2.wav, ...>
 ```
 
 
@@ -111,7 +120,7 @@ onsets_frames_transcription_create_dataset_maps \
 
 ### Custom Dataset
 
-To use your own dataset, see the instructions `onsets_frames_transcription_create_tfrecords`. You'll then need to register the new dataset in `configs.py` and process it with `onsets_frames_transcription_create_dataset`.
+To use your own dataset or the [E-GMD dataset](https://g.co/magenta/e-gmd), see the instructions `onsets_frames_transcription_create_tfrecords`. You'll then need to register the new dataset in `configs.py` and process it with `onsets_frames_transcription_create_dataset`.
 
 ### Training
 
@@ -150,6 +159,29 @@ During training, you can check on progress using TensorBoard:
 
 ```bash
 tensorboard --logdir="${RUN_DIR}"
+```
+
+The `drums` config supports training on TPUs. To do that, first create a GCP VM with TPU attached:
+
+```bash
+ctpu up \
+  --tf-version=1.15 \
+  --machine-type=n1-standard-8 \
+  --disk-size-gb=2048 \
+  --tpu-size=v3-8 \
+  --zone=us-central1-a
+```
+
+Then start training:
+
+```bash
+onsets_frames_transcription_train \
+  --examples_path=gs://${BUCKET}/datagen/train_x2.tfrecord* \
+  --model_dir gs://${BUCKET}/model --config=drums \
+  --use_tpu \
+  --preprocess_examples=false \
+  --hparams=batch_size=64 \
+  --tpu_cluster=${CLUSTER}
 ```
 
 ### Inference
