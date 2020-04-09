@@ -526,7 +526,16 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       finished = end_fn(sample_ids)
       next_inputs = tf.concat([sample_ids, z], axis=-1)
       if c_input is not None:
-        next_inputs = tf.concat([next_inputs, c_input[time]], axis=-1)
+        # We need to stop if we've run out of control input.
+        finished = tf.cond(tf.less(time, tf.shape(c_input)[0] - 1),
+                           lambda: finished,
+                           lambda: True)
+        next_inputs = tf.concat([
+            next_inputs,
+            tf.cond(tf.less(time, tf.shape(c_input)[0] - 1),
+                    lambda: c_input[time + 1],
+                    lambda: tf.zeros_like(c_input[0]))  # should be unused
+        ], axis=-1)
       return (finished, next_inputs, state)
 
     sampler = seq2seq.CustomHelper(
