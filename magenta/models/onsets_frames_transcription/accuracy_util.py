@@ -74,7 +74,7 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
                 tf_utils.log_loss(permuted_y_true[instrument_idx],
                                   ignore_melodic_probs + epsilon,
                                   epsilon=epsilon,
-                                  recall_weighing=recall_weighing / 2))
+                                  recall_weighing=recall_weighing))
 
             if K.sum(permuted_y_true[instrument_idx]) == 0:
                 # Still learn a little from samples without the instrument present

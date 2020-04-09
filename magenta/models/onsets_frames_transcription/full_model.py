@@ -222,7 +222,7 @@ class FullModel:
 
         # Use the last channel for instrument-agnostic midi
         broadcasted_frames = Concatenate(name='multi_frames')(
-            [pianoroll_no_gradient, expanded_frames])
+            [present_pianoroll, expanded_frames])
         broadcasted_onsets = Concatenate(name='multi_onsets')(
             [present_pianoroll, expanded_onsets])
         broadcasted_offsets = Concatenate(name='multi_offsets')(
