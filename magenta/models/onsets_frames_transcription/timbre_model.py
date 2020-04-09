@@ -25,11 +25,11 @@ if FLAGS.using_plaidml:
     from keras.initializers import he_normal, VarianceScaling, he_uniform, glorot_uniform
     from keras.activations import tanh
     from keras.layers import Conv2D, \
-    Dense, Dropout, \
-    Input, concatenate, Lambda, Reshape, LSTM, \
-    Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, \
-    TimeDistributed, \
-    Conv1D, Permute, ConvLSTM2D, SpatialDropout2D, SpatialDropout1D, MaxPooling1D, Activation
+        Dense, Dropout, \
+        Input, concatenate, Lambda, Reshape, LSTM, \
+        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, \
+        TimeDistributed, \
+        Conv1D, Permute, ConvLSTM2D, SpatialDropout2D, SpatialDropout1D, MaxPooling1D, Activation
     from keras.models import Model
     from keras.regularizers import l2
 else:
@@ -69,20 +69,19 @@ def get_default_hparams():
         'timbre_dropout_drop_amts': [0.1, 0.2, 0.2],
         'timbre_rnn_dropout_drop_amt': [0.3, 0.5],
         'timbre_fc_size': 512,
-        'timbre_penultimate_fc_size': 512,
+        'timbre_penultimate_fc_size': 128,
         'timbre_fc_num_layers': 0,
         'timbre_fc_dropout_drop_amt': 0.25,
         'timbre_conv_drop_amt': 0.25,
         'timbre_final_dropout_amt': 0.25,
-        'timbre_local_conv_size': 7,
-        'timbre_local_conv_strides': 3,
+        'timbre_local_conv_size': 6,
+        'timbre_local_conv_strides': 2,  # reduce memory requirement
         'timbre_local_conv_num_filters': 256,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 1,  # include other and drums
         'timbre_lstm_units': 192,
         'timbre_rnn_stack_size': 0,
         'timbre_leaky_alpha': 0.33,
-        'timbre_sharing_conv': True,
         'timbre_extra_conv': False,
         'timbre_penultimate_activation': 'elu',
         'timbre_final_activation': 'sigmoid',
@@ -121,10 +120,12 @@ def get_default_hparams():
         'weight_correct_multiplier': 0.08,  # DON'T trend towards the classes with most support
     }
 
+
 def print_fn(x):
     """Dynamic print and pass the tensor"""
     # print(x)
     return x
+
 
 def acoustic_model_layer(hparams):
     num_filters = 128
@@ -188,23 +189,29 @@ def lstm_layer(hparams,
 
 
 def local_conv_layer(hparams):
+    size = hparams.timbre_local_conv_size
+    strides = hparams.timbre_local_conv_strides
+
     def local_conv_fn(inputs):
         outputs = ELU(hparams.timbre_leaky_alpha)(
             time_distributed_wrapper(Conv1D(
                 hparams.timbre_local_conv_num_filters,
-                hparams.timbre_local_conv_size,
-                hparams.timbre_local_conv_strides,
-                padding='valid',
+                size,
+                strides,
+                padding='same',
                 use_bias=False,
-            ), hparams, name='roi_conv_1d_7')(inputs))
+            ), hparams,
+                name=f'roi_conv1d_{size}_{strides}')(inputs))
+        outputs = time_distributed_wrapper(GlobalMaxPooling1D(), hparams, name='global_max_pitch')(
+            outputs)
         if hparams.timbre_spatial_dropout:
             outputs = time_distributed_wrapper(SpatialDropout1D(hparams.timbre_conv_drop_amt),
                                                hparams,
-                                               name='conv_1d_dropout_s')(outputs)
+                                               name='conv1d_dropout_s')(outputs)
         else:
             outputs = time_distributed_wrapper(Dropout(hparams.timbre_conv_drop_amt),
                                                hparams,
-                                               name='conv_1d_dropout')(outputs)
+                                               name='conv1d_dropout')(outputs)
         return outputs
 
     return local_conv_fn
@@ -232,7 +239,7 @@ def acoustic_dense_layer(hparams):
                   bias_regularizer=l2(hparams.timbre_l2_regularizer),
                   activation=hparams.timbre_penultimate_activation,
                   kernel_initializer='he_uniform'),
-            hparams, name='penultimate_dense_7')(outputs)
+            hparams, name=f'penultimate_dense_{hparams.timbre_local_conv_num_filters}')(outputs)
         # penultimate_outputs = Dropout(hparams.timbre_final_dropout_amt)(penultimate_outputs)
         return penultimate_outputs
 
@@ -249,7 +256,7 @@ def instrument_prediction_layer(hparams):
                                                  use_bias=False,
                                                  kernel_initializer='he_uniform'),
                                            hparams=hparams,
-                                           name='timbre_prediction',)(outputs)
+                                           name='timbre_prediction', )(outputs)
         return outputs
 
     return instrument_prediction_fn
@@ -318,7 +325,8 @@ def get_timbre_output_layer(hparams):
         filter_outputs = parallel_filters_layer(hparams)(acoustic_outputs)
         # simplify to save memory
         if hparams.timbre_bottleneck_filter_num:
-            filter_outputs = Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1), activation='relu')(
+            filter_outputs = Conv2D(hparams.timbre_bottleneck_filter_num, (1, 1),
+                                    activation='relu')(
                 filter_outputs)
         if hparams.timbre_rnn_stack_size > 0:
             # run time distributed lstm distributing over pitch
@@ -354,10 +362,11 @@ def get_timbre_output_layer(hparams):
             [reshaped_outputs, note_croppings])
 
         # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
-        if hparams.timbre_sharing_conv:
-            pooled_outputs = time_distributed_wrapper(MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
-                               padding='same'), hparams, name='post_crop_pool')(pooled_outputs)
-
+        pooled_outputs = time_distributed_wrapper(
+            MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
+                         padding='same'),
+            hparams,
+            name='post_crop_pool')(pooled_outputs)
 
         if hparams.timbre_local_conv_num_filters:
             pooled_outputs = local_conv_layer(hparams)(pooled_outputs)
@@ -380,4 +389,5 @@ def get_timbre_output_layer(hparams):
         instrument_family_probs = Lambda(remove_padded, name='family_probs')(
             [instrument_family_probs, note_croppings])
         return instrument_family_probs
+
     return get_timbre_output_fn

@@ -24,7 +24,7 @@ from magenta.music import midi_io
 
 def get_default_hparams():
     return {
-        'full_learning_rate': 1e-4,
+        'full_learning_rate': 6e-4,
         'prediction_generosity': 1,
         'multiple_instruments_threshold': 0.5,
         'use_all_instruments': False,
@@ -146,7 +146,7 @@ class FullModel:
         # generous onsets are used so that we can get more frame prediction data for the instruments
         # this will end up making our end-predicted notes much shorter though
         generous_onset_predictions = stop_gradient(onset_probs > (
-                self.hparams.predict_onset_threshold / self.hparams.prediction_generosity))
+                self.hparams.predict_onset_threshold))
         offset_predictions = stop_gradient(offset_probs > self.hparams.predict_offset_threshold)
 
         note_croppings = Lambda(self.get_croppings,
@@ -222,7 +222,7 @@ class FullModel:
 
         # Use the last channel for instrument-agnostic midi
         broadcasted_frames = Concatenate(name='multi_frames')(
-            [present_pianoroll, expanded_frames])
+            [pianoroll_no_gradient, expanded_frames])
         broadcasted_onsets = Concatenate(name='multi_onsets')(
             [present_pianoroll, expanded_onsets])
         broadcasted_offsets = Concatenate(name='multi_offsets')(

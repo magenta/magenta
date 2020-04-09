@@ -275,7 +275,7 @@ class NoteCroppingsToPianorolls(layers.Layer):
                 time_mask = K.expand_dims(K.expand_dims(time_mask, 1))
                 mask = ones * pitch_mask
                 mask = mask * time_mask
-                cropped_probs = mask * timbre_probs[i]
+                cropped_probs = mask * (timbre_probs[i])
                 pianorolls = pianorolls + cropped_probs
 
             frame_predictions = pianorolls > self.hparams.multiple_instruments_threshold
@@ -288,7 +288,13 @@ class NoteCroppingsToPianorolls(layers.Layer):
             # make time the first dimension
             pianoroll_list.append(pianorolls)
 
-        return tf.convert_to_tensor(pianoroll_list)
+        pianoroll_tensor = tf.convert_to_tensor(pianoroll_list)
+        # use nearby probabilities
+        return K.pool2d(pianoroll_tensor,
+                        pool_size=(7, 3),
+                        strides=(1, 1),
+                        padding='same',
+                        pool_mode='max')
 
     def compute_output_shape(self, input_shape):
 

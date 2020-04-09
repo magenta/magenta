@@ -4,7 +4,6 @@ from abc import abstractmethod
 
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
-from memory_profiler import profile
 
 from magenta.models.onsets_frames_transcription import infer_util, constants
 from magenta.models.onsets_frames_transcription.accuracy_util import flatten_f1_wrapper, \

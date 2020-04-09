@@ -45,7 +45,7 @@ from magenta.models.onsets_frames_transcription import constants
 
 def get_default_hparams():
     return {
-        'batch_size': 1,
+        'batch_size': 2,
         'learning_rate': 0.0006,
         'decay_steps': 10000,
         'decay_rate': 1e-5,

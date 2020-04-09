@@ -67,9 +67,9 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
         total_mean = K.mean(K.max(y_true, -1))
 
         for instrument_idx in range(hparams.timbre_num_classes):
+            # 50/50 for something not in melody prediction
             ignore_melodic_probs = permuted_y_probs[instrument_idx] \
                                    * K.cast_to_floatx(permuted_y_true[-1])
-            weight = 0 if instrument_idx > 0 else 0  # temp increase bass
             instrument_loss = K.mean(
                 tf_utils.log_loss(permuted_y_true[instrument_idx],
                                   ignore_melodic_probs + epsilon,
@@ -79,15 +79,15 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
             if K.sum(permuted_y_true[instrument_idx]) == 0:
                 # Still learn a little from samples without the instrument present
                 # Don't mess up under-represented instruments much
-                instrument_loss *= 1e-1
+                instrument_loss *= 1e-2
 
             loss_list.append(instrument_loss)
 
         print(
-            f'total mean: {total_mean} {[f"{i}:{x}/{K.max(permuted_y_probs[i])}" for i, x in enumerate(loss_list)]}')
+            f'total loss: {tf.reduce_sum(loss_list)} {[f"{i}: {x:.4f}. {K.max(permuted_y_probs[i]):.3f}" for i, x in enumerate(loss_list)]}')
 
         # add instrument-independent loss
-        return tf.reduce_mean(loss_list) + K.mean(
+        return tf.reduce_sum(loss_list) + K.mean(
             tf_utils.log_loss(permuted_y_true[-1],
                               permuted_y_probs[-1] + epsilon,
                               epsilon=epsilon,
@@ -192,19 +192,10 @@ def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_thresho
         frame_true_positives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
             flat_y_true,
             tf.equal(flat_y_true, flat_y_predictions))))
-        frame_false_positives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
-            tf.logical_not(true_agnostic),
-            predictions_agnostic)))
-        frame_false_negatives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
-            true_agnostic,
-            tf.logical_not(predictions_agnostic)))) \
-                                + tf.reduce_sum(K.cast_to_floatx(tf.logical_and(tf.logical_and(
-            true_agnostic,
-            predictions_agnostic),
-            K.min(K.cast_to_floatx(tf.not_equal(flat_y_true, flat_y_predictions)), -1) == 0)))
 
-        return accuracy_without_true_negatives(
-            frame_true_positives, frame_false_positives, frame_false_negatives)
+        return frame_true_positives / (frame_true_positives + tf.reduce_sum(K.cast_to_floatx(
+            tf.not_equal(flat_y_true, flat_y_predictions)
+        )))
 
     return present_acc
 
@@ -225,9 +216,11 @@ def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.5, print
         # flat_y_predictions = flat_y_predictions * K.expand_dims(
         #     K.cast_to_floatx(K.sum(K.cast_to_floatx(flat_y_true), -1) > 0))
         individual_sums = K.sum(K.cast(ignoring_melodic, 'int32'), 0)
-        print(f'num_agnostic: {K.sum(K.cast_to_floatx(get_last_channel(y_probs) > threshold / hparams.prediction_generosity))}')
+        print(
+            f'num_agnostic: {K.sum(K.cast_to_floatx(get_last_channel(y_probs) > threshold / hparams.prediction_generosity))}')
         print(f'true_num_agnostic: {K.sum(K.cast_to_floatx(get_last_channel(y_true) > 0))}')
-        print(f'both: {K.sum(K.cast_to_floatx(get_last_channel(y_probs) > threshold / hparams.prediction_generosity) * K.cast_to_floatx(get_last_channel(y_true) > 0))}')
+        print(
+            f'both: {K.sum(K.cast_to_floatx(get_last_channel(y_probs) > threshold / hparams.prediction_generosity) * K.cast_to_floatx(get_last_channel(y_true) > 0))}')
         print(f'total predicted {K.sum(individual_sums)}')
         if print_report:
             print(classification_report(flat_y_true, ignoring_melodic, digits=4, zero_division=0))

@@ -131,7 +131,7 @@ family_to_midi_instrument = {
     7: 66,  # reed / Alto Sax
     8: 49,  # string / String Ensemble
     9: 82,  # synth lead / Sawtooth
-    10: 55,  # vocal / Synth Voice
+    10: 54,  # vocal / Voice Oohs
     11: 118,
     12: 119, # TODO actual percussion
 }
