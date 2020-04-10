@@ -10,7 +10,7 @@ from dotmap import DotMap
 
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription.accuracy_util import \
-    WeightedCategoricalCrossentropy, flatten_accuracy_wrapper, flatten_weighted_logit_loss, \
+    WeightedCrossentropy, flatten_accuracy_wrapper, flatten_weighted_logit_loss, \
     flatten_f1_wrapper
 from magenta.models.onsets_frames_transcription.layer_util import conv_bn_elu_layer, \
     get_all_croppings, time_distributed_wrapper
@@ -44,12 +44,13 @@ else:
         Conv1D, Permute, ConvLSTM2D, SpatialDropout2D, SpatialDropout1D, MaxPooling1D, Activation
     from tensorflow.keras.models import Model
     from tensorflow.keras.regularizers import l2
+    from tensorflow.keras.losses import BinaryCrossentropy
 
 
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
 def get_default_hparams():
     return {
-        'timbre_learning_rate': 0.0003,
+        'timbre_learning_rate': 6e-4,
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 1e-2,
         'timbre_clip_norm': 4.0,
@@ -298,14 +299,19 @@ def timbre_prediction_model(hparams=None):
     ))
     if hparams.timbre_final_activation == 'softmax':
         # this seems to work better than with logits
-        losses = {'family_probs': WeightedCategoricalCrossentropy(
+        losses = {'family_probs': WeightedCrossentropy(
             weights=weights)}
+
+    elif hparams.timbre_final_activation == 'sigmoid':
+        losses = {'family_probs': WeightedCrossentropy(
+            weights=weights,
+            name='binary_crossentropy')}
 
     else:
         # losses = {'family_probs': flatten_weighted_logit_loss(.4)}
         # this seems to decrease predicted support when you have bad precision, which is the goal?
-        losses = {'family_probs': WeightedCategoricalCrossentropy(
-            weights=weights, from_logits=True, pos_weight=2.)}
+        losses = {'family_probs': WeightedCrossentropy(
+            weights=weights, from_logits=True, recall_weighing=2.)}
     accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams),
                                    lambda *x: flatten_f1_wrapper(hparams)(*x)['f1_score']]}
 

@@ -29,6 +29,8 @@ def get_default_hparams():
         'multiple_instruments_threshold': 0.5,
         'use_all_instruments': False,
         'midi_trainable': True,
+        'family_recall_weight': [.5, .6, 1, .1, .1, 1, .6, .5, .3, 1, .4, .7],
+        'inv_frequency_weight': [.5, .4, .1, 1, 1, .1, .4, .5, .7, .1, .6, .3]
     }
 
 

@@ -139,7 +139,7 @@ class ModelWrapper:
             new_metrics = self.model.train_on_batch(x, y)
             # tf.random.set_random_seed(1)
             # self.model.evaluate(x, y)
-            print(self.model.trainable_weights[-1])
+            # print(self.model.trainable_weights[-1])
 
             print(f'Trained batch {i} in {time.perf_counter() - start:0.4f} seconds')
             print([f'{x[0]}: {x[1]:0.4f}' for x in zip(self.model.metrics_names, new_metrics)])

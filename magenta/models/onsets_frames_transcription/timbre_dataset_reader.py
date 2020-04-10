@@ -56,7 +56,8 @@ def create_spectrogram(audio, hparams):
 
     # convert amplitude to power
     if hparams.timbre_spec_log_amplitude:
-        spec = spec - librosa.power_to_db(np.array([0]))[0]
+        spec = spec - np.min(spec)
+        spec = spec / np.max(spec)
     else:
         spec = librosa.db_to_power(spec)
     return spec

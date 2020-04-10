@@ -6,10 +6,13 @@ import tensorflow.keras.backend as K
 
 # 'name' should be a string
 # 'method' should be a string or a function
+from tensorflow.keras import losses
 from keras.layers import Multiply
 from tensorflow.keras.losses import categorical_crossentropy, CategoricalCrossentropy, Reduction
 from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
+from tensorflow_core.python.keras.engine.training_utils import get_loss_function
+from tensorflow_core.python.keras.losses import LossFunctionWrapper
 
 from magenta.common import tf_utils
 from magenta.models.onsets_frames_transcription import constants
@@ -74,8 +77,11 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
                 tf_utils.log_loss(permuted_y_true[instrument_idx],
                                   ignore_melodic_probs + epsilon,
                                   epsilon=epsilon,
-                                  recall_weighing=recall_weighing))
+                                  recall_weighing=recall_weighing
+                                                  * hparams.family_recall_weight[instrument_idx]))
 
+            # less loss for
+            instrument_loss *= hparams.inv_frequency_weight[instrument_idx]
             if K.sum(permuted_y_true[instrument_idx]) == 0:
                 # Still learn a little from samples without the instrument present
                 # Don't mess up under-represented instruments much
@@ -277,11 +283,13 @@ def f1_wrapper(threshold):
     return f1
 
 
-def flatten_f1_wrapper(hparams):
+def flatten_f1_wrapper(hparams, threshold=0.5):
     def flatten_f1_fn(y_true, y_probs):
-        y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1])
+        #y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1])
+        y_predictions = K.cast_to_floatx(y_probs > threshold)
+        y_predictions = K.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
 
-        reshaped_y_true = K.reshape(y_true, (-1, y_predictions.shape[-1]))
+        reshaped_y_true = K.reshape(y_true, (-1, K.int_shape(y_true)[-1]))
 
         # remove any predictions from padded values
         y_predictions = y_predictions * K.expand_dims(
@@ -349,7 +357,7 @@ def flatten_weighted_logit_loss(pos_weight=1):
     return weighted_logit_loss
 
 
-class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
+class WeightedCrossentropy(LossFunctionWrapper):
 
     def __init__(
             self,
@@ -358,18 +366,19 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
             label_smoothing=0,
             reduction=Reduction.SUM_OVER_BATCH_SIZE,
             name='categorical_crossentropy',
-            pos_weight=0.25,  # increase precision
+            recall_weighing=2,  # increase recall
     ):
-        super().__init__(
-            from_logits, label_smoothing, reduction, name=f"weighted_{name}"
-        )
+        super().__init__(reduction, name=f"weighted_{name}")
+        self.loss_fn = get_loss_function(name)
         self.from_logits = from_logits
         self.weights = weights
-        self.pos_weight = pos_weight
+        self.recall_weighing = recall_weighing
 
     def call(self, y_true_unshaped, y_pred_unshaped):
         y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
+        # 0.25 for samples with that family somewhere within it
+        y_true_unshaped = K.minimum(1, K.cast_to_floatx(y_true_unshaped) + 0.25 * K.cast_to_floatx(K.expand_dims(K.sum(y_true_unshaped, 1) > 0, 1)))
         y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_pred_unshaped.shape[-1]))
 
         # remove any predictions from padded values
@@ -397,6 +406,8 @@ class WeightedCategoricalCrossentropy(CategoricalCrossentropy):
         if self.from_logits:
             return K.sum(tf.nn.weighted_cross_entropy_with_logits(y_true,
                                                                   y_pred,
-                                                                  pos_weight=self.pos_weight),
+                                                                  pos_weight=self.recall_weighing),
                          -1) * final_mask
-        return super().call(y_true, y_pred) * final_mask
+        if self.recall_weighing == 0:
+            return self.loss_fn.call(y_true, y_pred) * final_mask
+        return K.mean(tf_utils.log_loss(y_true, y_pred, recall_weighing=self.recall_weighing), -1) * final_mask
