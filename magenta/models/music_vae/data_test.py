@@ -1410,42 +1410,26 @@ class GetDatasetTest(tf.test.TestCase):
     mock_interleave.return_value = transform_fn
 
     # Use a mock data converter to make the test robust
-    mock_converter = mock.create_autospec(
-        data.OneHotMelodyConverter, instance=True)
-    mock_converter.input_depth = 90
-    mock_converter.output_depth = 90
-    mock_converter.control_depth = 0
-    mock_converter.input_dtype = np.bool
-    mock_converter.output_dtype = np.bool
-    mock_converter.control_dtype = np.bool
-    c_inputs = np.ones((32, 90), dtype=np.bool)
-    c_outputs = np.ones((32, 90), dtype=np.bool)
-    c_controls = np.zeros((32, 0), dtype=np.bool)
-    mock_converter.to_tensors.return_value = data.ConverterTensors(
-        inputs=(c_inputs,), outputs=(c_outputs,), controls=(c_controls,))
+    converter = data.OneHotMelodyConverter(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=1)
 
     # Create test config and verify results
     config = configs.Config(
         hparams=HParams(batch_size=1),
         note_sequence_augmenter=None,
-        data_converter=mock_converter,
+        data_converter=converter,
         train_examples_path='some_path',
         eval_examples_path='some_path',
     )
     ds = data.get_dataset(config, is_training=False)
     it = tf.data.make_one_shot_iterator(ds)
-    with self.test_session() as sess:
+    with self.session() as sess:
       result = sess.run(it.get_next())
       self.assertLen(result, 4)  # inputs, outputs, controls, lengths
       self.assertLen(result[0], 1)
       self.assertLen(result[1], 1)
       self.assertLen(result[2], 1)
       self.assertLen(result[3], 1)
-      self.assertSameStructure(result[0][0].tolist(), c_inputs.tolist())
-      self.assertSameStructure(result[1][0].tolist(), c_outputs.tolist())
-      self.assertSameStructure(result[2][0].tolist(), c_controls.tolist())
-      self.assertSameStructure(result[3][0].tolist(), 32)
-
 
 if __name__ == '__main__':
   tf.test.main()

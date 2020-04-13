@@ -1577,8 +1577,6 @@ def split_process_and_combine(note_sequence, split, sample_size, randomize,
   return combine_converter_tensors(results, sample_size, randomize)
 
 
-# TODO(b/144556490): Remove `do_not_convert` when fixed.
-@tf.autograph.experimental.do_not_convert
 def convert_to_tensors_op(item_scalar, converter):
   """TensorFlow op that converts item into output tensors.
 
@@ -1699,11 +1697,13 @@ def get_dataset(
   if note_sequence_augmenter is not None:
     dataset = dataset.map(note_sequence_augmenter.tf_augment)
 
-  dataset = (
-      dataset.map(
-          functools.partial(convert_to_tensors_op, converter=data_converter),
-          num_parallel_calls=tf.data.experimental.AUTOTUNE).unbatch().map(
-              _remove_pad_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE))
+  dataset = dataset.map(
+      tf.autograph.experimental.do_not_convert(
+          functools.partial(convert_to_tensors_op, converter=data_converter)),
+      num_parallel_calls=tf.data.experimental.AUTOTUNE)
+  dataset = dataset.unbatch()
+  dataset = dataset.map(
+      _remove_pad_fn, num_parallel_calls=tf.data.experimental.AUTOTUNE)
   if cache_dataset:
     dataset = dataset.cache()
   if is_training:
