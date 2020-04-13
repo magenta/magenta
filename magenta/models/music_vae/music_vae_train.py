@@ -120,7 +120,7 @@ def _trial_summary(hparams, examples_path, output_dir):
 def _get_input_tensors(dataset, config):
   """Get input tensors from dataset."""
   batch_size = config.hparams.batch_size
-  iterator = dataset.make_one_shot_iterator()
+  iterator = tf.data.make_one_shot_iterator(dataset)
   (input_sequence, output_sequence, control_sequence,
    sequence_length) = iterator.get_next()
   input_sequence.set_shape(
