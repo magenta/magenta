@@ -4,7 +4,7 @@ State of the art piano and drum transcription models, including velocity estimat
 
 For more information, see our papers and blog posts:
 
-*  Onsets and Frames: Dual-Objective Piano Transcription
+* Onsets and Frames: Dual-Objective Piano Transcription
   * [arXiv paper](https://goo.gl/magenta/onsets-frames-paper)
   * [blog post](https://g.co/magenta/onsets-frames)
   * [commit for model in paper](https://github.com/tensorflow/magenta/tree/9885adef56d134763a89de5584f7aa18ca7d53b6)
