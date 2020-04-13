@@ -97,8 +97,8 @@ music_vae_generate \
 
 #### Interpolate
 
-To interpolate, you need to have two MIDI files to inerpolate between. Each
-model has ceratin constraints<sup id="a1">[*](#f1)</sup> for these files. For
+To interpolate, you need to have two MIDI files to interpolate between. Each
+model has certain constraints<sup id="a1">[*](#f1)</sup> for these files. For
 example, the mel_2bar models only work if the input files are exactly 2-bars
 long and contain monophonic non-drum sequences. The trio_16bar models require
 16-bars with 3 instruments (based on program numbers): drums, piano or guitar,
