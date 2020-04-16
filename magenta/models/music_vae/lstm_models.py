@@ -91,9 +91,6 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
     return self._cells[0][-1].output_size + self._cells[1][-1].output_size
 
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
-    if hparams.use_cudnn and hparams.residual_decoder:
-      raise ValueError('Residual connections not supported in cuDNN.')
-
     self._is_training = is_training
     self._name_or_scope = name_or_scope
     self._use_cudnn = hparams.use_cudnn
@@ -102,55 +99,20 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
                     '  units: %s\n',
                     hparams.enc_rnn_size)
 
-    if isinstance(name_or_scope, tf.VariableScope):
-      name = name_or_scope.name
-      reuse = name_or_scope.reuse
-    else:
-      name = name_or_scope
-      reuse = None
-
-    cells_fw = []
-    cells_bw = []
-    for i, layer_size in enumerate(hparams.enc_rnn_size):
-      if self._use_cudnn:
-        cells_fw.append(lstm_utils.cudnn_lstm_layer(
-            [layer_size], hparams.dropout_keep_prob, is_training,
-            name_or_scope=tf.VariableScope(
-                reuse,
-                name + '/cell_%d/bidirectional_rnn/fw' % i)))
-        cells_bw.append(lstm_utils.cudnn_lstm_layer(
-            [layer_size], hparams.dropout_keep_prob, is_training,
-            name_or_scope=tf.VariableScope(
-                reuse,
-                name + '/cell_%d/bidirectional_rnn/bw' % i)))
-      else:
-        cells_fw.append(
-            lstm_utils.rnn_cell(
-                [layer_size], hparams.dropout_keep_prob,
-                hparams.residual_encoder, is_training))
-        cells_bw.append(
-            lstm_utils.rnn_cell(
-                [layer_size], hparams.dropout_keep_prob,
-                hparams.residual_encoder, is_training))
-
-    self._cells = (cells_fw, cells_bw)
+    self._cells = lstm_utils.build_bidirectional_lstm(
+        layer_sizes=hparams.enc_rnn_size,
+        use_cudnn=self._use_cudnn,
+        dropout_keep_prob=hparams.dropout_keep_prob,
+        residual=hparams.residual_encoder,
+        is_training=is_training,
+        name_or_scope=name_or_scope)
 
   def encode(self, sequence, sequence_length):
     cells_fw, cells_bw = self._cells
+
     if self._use_cudnn:
-      # Implements stacked bidirectional LSTM for variable-length sequences,
-      # which are not supported by the CudnnLSTM layer.
-      inputs_fw = tf.transpose(sequence, [1, 0, 2])
-      for lstm_fw, lstm_bw in zip(cells_fw, cells_bw):
-        outputs_fw, _ = lstm_fw(inputs_fw, training=self._is_training)
-        inputs_bw = tf.reverse_sequence(
-            inputs_fw, sequence_length, seq_axis=0, batch_axis=1)
-        outputs_bw, _ = lstm_bw(inputs_bw, training=self._is_training)
-        outputs_bw = tf.reverse_sequence(
-            outputs_bw, sequence_length, seq_axis=0, batch_axis=1)
-
-        inputs_fw = tf.concat([outputs_fw, outputs_bw], axis=2)
-
+      outputs_fw, outputs_bw = lstm_utils.cudnn_bidirectional_lstm(
+          cells_fw, cells_bw, sequence, sequence_length, self._is_training)
       last_h_fw = lstm_utils.get_final(outputs_fw, sequence_length)
       # outputs_bw has already been reversed, so we can take the first element.
       last_h_bw = outputs_bw[0]
@@ -548,6 +510,71 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         max_length=max_length)
 
     return decode_results.samples, decode_results
+
+
+class BidirectionalLstmControlPreprocessingDecoder(base_model.BaseDecoder):
+  """Decoder that preprocesses control input with a bidirectional LSTM."""
+
+  def __init__(self, core_decoder):
+    super(BidirectionalLstmControlPreprocessingDecoder, self).__init__()
+    self._core_decoder = core_decoder
+
+  def build(self, hparams, output_depth, is_training=True):
+    self._is_training = is_training
+    self._use_cudnn = hparams.use_cudnn
+
+    tf.logging.info('\nControl Preprocessing Cells (bidirectional):\n'
+                    '  units: %s\n',
+                    hparams.control_preprocessing_rnn_size)
+
+    self._control_preprocessing_cells = lstm_utils.build_bidirectional_lstm(
+        layer_sizes=hparams.control_preprocessing_rnn_size,
+        use_cudnn=self._use_cudnn,
+        dropout_keep_prob=hparams.dropout_keep_prob,
+        residual=hparams.residual_decoder,
+        is_training=is_training,
+        name_or_scope='control_preprocessing')
+
+    self._core_decoder.build(hparams, output_depth, is_training)
+
+  def _preprocess_controls(self, c_input, length):
+    cells_fw, cells_bw = self._control_preprocessing_cells
+
+    if self._use_cudnn:
+      outputs_fw, outputs_bw = lstm_utils.cudnn_bidirectional_lstm(
+          cells_fw, cells_bw, c_input, length, self._is_training)
+      outputs = tf.transpose(
+          tf.concat([outputs_fw, outputs_bw], axis=2), [1, 0, 2])
+
+    else:
+      outputs, _, _ = rnn.stack_bidirectional_dynamic_rnn(
+          cells_fw,
+          cells_bw,
+          c_input,
+          sequence_length=length,
+          time_major=False,
+          dtype=tf.float32,
+          scope='control_preprocessing')
+
+    return outputs
+
+  def reconstruction_loss(self, x_input, x_target, x_length, z=None,
+                          c_input=None):
+    if c_input is None:
+      raise ValueError('Must provide control input to preprocess.')
+    preprocessed_c_input = self._preprocess_controls(c_input, x_length)
+    return self._core_decoder.reconstruction_loss(
+        x_input, x_target, x_length, z, preprocessed_c_input)
+
+  def sample(self, n, max_length=None, z=None, c_input=None, **kwargs):
+    if c_input is None:
+      raise ValueError('Must provide control input to preprocess.')
+    preprocessed_c_input = tf.squeeze(
+        self._preprocess_controls(tf.expand_dims(c_input, axis=0),
+                                  tf.reshape(max_length, [1])),
+        axis=0)
+    return self._core_decoder.sample(
+        n, max_length, z, preprocessed_c_input, **kwargs)
 
 
 class CategoricalLstmDecoder(BaseLstmDecoder):
@@ -1305,6 +1332,7 @@ def get_default_hparams():
       'use_cudnn': False,  # Uses faster CudnnLSTM to train. For GPU only.
       'residual_encoder': False,  # Use residual connections in encoder.
       'residual_decoder': False,  # Use residual connections in decoder.
+      'control_preprocessing_rnn_size': [256],  # Decoder control preprocessing.
   })
   return contrib_training.HParams(**hparams_map)
 

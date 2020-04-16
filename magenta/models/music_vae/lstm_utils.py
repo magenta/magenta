@@ -102,6 +102,55 @@ def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
   return lstm
 
 
+def build_bidirectional_lstm(layer_sizes,
+                             use_cudnn, dropout_keep_prob, residual,
+                             is_training, name_or_scope):
+  """Build the Tensorflow graph for a bidirectional LSTM."""
+  if use_cudnn and residual:
+    raise ValueError('Residual connections not supported in cuDNN.')
+
+  if isinstance(name_or_scope, tf.VariableScope):
+    name = name_or_scope.name
+    reuse = name_or_scope.reuse
+  else:
+    name = name_or_scope
+    reuse = None
+
+  cells_fw = []
+  cells_bw = []
+  for i, layer_size in enumerate(layer_sizes):
+    if use_cudnn:
+      cells_fw.append(cudnn_lstm_layer(
+          [layer_size], dropout_keep_prob, is_training,
+          name_or_scope=tf.VariableScope(
+              reuse, name + '/cell_%d/bidirectional_rnn/fw' % i)))
+      cells_bw.append(cudnn_lstm_layer(
+          [layer_size], dropout_keep_prob, is_training,
+          name_or_scope=tf.VariableScope(
+              reuse, name + '/cell_%d/bidirectional_rnn/bw' % i)))
+    else:
+      cells_fw.append(
+          rnn_cell([layer_size], dropout_keep_prob, residual, is_training))
+      cells_bw.append(
+          rnn_cell([layer_size], dropout_keep_prob, residual, is_training))
+
+    return cells_fw, cells_bw
+
+
+def cudnn_bidirectional_lstm(cells_fw, cells_bw, inputs, length, is_training):
+  """Implements stacked bidirectional LSTM for variable-length inputs."""
+  inputs_fw = tf.transpose(inputs, [1, 0, 2])
+  for lstm_fw, lstm_bw in zip(cells_fw, cells_bw):
+    outputs_fw, _ = lstm_fw(inputs_fw, training=is_training)
+    inputs_bw = tf.reverse_sequence(
+        inputs_fw, length, seq_axis=0, batch_axis=1)
+    outputs_bw, _ = lstm_bw(inputs_bw, training=is_training)
+    outputs_bw = tf.reverse_sequence(
+        outputs_bw, length, seq_axis=0, batch_axis=1)
+    inputs_fw = tf.concat([outputs_fw, outputs_bw], axis=2)
+  return outputs_fw, outputs_bw
+
+
 def state_tuples_to_cudnn_lstm_state(lstm_state_tuples):
   """Convert tuple of LSTMStateTuples to CudnnLSTM format."""
   h = tf.stack([s.h for s in lstm_state_tuples])
