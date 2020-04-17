@@ -117,8 +117,8 @@ def maybe_sample_items(seq, sample_size, randomize):
     return seq[:sample_size]
 
 
-def combine_converter_tensors(converter_tensors, max_num_tensors,
-                              randomize_sample):
+def combine_converter_tensors(converter_tensors, max_num_tensors=None,
+                              randomize_sample=True):
   """Combines multiple `ConverterTensors` into one and samples if required."""
   results = []
   for result in converter_tensors:
@@ -540,28 +540,9 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
   """Converter for legacy MelodyOneHotEncoding.
 
   Attributes:
-    min_pitch: The minimum pitch to model. Those below this value will be
-      ignored.
-    max_pitch: The maximum pitch to model. Those above this value will be
-      ignored.
-    valid_programs: Optional set of program numbers to allow.
-    skip_polyphony: Whether to skip polyphonic instruments. If False, the
-      highest pitch will be taken in polyphonic sections.
-    max_bars: Optional maximum number of bars per extracted melody, before
-      slicing.
-    slice_bars: Optional size of window to slide over raw Melodies after
-      extraction.
-    gap_bars: If this many bars or more of non-events follow a note event, the
-       melody is ended. Disabled when set to 0 or None.
-    steps_per_quarter: The number of quantization steps per quarter note.
-    quarters_per_bar: The number of quarter notes per bar.
-    pad_to_total_time: Pads each input/output tensor to the total time of the
-      NoteSequence.
-    add_end_token: Whether to add an end token at the end of each sequence.
-    max_tensors_per_notesequence: The maximum number of outputs to return
-      for each NoteSequence.
-    chord_encoding: An instantiated OneHotEncoding object to use for encoding
-      chords on which to condition, or None if not conditioning on chords.
+    melody_fn: A function that takes no arguments and returns an empty Melody.
+    melody_encoding: The MelodyOneHotEncoding object used to encode/decode
+        individual melody events.
   """
 
   def __init__(self, min_pitch=PIANO_MIN_MIDI_PITCH,
@@ -571,6 +552,34 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
                add_end_token=False, pad_to_total_time=False,
                max_tensors_per_notesequence=5, presplit_on_time_changes=True,
                chord_encoding=None):
+    """Initialize a OneHotMelodyConverter object.
+
+    Args:
+      min_pitch: The minimum pitch to model. Those below this value will be
+          ignored.
+      max_pitch: The maximum pitch to model. Those above this value will be
+          ignored.
+      valid_programs: Optional set of program numbers to allow.
+      skip_polyphony: Whether to skip polyphonic instruments. If False, the
+          highest pitch will be taken in polyphonic sections.
+      max_bars: Optional maximum number of bars per extracted melody, before
+          slicing.
+      slice_bars: Optional size of window to slide over raw Melodies after
+          extraction.
+      gap_bars: If this many bars or more of non-events follow a note event, the
+          melody is ended. Disabled when set to 0 or None.
+      steps_per_quarter: The number of quantization steps per quarter note.
+      quarters_per_bar: The number of quarter notes per bar.
+      add_end_token: Whether to add an end token at the end of each sequence.
+      pad_to_total_time: Pads each input/output tensor to the total time of the
+          NoteSequence.
+      max_tensors_per_notesequence: The maximum number of outputs to return
+          for each NoteSequence.
+      presplit_on_time_changes: Whether to split NoteSequence on time changes
+          before converting.
+      chord_encoding: An instantiated OneHotEncoding object to use for encoding
+          chords on which to condition, or None if not conditioning on chords.
+    """
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
     self._valid_programs = valid_programs
@@ -580,6 +589,10 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
     def melody_fn():
       return mm.Melody(
           steps_per_bar=steps_per_bar, steps_per_quarter=steps_per_quarter)
+
+    self._melody_fn = melody_fn
+    self._melody_encoding = mm.MelodyOneHotEncoding(min_pitch, max_pitch + 1)
+
     melody_extractor_fn = functools.partial(
         melody_pipelines.extract_melodies,
         min_bars=1,
@@ -591,7 +604,7 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
     super(OneHotMelodyConverter, self).__init__(
         melody_fn,
         melody_extractor_fn,
-        mm.MelodyOneHotEncoding(min_pitch, max_pitch + 1),
+        self._melody_encoding,
         add_end_token=add_end_token,
         slice_bars=slice_bars,
         pad_to_total_time=pad_to_total_time,
@@ -600,6 +613,14 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
         max_tensors_per_notesequence=max_tensors_per_notesequence,
         presplit_on_time_changes=presplit_on_time_changes,
         chord_encoding=chord_encoding)
+
+  @property
+  def melody_fn(self):
+    return self._melody_fn
+
+  @property
+  def melody_encoding(self):
+    return self._melody_encoding
 
   def _to_tensors_fn(self, note_sequence):
     def is_valid(note):
