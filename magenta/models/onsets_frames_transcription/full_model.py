@@ -24,13 +24,14 @@ from magenta.music import midi_io
 
 def get_default_hparams():
     return {
-        'full_learning_rate': 6e-4,
+        'full_learning_rate': 2e-4,
         'prediction_generosity': 1,
         'multiple_instruments_threshold': 0.5,
         'use_all_instruments': False,
         'midi_trainable': True,
-        'family_recall_weight': [.5, .6, 1, .1, .1, 1, .6, .5, .3, 1, .4, .7],
-        'inv_frequency_weight': [.5, .4, .1, 1, 1, .1, .4, .5, .7, .1, .6, .3]
+        'family_recall_weight': [.5, 1.4, 1.4, .125, .05, 1.2, 1., 1.3, .45, 1.0, 1.0, .7],
+        'inv_frequency_weight': [.5, .4, .3, 1, 1, .3, .4, .5, .7, .3, .6, .3],
+        'transcription_probability_mult': [1.0, 0.95, 0.95, 1.0, 0.9, 1.0, 1.0, 1.1, 0.9, 0.9, 0.9, 1.0, 1.0]
     }
 
 
@@ -157,11 +158,6 @@ class FullModel:
                                 dtype='int64')(
             [frame_predictions, generous_onset_predictions, offset_predictions])
 
-        pianoroll_length = Lambda(get_dynamic_length,
-                                  output_shape=(1,),
-                                  dtype='int64',
-                                  dynamic=True)(frame_predictions)
-
         timbre_probs = self.timbre_model.call([spec_256, note_croppings])
         # timbre_probs = get_timbre_output_layer(self.hparams)([spec_256, note_croppings])
 
@@ -176,9 +172,6 @@ class FullModel:
 
         print_layer = Lambda(print_fn)
 
-        def get_pianoroll(frame_predictions):
-            return K.ones_like(tf.repeat(K.expand_dims(frame_predictions), -1))
-
         pianoroll = Lambda(lambda x: tf.repeat(K.expand_dims(x),
                                                self.hparams.timbre_num_classes,
                                                -1),
@@ -192,7 +185,7 @@ class FullModel:
             [stop_gradient(note_croppings), timbre_probs, stop_gradient(pianoroll)])
 
         expanded_present_instruments = float_cast(expand_dims([expand_dims([
-            print_layer(present_instruments), -2]), -2]))
+            (present_instruments), -2]), -2]))
 
         present_pianoroll = (
             Multiply(name='apply_present')([timbre_pianoroll, expanded_present_instruments]))
@@ -201,26 +194,11 @@ class FullModel:
 
         # roll the pianoroll to get instrument predictions for offsets which is normally where
         # we stop the pianoroll fill
-        rolled_pianoroll = Lambda(lambda x: tf.roll(x, 1, axis=-3))(pianoroll_no_gradient)
+        # rolled_pianoroll = Lambda(lambda x: tf.roll(x, 1, axis=-3))(pianoroll_no_gradient)
 
         expanded_frames = expand_dims([frame_probs, -1])
         expanded_onsets = expand_dims([onset_probs, -1])
         expanded_offsets = expand_dims([offset_probs, -1])
-
-        expanded_frames_no_gradient = stop_gradient(expanded_frames)
-        expanded_onsets_no_gradient = stop_gradient(expanded_onsets)
-        expanded_offsets_no_gradient = stop_gradient(expanded_offsets)
-
-        # timbre loss for frames such as string which have very difficult onsets to predict
-        # no gradient bc we are ignoring melody prediction for the instrument loss
-        broadcasted_frames = Multiply(name='multi_frames_timbre_only')(
-            [pianoroll_no_gradient, expanded_frames_no_gradient])
-        # timbre loss for instruments that have lots of onset support
-        # Getting onsets correct is very good for our model
-        broadcasted_onsets = Multiply(name='multi_onsets_timbre_only')(
-            [present_pianoroll, expanded_onsets_no_gradient])
-        broadcasted_offsets = Multiply(name='multi_offsets_timbre_only')(
-            [pianoroll_no_gradient, expanded_offsets_no_gradient])
 
         # Use the last channel for instrument-agnostic midi
         broadcasted_frames = Concatenate(name='multi_frames')(
@@ -228,7 +206,7 @@ class FullModel:
         broadcasted_onsets = Concatenate(name='multi_onsets')(
             [present_pianoroll, expanded_onsets])
         broadcasted_offsets = Concatenate(name='multi_offsets')(
-            [rolled_pianoroll, expanded_offsets])
+            [pianoroll_no_gradient, expanded_offsets])
 
         losses = {
             'multi_frames': multi_track_loss_wrapper(self.hparams,

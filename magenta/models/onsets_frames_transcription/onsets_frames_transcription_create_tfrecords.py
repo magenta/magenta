@@ -33,6 +33,7 @@ import copy
 import csv
 import os
 
+import librosa
 from absl import app
 from absl import flags
 from absl import logging
@@ -40,7 +41,7 @@ from absl import logging
 import apache_beam as beam
 from apache_beam.metrics import Metrics
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
-from magenta.music import midi_io
+from magenta.music import midi_io, audio_io
 from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
@@ -68,6 +69,10 @@ flags.DEFINE_list(
     'pipeline_options', '--runner=DirectRunner',
     'A comma-separated list of command line arguments to be used as options '
     'for the Beam Pipeline.')
+flags.DEFINE_boolean(
+    'convert_flac', True,
+    'Convert flac to wav'
+)
 
 def note_sequence_from_directory(dir):
     midis = tf.io.gfile.glob(f'{dir}/MIDI/*.mid')
@@ -115,7 +120,11 @@ class CreateExampleDoFn(beam.DoFn):
             base_ns = music_pb2.NoteSequence()
 
         logging.info('Creating Example %s:%s', midi_path, wav_path)
-        wav_data = tf.io.gfile.GFile(wav_path, 'rb').read()
+        if FLAGS.convert_flac:
+            samples, sr = librosa.load(wav_path, FLAGS.sample_rate)
+            wav_data = audio_io.samples_to_wav_data(samples, sr)
+        else:
+            wav_data = tf.io.gfile.GFile(wav_path, 'rb').read()
 
         ns = copy.deepcopy(base_ns)
 

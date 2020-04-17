@@ -31,18 +31,19 @@ DEFAULT_HPARAMS = {
     **audio_transform.DEFAULT_AUDIO_TRANSFORM_HPARAMS,
     **{
         'model_id': None,
+        'batch_size': 2,
         'epochs_per_save': 50,
         'using_plaidml': False,
         'eval_batch_size': 1,
         'predict_batch_size': 1,
         'shuffle_buffer_size': 256,
-        'nsynth_shuffle_buffer_size': 0,
+        'nsynth_shuffle_buffer_size': 256,
         'timbre_coagulate_mini_batches': False,
         'nsynth_batch_size': 2,
         'slakh_batch_size': 5,
         'use_drums': False,
         'timbre_training_max_instruments': 64,
-        'timbre_max_start_offset': 1600000, #320000 goes to 800 when cropping
+        'timbre_max_start_offset': 160000, #320000 goes to 800 when cropping
         'timbre_min_len': 8000,
         'timbre_max_len': 0,
         'sample_rate': 16000,

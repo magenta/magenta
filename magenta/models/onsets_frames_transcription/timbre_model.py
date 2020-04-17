@@ -50,12 +50,12 @@ else:
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
 def get_default_hparams():
     return {
-        'timbre_learning_rate': 6e-4,
+        'timbre_learning_rate': 4e-4,
         'timbre_decay_steps': 10000,
         'timbre_decay_rate': 1e-2,
-        'timbre_clip_norm': 4.0,
+        'timbre_clip_norm': 2.0,
         'timbre_l2_regularizer': 1e-7,
-        'timbre_filter_frequency_sizes': [3, int(constants.BINS_PER_OCTAVE / 2)],  # [5, 80],
+        'timbre_filter_frequency_sizes': [3, 7],  # [5, 80],
         'timbre_filter_temporal_sizes': [1, 3, 5],
         'timbre_num_filters': [96, 64, 32],
         'timbre_filters_pool_size': (int(64 / 4), int(constants.BINS_PER_OCTAVE / 14)),
@@ -67,16 +67,16 @@ def get_default_hparams():
         'timbre_architecture': 'parallel',
         'timbre_pool_size': [(3, 2), (3, 2)],
         'timbre_conv_num_layers': 2,
-        'timbre_dropout_drop_amts': [0.1, 0.2, 0.2],
+        'timbre_dropout_drop_amts': [0.1, 0.1, 0.1],
         'timbre_rnn_dropout_drop_amt': [0.3, 0.5],
         'timbre_fc_size': 512,
-        'timbre_penultimate_fc_size': 128,
+        'timbre_penultimate_fc_size': 256,
         'timbre_fc_num_layers': 0,
-        'timbre_fc_dropout_drop_amt': 0.25,
-        'timbre_conv_drop_amt': 0.25,
-        'timbre_final_dropout_amt': 0.25,
-        'timbre_local_conv_size': 6,
-        'timbre_local_conv_strides': 2,  # reduce memory requirement
+        'timbre_fc_dropout_drop_amt': 0.0,
+        'timbre_conv_drop_amt': 0.1,
+        'timbre_final_dropout_amt': 0.0,
+        'timbre_local_conv_size': 7,
+        'timbre_local_conv_strides': 1,  # reduce memory requirement
         'timbre_local_conv_num_filters': 256,
         'timbre_input_shape': (None, constants.TIMBRE_SPEC_BANDS, 1),  # (None, 229, 1),
         'timbre_num_classes': constants.NUM_INSTRUMENT_FAMILIES + 1,  # include other and drums
@@ -86,11 +86,11 @@ def get_default_hparams():
         'timbre_extra_conv': False,
         'timbre_penultimate_activation': 'elu',
         'timbre_final_activation': 'sigmoid',
-        'timbre_spatial_dropout': False,
+        'timbre_spatial_dropout': True,
         'timbre_global_pool': 1,
         'timbre_label_smoothing': 0.0,
         'timbre_bottleneck_filter_num': 0,
-        'timbre_gradient_exp': 14,  # 16 for cqt no-log
+        'timbre_gradient_exp': 12,  # 16 for cqt no-log
         'timbre_spec_epsilon': 1e-8,
         'timbre_class_weights_list': [
             16000 / 68955,
@@ -203,16 +203,13 @@ def local_conv_layer(hparams):
                 use_bias=False,
             ), hparams,
                 name=f'roi_conv1d_{size}_{strides}')(inputs))
+
         outputs = time_distributed_wrapper(GlobalMaxPooling1D(), hparams, name='global_max_pitch')(
             outputs)
-        if hparams.timbre_spatial_dropout:
-            outputs = time_distributed_wrapper(SpatialDropout1D(hparams.timbre_conv_drop_amt),
-                                               hparams,
-                                               name='conv1d_dropout_s')(outputs)
-        else:
-            outputs = time_distributed_wrapper(Dropout(hparams.timbre_conv_drop_amt),
-                                               hparams,
-                                               name='conv1d_dropout')(outputs)
+
+        # outputs = time_distributed_wrapper(Dropout(hparams.timbre_conv_drop_amt),
+        #                                    hparams,
+        #                                    name='conv1d_dropout')(outputs)
         return outputs
 
     return local_conv_fn

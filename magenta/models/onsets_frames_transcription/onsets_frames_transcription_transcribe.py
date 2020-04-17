@@ -23,6 +23,7 @@ import json
 import librosa
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
+import matplotlib.pyplot as plt
 import numpy as np
 from dotmap import DotMap
 
@@ -88,14 +89,14 @@ def run(argv, config_map, data_fn):
 
     if model_type is model_util.ModelType.FULL:
 
-        midi_model = ModelWrapper('E:/models', ModelType.MIDI, hparams=hparams)
-        midi_model.build_model(compile=False)
-        midi_model.load_newest()
-        timbre_model = ModelWrapper('E:/models', ModelType.TIMBRE, hparams=hparams)
-        #timbre_model.build_model(compile=False)
-        #timbre_model.load_newest()
+        # midi_model = ModelWrapper('E:/models', ModelType.MIDI, hparams=hparams)
+        # midi_model.build_model(compile=False)
+        # midi_model.load_newest()
+        # timbre_model = ModelWrapper('E:/models', ModelType.TIMBRE, hparams=hparams)
+        # timbre_model.build_model(compile=False)
+        # timbre_model.load_newest()
 
-        model.build_model(midi_model=midi_model.get_model(),
+        model.build_model(midi_model=None,
                           timbre_model=None,
                           compile=False)
 
@@ -105,6 +106,14 @@ def run(argv, config_map, data_fn):
         model.load_newest()
     except:
         pass
+
+    # plt.plot([x[0]['recall'] for x in model.metrics.metrics_history[-37:]], 'r',
+    #          [x[0]['precision'] for x in model.metrics.metrics_history[-37:]], 'g',
+    #          [x[0]['f1_score'] for x in model.metrics.metrics_history[-37:]], 'b')
+    #
+    # plt.show()
+    # for metric in model.metrics.metrics_history:
+    #     print(metric)
 
     try:
         argv[1].index('*')
@@ -128,7 +137,7 @@ def run(argv, config_map, data_fn):
             spec = tf.reshape(spec, (1, *spec.shape, 1))
 
             tf.compat.v1.logging.info('Running inference...')
-            sequence_prediction = model.predict_from_spec(spec)
+            sequence_prediction = model.predict_from_spec(spec, qpm=FLAGS.qpm)
         else:
             # midi_spec = wav_to_spec_op(wav_data, hparams=hparams)
             midi_spec = samples_to_cqt(samples, hparams=hparams)
@@ -143,7 +152,7 @@ def run(argv, config_map, data_fn):
             timbre_spec = samples_to_cqt(samples, hparams=temp_hparams)
             if hparams.timbre_spec_log_amplitude:
                 timbre_spec = librosa.power_to_db(timbre_spec)
-                timbre_spec = timbre_spec - K.min(timbre_spec)
+                timbre_spec = timbre_spec - librosa.power_to_db(np.array([1e-9]))[0]
                 timbre_spec /= K.max(timbre_spec)
 
             # add "batch" and channel dims

@@ -20,6 +20,8 @@ import functools
 import json
 import os
 
+from magenta.models.onsets_frames_transcription.data import merge_data_functions
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from dotmap import DotMap
@@ -45,6 +47,10 @@ tf.app.flags.DEFINE_string('config', 'onsets_frames',
 tf.app.flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of train/eval examples.')
+tf.app.flags.DEFINE_string(
+    'nsynth_examples_path', None,
+    'Optional path to a TFRecord for full model training on nsynth-style data.'
+)
 tf.app.flags.DEFINE_boolean(
     'preprocess_examples', True,
     'Whether to preprocess examples or assume they have already been '
@@ -98,7 +104,8 @@ if FLAGS.using_plaidml:
 
     plaidml.keras.install_backend()
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs, timbre_dataset_reader, \
+from magenta.models.onsets_frames_transcription import data, train_util, configs, \
+    timbre_dataset_reader, \
     model_util
 
 
@@ -156,13 +163,19 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    provide_batch_fn = timbre_dataset_reader.provide_batch if model_util.ModelType[
-                                                 FLAGS.model_type] == model_util.ModelType.TIMBRE \
+    provide_batch_fn = timbre_dataset_reader.provide_batch \
+        if model_util.ModelType[FLAGS.model_type] == model_util.ModelType.TIMBRE \
         else data.provide_batch
     data_fn = functools.partial(provide_batch_fn,
                                 examples=FLAGS.examples_path,
                                 dataset_name=FLAGS.dataset_name) \
         if FLAGS.examples_path else None
+    if FLAGS.nsynth_examples_path \
+            and model_util.ModelType[FLAGS.model_type] == model_util.ModelType.FULL:
+        nsynth_fn = functools.partial(timbre_dataset_reader.provide_batch,
+                                      examples=FLAGS.nsynth_examples_path,
+                                      for_full_model=True)
+        data_fn = merge_data_functions([data_fn, nsynth_fn])
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)

@@ -130,7 +130,7 @@ family_to_midi_instrument = {
     6: 17,  # organ / Drawbar Organ
     7: 66,  # reed / Alto Sax
     8: 49,  # string / String Ensemble
-    9: 82,  # synth lead / Sawtooth
+    9: 83,  # synth lead / Square
     10: 54,  # vocal / Voice Oohs
     11: 118,
     12: 119, # TODO actual percussion

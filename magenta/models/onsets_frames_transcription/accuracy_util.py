@@ -73,15 +73,15 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
             # 50/50 for something not in melody prediction
             ignore_melodic_probs = permuted_y_probs[instrument_idx] \
                                    * K.cast_to_floatx(permuted_y_true[-1])
-            instrument_loss = K.mean(
+            instrument_loss = tf.reduce_mean(
                 tf_utils.log_loss(permuted_y_true[instrument_idx],
                                   ignore_melodic_probs + epsilon,
                                   epsilon=epsilon,
                                   recall_weighing=recall_weighing
+                                                  * 1.5
                                                   * hparams.family_recall_weight[instrument_idx]))
 
-            # less loss for
-            instrument_loss *= hparams.inv_frequency_weight[instrument_idx]
+            # instrument_loss *= hparams.inv_frequency_weight[instrument_idx]
             if K.sum(permuted_y_true[instrument_idx]) == 0:
                 # Still learn a little from samples without the instrument present
                 # Don't mess up under-represented instruments much
@@ -93,7 +93,7 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
             f'total loss: {tf.reduce_sum(loss_list)} {[f"{i}: {x:.4f}. {K.max(permuted_y_probs[i]):.3f}" for i, x in enumerate(loss_list)]}')
 
         # add instrument-independent loss
-        return tf.reduce_sum(loss_list) + K.mean(
+        return tf.reduce_mean(loss_list) + K.mean(
             tf_utils.log_loss(permuted_y_true[-1],
                               permuted_y_probs[-1] + epsilon,
                               epsilon=epsilon,
@@ -141,7 +141,12 @@ def convert_multi_instrument_probs_to_predictions(y_probs,
         # timbre_probs = remove_last_channel(y_probs)
         # return timbre_probs * K.expand_dims(agnostic_probs) > multiple_instruments_threshold
         timbre_probs = remove_last_channel(y_probs)
-        timbre_predictions = timbre_probs > multiple_instruments_threshold
+        top_probs = K.cast(tf.one_hot(
+            K.argmax(timbre_probs),
+            K.int_shape(timbre_probs)[-1]), 'bool')
+        timbre_predictions = tf.logical_or(timbre_probs > multiple_instruments_threshold,
+                                           tf.logical_and(top_probs,
+                                                          timbre_probs > 0.5))
         return tf.logical_and(agnostic_predictions, timbre_predictions)
 
     sum_probs = K.sum(y_probs, axis=-1)
@@ -285,7 +290,7 @@ def f1_wrapper(threshold):
 
 def flatten_f1_wrapper(hparams, threshold=0.5):
     def flatten_f1_fn(y_true, y_probs):
-        #y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1])
+        # y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1])
         y_predictions = K.cast_to_floatx(y_probs > threshold)
         y_predictions = K.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
 
@@ -378,7 +383,8 @@ class WeightedCrossentropy(LossFunctionWrapper):
         y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         # 0.25 for samples with that family somewhere within it
-        y_true_unshaped = K.minimum(1, K.cast_to_floatx(y_true_unshaped) + 0.25 * K.cast_to_floatx(K.expand_dims(K.sum(y_true_unshaped, 1) > 0, 1)))
+        y_true_unshaped = K.minimum(1, K.cast_to_floatx(y_true_unshaped) + 0.25 * K.cast_to_floatx(
+            K.expand_dims(K.sum(y_true_unshaped, 1) > 0, 1)))
         y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_pred_unshaped.shape[-1]))
 
         # remove any predictions from padded values
@@ -410,4 +416,5 @@ class WeightedCrossentropy(LossFunctionWrapper):
                          -1) * final_mask
         if self.recall_weighing == 0:
             return self.loss_fn.call(y_true, y_pred) * final_mask
-        return K.mean(tf_utils.log_loss(y_true, y_pred, recall_weighing=self.recall_weighing), -1) * final_mask
+        return K.mean(tf_utils.log_loss(y_true, y_pred, recall_weighing=self.recall_weighing),
+                      -1) * final_mask

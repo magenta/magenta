@@ -2018,7 +2018,7 @@ def pianoroll_to_note_sequence(frames,
         # pitch is already active, but if this is a new onset, we should end
         # the note and start a new one.
         if (active_onsets[i, pitch] and
-            not active_onsets[i - 1, pitch]):
+            not (active_onsets[i - 1, pitch] or onset_predictions[i - 1, pitch])):
           end_pitch(pitch, i)
           pitch_start_step[pitch] = i
           onset_velocities[pitch] = _unscale_velocity(velocity_values[i, pitch])

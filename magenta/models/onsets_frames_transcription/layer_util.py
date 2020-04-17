@@ -253,13 +253,15 @@ class NoteCroppingsToPianorolls(layers.Layer):
                 start_idx = K.cast(cropping.start_idx / self.hparams.spec_hop_length, 'int64')
                 end_idx = K.cast(cropping.end_idx / self.hparams.spec_hop_length, 'int64')
 
-                start_pitch_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
-                    pitch, constants.MIDI_PITCHES
-                )), tf.float32)
-                end_pitch_mask = K.cast(tf.sequence_mask(
-                    pitch + 1, constants.MIDI_PITCHES
-                ), tf.float32)
-                pitch_mask = start_pitch_mask * end_pitch_mask
+                # end_pitch_mask = tf.sequence_mask(pitch, constants.MIDI_PITCHES)
+                #
+                # pitch_mask = K.cast_to_floatx(tf.logical_and(
+                #     end_pitch_mask, tf.math.logical_not(tf.roll(end_pitch_mask, -1, axis=-1))))
+                pitch_mask = K.cast_to_floatx(tf.one_hot(pitch, constants.MIDI_PITCHES))
+                # end_pitch_mask = K.cast(tf.sequence_mask(
+                #     pitch + 1, constants.MIDI_PITCHES
+                # ), tf.float32)
+                # pitch_mask = start_pitch_mask * end_pitch_mask
                 end_time_mask = K.cast(tf.sequence_mask(
                     end_idx,
                     maxlen=K.int_shape(batched_pianorolls[batch_idx])[0]
@@ -276,7 +278,13 @@ class NoteCroppingsToPianorolls(layers.Layer):
                 mask = ones * pitch_mask
                 mask = mask * time_mask
                 cropped_probs = mask * (timbre_probs[i])
-                pianorolls = pianorolls + cropped_probs
+                if K.learning_phase() == 1:
+                    # for training
+                    pianorolls = pianorolls + cropped_probs
+                else:
+                    # for testing, this is faster
+                    # pianorolls = pianorolls + cropped_probs
+                    pianorolls.assign_add(cropped_probs)
 
             frame_predictions = pianorolls > self.hparams.multiple_instruments_threshold
             sequence = infer_util.predict_multi_sequence(
@@ -290,11 +298,12 @@ class NoteCroppingsToPianorolls(layers.Layer):
 
         pianoroll_tensor = tf.convert_to_tensor(pianoroll_list)
         # use nearby probabilities
-        return K.pool2d(pianoroll_tensor,
-                        pool_size=(7, 3),
-                        strides=(1, 1),
-                        padding='same',
-                        pool_mode='max')
+        return pianoroll_tensor
+        # return K.pool2d(pianoroll_tensor,
+        #                 pool_size=(7, 3),
+        #                 strides=(1, 1),
+        #                 padding='same',
+        #                 pool_mode='max')
 
     def compute_output_shape(self, input_shape):
 

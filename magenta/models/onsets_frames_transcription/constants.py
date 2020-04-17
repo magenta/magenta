@@ -40,7 +40,8 @@ FAMILY_IDX_STRINGS = {
     7: 'reed',
     8: 'string',
     9: 'synth_lead',
-    10: 'vocal'
+    10: 'vocal',
+    11: 'other'
 }
 
 

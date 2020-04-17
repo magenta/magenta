@@ -162,8 +162,9 @@ class ModelWrapper:
             croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
                                                        self.hparams, temporal_ds)
             plt.figure(figsize=(10, 6))
-            num_crops = min(3, K.int_shape(x[1][batch_idx])[0])
-            plt.subplot(int(num_crops / 2 + 1), 2, 1)
+            num_crops = 0# min(3, K.int_shape(x[1][batch_idx])[0])
+            #plt.subplot(int(num_crops / 2 + 1), 2, 1)
+            plt.subplot(1, 1, 1)
             y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
             librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
                                      y_axis=y_axis,
@@ -184,12 +185,12 @@ class ModelWrapper:
 
     def spec_to_db(self, spec_batch, i):
         if self.hparams.timbre_spec_log_amplitude:
-            db = K.permute_dimensions(K.reshape(spec_batch[i],
+            db = K.permute_dimensions(K.reshape(spec_batch[i] * 80,
                                                 (spec_batch[i].shape[0],
                                                  spec_batch[i].shape[1],
                                                  -1)),
                                       (2, 1, 0))[-1].numpy() + \
-                 librosa.power_to_db(np.array([0]))[0]
+                 librosa.power_to_db(np.array([1e-9]))[0]
         else:
             db = librosa.power_to_db(
                 tf.transpose(tf.reshape(spec_batch[i], spec_batch[i].shape[0:-1])).numpy())
@@ -240,31 +241,52 @@ class ModelWrapper:
     def predict_multi_sequence(self, midi_spec, timbre_spec, present_instruments=None, qpm=None):
         if present_instruments is None:
             present_instruments = K.expand_dims(np.ones(self.hparams.timbre_num_classes), 0)
-        y_pred = self.model.predict_on_batch([midi_spec, timbre_spec, present_instruments])
+        #y_pred = self.model.predict_on_batch([midi_spec, timbre_spec, present_instruments])
+        y_pred = self.model.call([midi_spec, timbre_spec, K.cast_to_floatx(present_instruments)], training=False)
         multi_track_prf_wrapper(threshold=self.hparams.predict_frame_threshold,
                                 multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
                                 hparams=self.hparams, print_report=True, only_f1=False)(
             K.cast_to_floatx(y_pred[1] > self.hparams.predict_frame_threshold), y_pred[1])
         permuted_y_probs = K.permute_dimensions(y_pred[1][0], (2, 0, 1))
         print(
-            f'total mean: {[f"{i}:{x}/{K.max(permuted_y_probs[i])}" for i, x in enumerate(permuted_y_probs)]}')
+            f'total mean: {[f"{i}:{K.max(permuted_y_probs[i])}" for i, x in enumerate(permuted_y_probs)]}')
+
+        # self.model.train_on_batch([midi_spec, timbre_spec, present_instruments], [K.cast_to_floatx(y > 0.5) for y in y_pred])
+
 
         frame_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[0],
+            y_pred[0] * self.hparams.transcription_probability_mult,
             self.hparams.predict_frame_threshold,
             self.hparams.multiple_instruments_threshold)[0]
         onset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[1],
+            y_pred[1] * self.hparams.transcription_probability_mult,
             self.hparams.predict_onset_threshold,
             self.hparams.multiple_instruments_threshold)[0]
         offset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[2],
+            y_pred[2] * self.hparams.transcription_probability_mult,
             self.hparams.predict_offset_threshold,
             self.hparams.multiple_instruments_threshold)[0]
         active_onsets = convert_multi_instrument_probs_to_predictions(
-            y_pred[1],
+            y_pred[1] * self.hparams.transcription_probability_mult,
             self.hparams.active_onset_threshold,
             self.hparams.multiple_instruments_threshold)[0]
+
+        if self.hparams.use_all_instruments:
+            """
+            mute the instruments we don't want here
+            if this happens we are trying to isolate certain instruments,
+            knowing there may be others
+            otherwise, the present_instruments represent the instruments that we think exist in
+            the track
+            For Example: A guitar-only track would set use_all_instruments to false, and set guitar
+                to the only present instrument.
+                        A multi-instrument track could set use_all_instruments to true, and set
+                guitar to the only present instrument.
+            """
+            frame_predictions *= present_instruments
+            onset_predictions *= present_instruments
+            offset_predictions *= present_instruments
+            active_onsets *= present_instruments
 
         return infer_util.predict_multi_sequence(frame_predictions, onset_predictions,
                                                  offset_predictions, active_onsets, qpm=qpm,
@@ -272,9 +294,10 @@ class ModelWrapper:
                                                  min_pitch=constants.MIN_MIDI_PITCH)
 
     def predict_from_spec(self, spec=None, num_croppings=None, additional_spec=None, num_notes=None,
+                          qpm=None,
                           *args):
         if self.type == ModelType.MIDI:
-            return self._predict_sequence(spec)
+            return self._predict_sequence(spec, qpm=qpm)
         elif self.type == ModelType.TIMBRE:
             return self._predict_timbre(spec, num_croppings)
         else:
@@ -284,10 +307,10 @@ class ModelWrapper:
         try:
             model_weights = \
                 sorted(glob.glob(
-                    f'{self.model_dir}/{self.type.name}/{id}/*.hdf5'),
+                    f'{self.model_dir}/{self.type.name}/{id}/Training Model Weights *.hdf5'),
                     key=os.path.getmtime)[-1]
             model_history = \
-                sorted(glob.glob(f'{self.model_dir}/{self.type.name}/{id}/*.npy'),
+                sorted(glob.glob(f'{self.model_dir}/{self.type.name}/{id}/Training History *.npy'),
                        key=os.path.getmtime)[-1]
             self.metrics.load_metrics(
                 np.load(model_history,
@@ -352,8 +375,9 @@ class ModelWrapper:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()
             self.model.compile(Adam(self.hparams.full_learning_rate,
-                                    decay=self.hparams.timbre_decay_rate,
-                                    clipnorm=self.hparams.timbre_clip_norm),
+                                    #decay=self.hparams.timbre_decay_rate,
+                                    #clipnorm=self.hparams.timbre_clip_norm
+                                    ),
                                metrics=accuracies, loss=losses)
             # self.model.compile(optimizers.Adadelta(),
             #                    metrics=accuracies, loss=losses)
