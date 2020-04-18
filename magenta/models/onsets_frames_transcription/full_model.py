@@ -31,7 +31,6 @@ def get_default_hparams():
         'midi_trainable': True,
         'family_recall_weight': [.5, 1.4, 1.4, .125, .05, 1.2, 1., 1.3, .45, 1.0, 1.0, .7],
         'inv_frequency_weight': [.5, .4, .3, 1, 1, .3, .4, .5, .7, .3, .6, .3],
-        'transcription_probability_mult': [1.0, 0.95, 0.95, 1.0, 0.9, 1.0, 1.0, 1.1, 0.9, 0.9, 0.9, 1.0, 1.0]
     }
 
 

@@ -162,8 +162,8 @@ class ModelWrapper:
             croppings = get_croppings_for_single_image(spec[batch_idx], x[1][batch_idx],
                                                        self.hparams, temporal_ds)
             plt.figure(figsize=(10, 6))
-            num_crops = 0# min(3, K.int_shape(x[1][batch_idx])[0])
-            #plt.subplot(int(num_crops / 2 + 1), 2, 1)
+            num_crops = 0  # min(3, K.int_shape(x[1][batch_idx])[0])
+            # plt.subplot(int(num_crops / 2 + 1), 2, 1)
             plt.subplot(1, 1, 1)
             y_axis = 'cqt_note' if self.hparams.timbre_spec_type == 'cqt' else 'mel'
             librosa.display.specshow(self.spec_to_db(x[0], batch_idx),
@@ -238,11 +238,45 @@ class ModelWrapper:
             qpm=qpm)
         return sequence
 
+    # Stairway to heaven transcription times
+    # no split: 11:06
+    # duration=16: 01:46
+    # duration=32: 02:07
+    # duration=8: 01:40
+    def _split_and_predict(self, midi_spec, timbre_spec, present_instruments, duration=16):
+        samples_length = duration * self.hparams.sample_rate
+        frames, onsets, offsets = None, None, None
+        midi_spec_len = K.int_shape(midi_spec)[1]
+        timbre_spec_len = K.int_shape(timbre_spec)[1]
+        edge_spacing = 16
+        for i in range(0, K.int_shape(midi_spec)[1] * self.hparams.spec_hop_length, samples_length):
+            m_start = int(i / self.hparams.spec_hop_length)
+            m_end = min(midi_spec_len, int(edge_spacing * 2 + (i + samples_length) / self.hparams.spec_hop_length))
+            t_start = int(i / self.hparams.timbre_hop_length)
+            t_end = min(timbre_spec_len, int(edge_spacing * 4 + (i + samples_length) / self.hparams.timbre_hop_length))
+            split_pred = self.model.call([
+                K.expand_dims(midi_spec[0, m_start:m_end], 0),
+                K.expand_dims(timbre_spec[0, t_start:t_end], 0),
+                K.cast_to_floatx(present_instruments)],
+                training=False)
+            if i == 0:
+                frames = split_pred[0][0][:-edge_spacing]
+                onsets = split_pred[1][0][:-edge_spacing]
+                offsets = split_pred[2][0][:-edge_spacing]
+            else:
+                # ignore the edge temoral info
+                frames = np.concatenate([frames, split_pred[0][0][edge_spacing:-edge_spacing]], axis=0)
+                onsets = np.concatenate([onsets, split_pred[1][0][edge_spacing:-edge_spacing]], axis=0)
+                offsets = np.concatenate([offsets, split_pred[2][0][edge_spacing:-edge_spacing]], axis=0)
+        return [np.expand_dims(frames, 0),
+                np.expand_dims(onsets, 0),
+                np.expand_dims(offsets, 0)]
+
     def predict_multi_sequence(self, midi_spec, timbre_spec, present_instruments=None, qpm=None):
         if present_instruments is None:
             present_instruments = K.expand_dims(np.ones(self.hparams.timbre_num_classes), 0)
-        #y_pred = self.model.predict_on_batch([midi_spec, timbre_spec, present_instruments])
-        y_pred = self.model.call([midi_spec, timbre_spec, K.cast_to_floatx(present_instruments)], training=False)
+        # y_pred = self.model.predict_on_batch([midi_spec, timbre_spec, present_instruments])
+        y_pred = self._split_and_predict(midi_spec, timbre_spec, present_instruments)
         multi_track_prf_wrapper(threshold=self.hparams.predict_frame_threshold,
                                 multiple_instruments_threshold=self.hparams.multiple_instruments_threshold,
                                 hparams=self.hparams, print_report=True, only_f1=False)(
@@ -253,21 +287,20 @@ class ModelWrapper:
 
         # self.model.train_on_batch([midi_spec, timbre_spec, present_instruments], [K.cast_to_floatx(y > 0.5) for y in y_pred])
 
-
         frame_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[0] * self.hparams.transcription_probability_mult,
+            y_pred[0],
             self.hparams.predict_frame_threshold,
             self.hparams.multiple_instruments_threshold)[0]
         onset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[1] * self.hparams.transcription_probability_mult,
+            y_pred[1],
             self.hparams.predict_onset_threshold,
             self.hparams.multiple_instruments_threshold)[0]
         offset_predictions = convert_multi_instrument_probs_to_predictions(
-            y_pred[2] * self.hparams.transcription_probability_mult,
+            y_pred[2],
             self.hparams.predict_offset_threshold,
             self.hparams.multiple_instruments_threshold)[0]
         active_onsets = convert_multi_instrument_probs_to_predictions(
-            y_pred[1] * self.hparams.transcription_probability_mult,
+            y_pred[1],
             self.hparams.active_onset_threshold,
             self.hparams.multiple_instruments_threshold)[0]
 
@@ -375,8 +408,8 @@ class ModelWrapper:
             self.model, losses, accuracies = FullModel(midi_model, timbre_model,
                                                        self.hparams).get_model()
             self.model.compile(Adam(self.hparams.full_learning_rate,
-                                    #decay=self.hparams.timbre_decay_rate,
-                                    #clipnorm=self.hparams.timbre_clip_norm
+                                    # decay=self.hparams.timbre_decay_rate,
+                                    # clipnorm=self.hparams.timbre_clip_norm
                                     ),
                                metrics=accuracies, loss=losses)
             # self.model.compile(optimizers.Adadelta(),
