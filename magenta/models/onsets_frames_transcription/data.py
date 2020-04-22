@@ -360,7 +360,7 @@ def get_present_instruments_op(sequence_tensor, hparams=None):
         [sequence_tensor],
         tf.bool)
     res.set_shape(hparams.timbre_num_classes)
-    return res
+    return K.cast_to_floatx(res)
 
 
 def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
@@ -419,7 +419,7 @@ def preprocess_example(example_proto, hparams, is_training, parse_proto=True):
     velocity_range = record['velocity_range']
     # tf.print(velocity_range)
 
-    wav_jitter_amount_ms = label_jitter_amount_ms = 0
+    wav_jitter_amount_ms = label_jitter_amount_ms = 0.
     # if there is combined jitter, we must generate it once here
     if is_training and hparams.jitter_amount_ms > 0:
         wav_jitter_amount_ms = np.random.choice(hparams.jitter_amount_ms, size=1)
@@ -537,11 +537,11 @@ def input_tensors_to_model_input(
     else:
         truncated_length = length
 
-    if is_training:
-        truncated_note_sequence = tf.constant(0)
-    else:
-        truncated_note_sequence = truncate_note_sequence_op(
-            input_tensors.note_sequence, truncated_length, hparams)
+    # if is_training:
+    #     truncated_note_sequence = tf.constant(0)
+    # else:
+    #     truncated_note_sequence = truncate_note_sequence_op(
+    #         input_tensors.note_sequence, truncated_length, hparams)
 
     # If max_expected_train_example_len is set, ensure that all examples are
     # padded to this length. This results in a fixed shape that can work on TPUs.
@@ -700,7 +700,7 @@ def read_examples(examples, is_training, shuffle_examples,
             input_dataset = tf.data.TFRecordDataset(filenames)
     else:
         input_dataset = tf.data.Dataset.from_tensor_slices(examples)
-
+    print(f'count: {input_dataset.reduce(0, lambda x, _: x + 1).numpy()}')
     if shuffle_examples:
         input_dataset = input_dataset.shuffle(hparams.shuffle_buffer_size)
     if is_training:
@@ -709,7 +709,6 @@ def read_examples(examples, is_training, shuffle_examples,
         #     name = hash(i.numpy())
         #     names[name] = names.get(name, 0) + 1
         # print(len(names))
-        print(f'count: {input_dataset.reduce(0, lambda x, _: x + 1).numpy()}')
         input_dataset = input_dataset.repeat()
     if skip_n_initial_records:
         input_dataset = input_dataset.skip(skip_n_initial_records)
@@ -823,6 +822,9 @@ def provide_batch(examples,
         input_map_fn = parse_preprocessed_example
 
     input_tensors = input_dataset.map(input_map_fn)
+    functools.partial(
+        input_tensors_to_model_input,
+        hparams=hparams, is_training=is_training)(next(iter(input_tensors)))
 
     model_input = input_tensors.map(
         functools.partial(
@@ -830,6 +832,8 @@ def provide_batch(examples,
             hparams=hparams, is_training=is_training))
     model_input = model_input.filter(lambda f, l: K.sum(K.cast_to_floatx(l[0][-1])) > 0)
     dataset = create_batch(model_input, hparams=hparams, is_training=is_training)
+
+
     return dataset.prefetch(buffer_size=1)  # tf.data.experimental.AUTOTUNE)
 
 
@@ -837,5 +841,5 @@ def merge_data_functions(data_fn_list):
     def concat(**kwargs):
         return tf.data.experimental.choose_from_datasets(
             [f(**kwargs) for f in data_fn_list],
-            tf.data.Dataset.range(3).map(lambda x: tf.cast(x / 2, tf.int64)).repeat())
+            tf.data.Dataset.range(2).map(lambda x: tf.cast(x / 1, tf.int64)).repeat())
     return concat

@@ -7,6 +7,7 @@ import numpy as np
 import tensorflow.compat.v2 as tf
 import tensorflow.keras.backend as K
 from tensorflow_core import TensorShape
+from tensorflow_core.python.keras.layers import MaxPool1D
 
 from magenta.models.onsets_frames_transcription import constants, data, instrument_family_mappings
 from magenta.models.onsets_frames_transcription.data import read_examples
@@ -173,16 +174,20 @@ def get_note_croppings(record, hparams=None, is_training=True):
         num_notes=num_notes
     )
 
+
 def get_approx_note_length(samples):
-    general_amplitude = np.abs(librosa.stft(samples.numpy(), n_fft=1, hop_length=2048)[0])
-    argmax = np.argmax(general_amplitude)
-    max_amplitude = np.max(general_amplitude)
-    low_amplitudes = np.ndarray.flatten(np.argwhere(general_amplitude < 0.02 * max_amplitude))
+    window = 2048
+    pooled_samples = np.max(
+        np.abs([np.max(samples.numpy()[i:i + window]) for i in range(0, len(samples.numpy()), window)]),
+        axis=-1)
+    argmax = np.argmax(pooled_samples)
+    max_amplitude = np.max(pooled_samples)
+    low_amplitudes = np.ndarray.flatten(np.argwhere(pooled_samples < 0.1 * max_amplitude))
     try:
         release_idx = low_amplitudes[np.ndarray.flatten(np.argwhere(low_amplitudes > argmax))[0]]
     except:
         return len(samples)
-    length = len(samples) * release_idx / len(general_amplitude)
+    length = len(samples) * release_idx / len(pooled_samples)
     return int(round(length))
 
 
@@ -203,7 +208,6 @@ def reduce_audio_in_batch(tensor, hparams=None, is_training=True):
         start_idx = tf.random.uniform((), minval=0, maxval=hparams.timbre_max_start_offset,
                                       dtype='int64')
         samples = K.concatenate([tf.zeros(start_idx), tf.sparse.to_dense(tensor['audio'])[i]])
-
 
         end_idx = start_idx + tf.py_function(get_approx_note_length,
                                              [tf.sparse.to_dense(tensor['audio'])[i]],

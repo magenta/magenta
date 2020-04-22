@@ -22,6 +22,7 @@ import collections
 import copy
 import functools
 import glob
+import os
 import random
 import sys
 
@@ -32,7 +33,10 @@ import numpy as np
 
 # Should not be called from within the graph to avoid redundant summaries.
 from magenta.models.onsets_frames_transcription import audio_label_data_utils, constants
+from magenta.models.onsets_frames_transcription.callback import EvaluationMetrics
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
+from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
+from magenta.models.onsets_frames_transcription.metrics import f1_score
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
 from magenta.models.onsets_frames_transcription.timbre_dataset_reader import create_spectrogram
 from magenta.music import midi_io, audio_io
@@ -66,25 +70,23 @@ def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
 
     tf.compat.v1.logging.info('Writing hparams summary: %s', hparams)
 
-    hparams_dict = hparams.values()
-
     # Create a markdown table from hparams.
     header = '| Key | Value |\n| :--- | :--- |\n'
-    keys = sorted(hparams_dict.keys())
-    lines = ['| %s | %s |' % (key, str(hparams_dict[key])) for key in keys]
+    keys = sorted(hparams.keys())
+    lines = ['| %s | %s |' % (key, str(hparams[key])) for key in keys]
     hparams_table = header + '\n'.join(lines) + '\n'
 
     summaries_to_write['hparams'] = hparams_table
 
     summaries_to_write.update(additional_trial_info)
 
-    with tf.Session() as sess:
-        writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
+    with tf.compat.v1.Session() as sess:
+        writer = tf.compat.v1.summary.FileWriter(output_dir, graph=sess.graph)
         for name, summary in summaries_to_write.items():
             tf.compat.v1.logging.info('Writing summary for %s: %s', name, summary)
             writer.add_summary(
-                tf.summary.text(name, tf.constant(summary, name=name),
-                                collections=[]).eval())
+                tf.compat.v1.summary.text(name, tf.constant(summary, name=name),
+                                          collections=[]).eval())
         writer.close()
 
 
@@ -147,7 +149,7 @@ def train(data_fn,
         # model.load_model(15.49, id='no-bot', epoch_num=78)
         model.build_model()
         model.load_newest(hparams.load_id)
-        #model.load_model(5.17, id=hparams.model_id, epoch_num=8)
+        # model.load_model(5.17, id=hparams.model_id, epoch_num=8)
     else:
         print('building full model')
         midi_model = ModelWrapper(model_dir, ModelType.MIDI, hparams=hparams)
@@ -208,7 +210,8 @@ def transcribe(data_fn,
             elif model_type == ModelType.TIMBRE:
                 x, y = timbre_model.generator.get()
                 timbre_prediction = K.get_value(timbre_model.predict_from_spec(*x))[0]
-                print(f'True: {x[1][0][0]}{constants.FAMILY_IDX_STRINGS[np.argmax(y[0][0])]}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
+                print(
+                    f'True: {x[1][0][0]}{constants.FAMILY_IDX_STRINGS[np.argmax(y[0][0])]}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
     else:
         filenames = glob.glob(path)
 
@@ -227,29 +230,33 @@ def transcribe(data_fn,
                 y = audio_io.wav_data_to_samples(wav_data, hparams.sample_rate)
                 spec = create_spectrogram(K.constant(y), hparams)
                 # add "batch" and channel dims
-                spec = tf.reshape(spec, (1, *spec.shape, 1))
+                spec = K.cast_to_floatx(tf.reshape(spec, (1, *spec.shape, 1)))
                 timbre_prediction = K.get_value(timbre_model.predict_from_spec(spec))[0]
-                print(f'File: {filename}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
+                print(
+                    f'File: {filename}. Predicted: {constants.FAMILY_IDX_STRINGS[timbre_prediction]}')
 
 
 def evaluate(data_fn,
              additional_trial_info,
              model_dir,
+             model_type,
              preprocess_examples,
              hparams,
              name,
              num_steps=None):
     """Evaluation loop."""
+    hparams.batch_size = 1
+    hparams.slakh_batch_size = 1
 
     transcription_data_base = functools.partial(
         data_fn,
         preprocess_examples=preprocess_examples,
         is_training=False)
 
-    if num_steps is None:
+    if True or num_steps is None:
         transcription_data = functools.partial(
             transcription_data_base,
-            shuffle_examples=False, skip_n_initial_records=0)
+            shuffle_examples=True, skip_n_initial_records=0)
     else:
         # If num_steps is specified, we will evaluate only a subset of the data.
         #
@@ -274,26 +281,25 @@ def evaluate(data_fn,
         records_to_check = num_steps * 5
         tf.compat.v1.logging.info('Checking for at least %d records...', records_to_check)
         records_available = 0
-        with tf.Graph().as_default():
-            record_check_params = copy.deepcopy(hparams)
-            record_check_params.batch_size = 1
-            iterator = transcription_data_base(
-                params=record_check_params,
-                shuffle_examples=False,
-                skip_n_initial_records=0,
-            ).make_initializable_iterator()
-            next_record = iterator.get_next()
-            with tf.Session() as sess:
-                sess.run(iterator.initializer)
-                try:
-                    for i in range(records_to_check):
-                        del i
-                        sess.run(next_record)
-                        records_available += 1
-                        if records_available % 10 == 0:
-                            tf.compat.v1.logging.info('Found %d records...', records_available)
-                except tf.errors.OutOfRangeError:
-                    pass
+        record_check_params = copy.deepcopy(hparams)
+        record_check_params.batch_size = 1
+        iterator = iter(transcription_data_base(
+            params=record_check_params,
+            shuffle_examples=False,
+            skip_n_initial_records=0,
+        ))
+        next_record = next(iterator)
+        with tf.Session() as sess:
+            sess.run(iterator.initializer)
+            try:
+                for i in range(records_to_check):
+                    del i
+                    sess.run(next_record)
+                    records_available += 1
+                    if records_available % 10 == 0:
+                        tf.compat.v1.logging.info('Found %d records...', records_available)
+            except tf.errors.OutOfRangeError:
+                pass
         # Determine max number of records we could skip and still have num_steps
         # records remaining.
         max_records_to_skip = max(0, records_available - num_steps)
@@ -321,7 +327,68 @@ def evaluate(data_fn,
         output_dir='./out',
         additional_trial_info=additional_trial_info)
 
-    checkpoint_path = None
-    while True:
-        estimator.evaluate(input_fn=transcription_data, steps=num_steps,
-                           checkpoint_path=checkpoint_path, name=name)
+    model_wrapper = ModelWrapper(model_dir, ModelType.FULL,
+                              dataset=transcription_data(params=hparams),
+                              batch_size=hparams.batch_size,
+                              steps_per_epoch=hparams.epochs_per_save,
+                              hparams=hparams)
+    if model_type is ModelType.TIMBRE:
+        timbre_model = ModelWrapper(model_dir, ModelType.TIMBRE, hparams=hparams)
+        timbre_model.build_model(compile=False)
+        model_wrapper.build_model(compile=False, timbre_model=timbre_model.get_model())
+        model_wrapper.load_newest(hparams.load_id)
+        model_wrapper = timbre_model
+    else:
+        model_wrapper.build_model(compile=False)
+        model_wrapper.load_newest(hparams.load_id)
+
+    generator = DataGenerator(transcription_data(params=hparams), hparams.batch_size, 1,
+                              use_numpy=False,
+                              coagulate_mini_batches=False)
+    save_dir = f'{model_dir}/FULL/{model_wrapper.id}_eval'
+
+    metrics = EvaluationMetrics(generator=generator, hparams=hparams, save_dir=save_dir, is_full=model_type is ModelType.FULL)
+    for i in range(num_steps):
+        print(f'evaluating step: {i}')
+        metrics.on_epoch_end(i, model=model_wrapper.get_model())
+
+    metric_names = ['true_positives', 'false_positives', 'false_negatives']
+    instrument_true_positives, instrument_false_positives, instrument_false_negatives = [
+        functools.reduce(
+            lambda a, b: a + b,
+            map(lambda x: np.array(
+                [x[constants.FAMILY_IDX_STRINGS[i]][n] for i in range(len(x.keys()))]),
+                metrics.metrics_history)) for n in metric_names
+    ]
+
+    instrument_precision = instrument_true_positives \
+                           / (instrument_true_positives + instrument_false_positives + 1e-9)
+    instrument_recall = instrument_true_positives \
+                        / (instrument_true_positives + instrument_false_negatives + 1e-9)
+
+    instrument_f1_score = 2 * ((instrument_precision * instrument_recall)
+                               / (instrument_precision + instrument_recall + 1e-9))
+
+    overall_precision = np.sum(instrument_true_positives[:-1]) \
+                        / np.sum(instrument_true_positives[:-1]
+                                 + instrument_false_positives[:-1] + 1e-9)
+    overall_recall = np.sum(instrument_true_positives[:-1]) \
+                     / np.sum(instrument_true_positives[:-1]
+                              + instrument_false_negatives[:-1] + 1e-9)
+
+    overall_f1_score = 2 * ((overall_precision * overall_recall)
+                            / (overall_precision + overall_recall + 1e-9))
+
+    for i in range(hparams.timbre_num_classes + (1 if model_type is ModelType.FULL else 0)):
+        instrument = constants.FAMILY_IDX_STRINGS[i]
+        print(f'{instrument}: '
+              f'P: {instrument_precision[i]}, '
+              f'R: {instrument_recall[i]}, '
+              f'F1: {instrument_f1_score[i]}, '
+              f'N: {instrument_true_positives[i] + instrument_false_negatives[i]}')
+
+    print(f'overall: '
+          f'P: {overall_precision}, '
+          f'R: {overall_recall}, '
+          f'F1: {overall_f1_score}, '
+              f'N: {K.sum(instrument_true_positives) + K.sum(instrument_false_negatives)}')

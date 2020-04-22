@@ -150,8 +150,8 @@ def run(config_map, data_fn, additional_trial_info):
             # model_fn=config.model_fn,
             data_fn=data_fn,
             additional_trial_info=additional_trial_info,
-            master=FLAGS.master,
             model_dir=model_dir,
+            model_type=model_util.ModelType[FLAGS.model_type],
             name=FLAGS.eval_name,
             preprocess_examples=FLAGS.preprocess_examples,
             hparams=hparams,
@@ -175,7 +175,7 @@ def main(argv):
         nsynth_fn = functools.partial(timbre_dataset_reader.provide_batch,
                                       examples=FLAGS.nsynth_examples_path,
                                       for_full_model=True)
-        data_fn = merge_data_functions([data_fn, nsynth_fn])
+        data_fn = merge_data_functions([nsynth_fn, data_fn])
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)

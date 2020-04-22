@@ -86,7 +86,7 @@ class ModelWrapper:
             self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
                                            use_numpy=False,
                                            coagulate_mini_batches=type is not ModelType.MIDI and hparams.timbre_coagulate_mini_batches)
-        save_dir = f'{model_dir}/{type.name}/{id}'
+        save_dir = f'{model_dir}/{type.name}/{self.id}'
         if self.type is ModelType.MIDI:
             self.metrics = MidiPredictionMetrics(self.generator, self.hparams, save_dir=save_dir)
         elif self.type is ModelType.TIMBRE:
@@ -316,10 +316,10 @@ class ModelWrapper:
                         A multi-instrument track could set use_all_instruments to true, and set
                 guitar to the only present instrument.
             """
-            frame_predictions *= present_instruments
-            onset_predictions *= present_instruments
-            offset_predictions *= present_instruments
-            active_onsets *= present_instruments
+            frame_predictions = tf.logical_and(frame_predictions, present_instruments > 0)
+            onset_predictions = tf.logical_and(onset_predictions, present_instruments > 0)
+            offset_predictions = tf.logical_and(offset_predictions, present_instruments > 0)
+            active_onsets = tf.logical_and(active_onsets, present_instruments > 0)
 
         return infer_util.predict_multi_sequence(frame_predictions, onset_predictions,
                                                  offset_predictions, active_onsets, qpm=qpm,

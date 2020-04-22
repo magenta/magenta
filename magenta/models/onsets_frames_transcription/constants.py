@@ -41,7 +41,8 @@ FAMILY_IDX_STRINGS = {
     8: 'string',
     9: 'synth_lead',
     10: 'vocal',
-    11: 'other'
+    11: 'other',
+    12: 'agnostic'
 }
 
 
