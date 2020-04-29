@@ -134,7 +134,7 @@ def build_bidirectional_lstm(layer_sizes,
       cells_bw.append(
           rnn_cell([layer_size], dropout_keep_prob, residual, is_training))
 
-    return cells_fw, cells_bw
+  return cells_fw, cells_bw
 
 
 def cudnn_bidirectional_lstm(cells_fw, cells_bw, inputs, length, is_training):
