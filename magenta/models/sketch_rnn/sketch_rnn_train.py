@@ -130,10 +130,7 @@ def load_dataset(data_dir, model_params, inference_mode=False):
       data = np.load(six.BytesIO(response.content), encoding='latin1')
     else:
       data_filepath = os.path.join(data_dir, dataset)
-      if six.PY3:
-        data = np.load(data_filepath, encoding='latin1', allow_pickle=True)
-      else:
-        data = np.load(data_filepath, allow_pickle=True)
+      data = np.load(data_filepath, encoding='latin1', allow_pickle=True)
     tf.logging.info('Loaded {}/{}/{} from {}'.format(
         len(data['train']), len(data['valid']), len(data['test']),
         dataset))
