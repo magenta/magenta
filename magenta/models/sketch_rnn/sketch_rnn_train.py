@@ -429,8 +429,6 @@ def trainer(model_params):
 
   tf.logging.info('sketch-rnn')
   tf.logging.info('Hyperparams:')
-  # for key, val in six.iteritems(list(model_params.values())):
-  #   tf.logging.info('%s = %s', key, str(val))
   tf.logging.info('Loading data files.')
   datasets = load_dataset(FLAGS.data_dir, model_params)
 
