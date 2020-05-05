@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,16 +17,30 @@
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import drums_lib
 from magenta.music import sequences_lib
-from magenta.music import testing_lib
+from magenta.music import testing_lib as music_testing_lib
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import drum_pipelines
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()
 
 
 class DrumPipelinesTest(tf.test.TestCase):
+
+  def setUp(self):
+    self.steps_per_quarter = 4
+    self.note_sequence = music_testing_lib.parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 60
+        }
+        """)
 
   def _unit_transform_test(self, unit, input_instance,
                            expected_outputs):
@@ -46,11 +60,11 @@ class DrumPipelinesTest(tf.test.TestCase):
           denominator: 4}
         tempos: {
           qpm: 60}""")
-    testing_lib.add_track_to_sequence(
+    music_testing_lib.add_track_to_sequence(
         note_sequence, 0,
         [(12, 100, 2, 4), (11, 1, 6, 7), (12, 1, 6, 8)],
         is_drum=True)
-    testing_lib.add_track_to_sequence(
+    music_testing_lib.add_track_to_sequence(
         note_sequence, 1,
         [(12, 127, 2, 4), (14, 50, 6, 8)])
     quantized_sequence = sequences_lib.quantize_note_sequence(
@@ -65,6 +79,139 @@ class DrumPipelinesTest(tf.test.TestCase):
       expected_drum_tracks.append(drums)
     unit = drum_pipelines.DrumsExtractor(min_bars=1, gap_bars=1)
     self._unit_transform_test(unit, quantized_sequence, expected_drum_tracks)
+
+  def testExtractDrumTracksSimple(self):
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 2, 4), (11, 1, 6, 7)],
+        is_drum=True)
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 9)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+                 DRUMS(11, 14)]]
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=1, gap_bars=1)
+
+    self.assertEqual(1, len(drum_tracks))
+    self.assertIsInstance(drum_tracks[0], drums_lib.DrumTrack)
+
+    drum_tracks = sorted([list(drums) for drums in drum_tracks])
+    self.assertEqual(expected, drum_tracks)
+
+  def testExtractMultipleDrumTracks(self):
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 2, 4), (11, 1, 6, 11)],
+        is_drum=True)
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 1,
+        [(12, 127, 2, 4), (14, 50, 6, 8),
+         (50, 100, 33, 37), (52, 100, 37, 38)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+                 DRUMS(11, 14)],
+                [NO_DRUMS, DRUMS(50), NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(52)]]
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=1, gap_bars=2)
+    drum_tracks = sorted([list(drums) for drums in drum_tracks])
+    self.assertEqual(expected, drum_tracks)
+
+  def testExtractDrumTracksTooShort(self):
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 127, 3, 4), (14, 50, 6, 7)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=2, gap_bars=1)
+    drum_tracks = [list(drums) for drums in drum_tracks]
+    self.assertEqual([], drum_tracks)
+
+    del self.note_sequence.notes[:]
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 127, 3, 4), (14, 50, 7, 8)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=2, gap_bars=1)
+    drum_tracks = [list(drums) for drums in drum_tracks]
+    self.assertEqual(
+        [[NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+          DRUMS(14)]],
+        drum_tracks)
+
+  def testExtractDrumTracksPadEnd(self):
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 7)],
+        is_drum=True)
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 1,
+        [(12, 127, 2, 4), (15, 50, 6, 8)],
+        is_drum=True)
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 2,
+        [(12, 127, 2, 4), (16, 50, 8, 9)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+                 DRUMS(14, 15), NO_DRUMS, DRUMS(16), NO_DRUMS, NO_DRUMS,
+                 NO_DRUMS]]
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=1, gap_bars=1, pad_end=True)
+    drum_tracks = [list(drums) for drums in drum_tracks]
+    self.assertEqual(expected, drum_tracks)
+
+  def testExtractDrumTracksTooLongTruncate(self):
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 15), (14, 50, 10, 15), (16, 100, 14, 19)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, NO_DRUMS, NO_DRUMS,
+                 DRUMS(14), NO_DRUMS, NO_DRUMS, NO_DRUMS, DRUMS(14), NO_DRUMS,
+                 NO_DRUMS, NO_DRUMS]]
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=1, max_steps_truncate=14, gap_bars=1)
+    drum_tracks = [list(drums) for drums in drum_tracks]
+    self.assertEqual(expected, drum_tracks)
+
+  def testExtractDrumTracksTooLongDiscard(self):
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 127, 2, 4), (14, 50, 6, 15), (14, 50, 10, 15), (16, 100, 14, 19),
+         (14, 100, 18, 19)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=1, max_steps_discard=18, gap_bars=1)
+    drum_tracks = [list(drums) for drums in drum_tracks]
+    self.assertEqual([], drum_tracks)
+
+  def testExtractDrumTracksLateStart(self):
+    music_testing_lib.add_track_to_sequence(
+        self.note_sequence, 0,
+        [(12, 100, 102, 103), (13, 100, 104, 106)],
+        is_drum=True)
+    quantized_sequence = sequences_lib.quantize_note_sequence(
+        self.note_sequence, steps_per_quarter=1)
+    expected = [[NO_DRUMS, NO_DRUMS, DRUMS(12), NO_DRUMS, DRUMS(13)]]
+    drum_tracks, _ = drum_pipelines.extract_drum_tracks(
+        quantized_sequence, min_bars=1, gap_bars=1)
+    drum_tracks = sorted([list(drums) for drums in drum_tracks])
+    self.assertEqual(expected, drum_tracks)
 
 
 if __name__ == '__main__':

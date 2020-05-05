@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,15 +16,13 @@
 
 import copy
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import lead_sheets_lib
 from magenta.music import melodies_lib
-from magenta.music import sequences_lib
-from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+from magenta.music import testing_lib as music_testing_lib
+from magenta.music.protobuf import music_pb2
+import tensorflow.compat.v1 as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
@@ -35,7 +33,7 @@ class LeadSheetsLibTest(tf.test.TestCase):
 
   def setUp(self):
     self.steps_per_quarter = 4
-    self.note_sequence = common_testing_lib.parse_test_proto(
+    self.note_sequence = music_testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -80,88 +78,6 @@ class LeadSheetsLibTest(tf.test.TestCase):
     expected_chords.transpose(transpose_amount=transpose_amount)
     self.assertEqual(expected_melody, lead_sheet.melody)
     self.assertEqual(expected_chords, lead_sheet.chords)
-
-  def testExtractLeadSheetFragments(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(12, 100, .5, 1), (11, 1, 1.5, 2.75)])
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 1,
-        [(12, 127, .5, 1), (14, 50, 1.5, 2),
-         (50, 100, 8.25, 9.25), (52, 100, 8.5, 9.25)])
-    testing_lib.add_chords_to_sequence(
-        self.note_sequence,
-        [('C', .5), ('G7', 1.5), ('Cmaj7', 8.25)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, self.steps_per_quarter)
-    lead_sheets, _ = lead_sheets_lib.extract_lead_sheet_fragments(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True, require_chords=True)
-    melodies, _ = melodies_lib.extract_melodies(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True)
-    chord_progressions, _ = chords_lib.extract_chords_for_melodies(
-        quantized_sequence, melodies)
-    self.assertEqual(list(melodies),
-                     list(lead_sheet.melody for lead_sheet in lead_sheets))
-    self.assertEqual(list(chord_progressions),
-                     list(lead_sheet.chords for lead_sheet in lead_sheets))
-
-  def testExtractLeadSheetFragmentsCoincidentChords(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 1,
-        [(12, 127, 2, 4), (14, 50, 6, 8),
-         (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_chords_to_sequence(
-        self.note_sequence,
-        [('C', 2), ('G7', 6), ('Cmaj7', 33), ('F', 33)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=1)
-    lead_sheets, _ = lead_sheets_lib.extract_lead_sheet_fragments(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True, require_chords=True)
-    melodies, _ = melodies_lib.extract_melodies(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True)
-    chord_progressions, _ = chords_lib.extract_chords_for_melodies(
-        quantized_sequence, melodies)
-    # Last lead sheet should be rejected for coincident chords.
-    self.assertEqual(list(melodies[:2]),
-                     list(lead_sheet.melody for lead_sheet in lead_sheets))
-    self.assertEqual(list(chord_progressions[:2]),
-                     list(lead_sheet.chords for lead_sheet in lead_sheets))
-
-  def testExtractLeadSheetFragmentsNoChords(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 1,
-        [(12, 127, 2, 4), (14, 50, 6, 8),
-         (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_chords_to_sequence(
-        self.note_sequence,
-        [('C', 2), ('G7', 6), (NO_CHORD, 10)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=1)
-    lead_sheets, stats = lead_sheets_lib.extract_lead_sheet_fragments(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True, require_chords=True)
-    melodies, _ = melodies_lib.extract_melodies(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True)
-    chord_progressions, _ = chords_lib.extract_chords_for_melodies(
-        quantized_sequence, melodies)
-    stats_dict = dict((stat.name, stat) for stat in stats)
-    # Last lead sheet should be rejected for having no chords.
-    self.assertEqual(list(melodies[:2]),
-                     list(lead_sheet.melody for lead_sheet in lead_sheets))
-    self.assertEqual(list(chord_progressions[:2]),
-                     list(lead_sheet.chords for lead_sheet in lead_sheets))
-    self.assertEqual(stats_dict['empty_chord_progressions'].count, 1)
 
   def testSetLength(self):
     # Setting LeadSheet length should agree with setting length on melody and

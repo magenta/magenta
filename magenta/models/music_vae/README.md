@@ -55,7 +55,7 @@ checkpoints from the table below.
 | cat-drums_2bar_small.lokl |`cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for more *realistic* sampling| [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.lokl.tar)|
 | cat-drums_2bar_small.hikl | `cat-drums_2bar_small` | 2-bar drums w/ 9 classes trained for *better reconstruction and interpolation* | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/cat-drums_2bar_small.hikl.tar)|
 | nade-drums_2bar_full | `nade-drums_2bar_full` | 2-bar drums w/ 61 classes | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/nade-drums_2bar_full.tar)|
-| groovae_4bar | `groovae_4bar` | 4-bar groove autoencoder. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groove_4bar.tar)|
+| groovae_4bar | `groovae_4bar` | 4-bar groove autoencoder. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_4bar.tar)|
 | groovae_2bar_humanize | `groovae_2bar_humanize` | 2-bar model that converts a quantized, constant-velocity drum pattern into a "humanized" groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_humanize.tar)|
 | groovae_2bar_tap_fixed_velocity | `groovae_2bar_tap_fixed_velocity` | 2-bar model that converts a constant-velocity single-drum "tap" pattern into a groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_tap_fixed_velocity.tar)|
 | groovae_2bar_add_closed_hh | `groovae_2bar_add_closed_hh` | 2-bar model that adds (or replaces) closed hi-hat for an existing groove. | [download](https://storage.googleapis.com/magentadata/models/music_vae/checkpoints/groovae_2bar_add_closed_hh.tar)|
@@ -97,8 +97,8 @@ music_vae_generate \
 
 #### Interpolate
 
-To interpolate, you need to have two MIDI files to inerpolate between. Each
-model has ceratin constraints<sup id="a1">[*](#f1)</sup> for these files. For
+To interpolate, you need to have two MIDI files to interpolate between. Each
+model has certain constraints<sup id="a1">[*](#f1)</sup> for these files. For
 example, the mel_2bar models only work if the input files are exactly 2-bars
 long and contain monophonic non-drum sequences. The trio_16bar models require
 16-bars with 3 instruments (based on program numbers): drums, piano or guitar,

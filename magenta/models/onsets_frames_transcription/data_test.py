@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,10 +29,10 @@ from magenta.models.onsets_frames_transcription import data
 from magenta.music import audio_io
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class DataTest(tf.test.TestCase):
@@ -130,8 +130,10 @@ class DataTest(tf.test.TestCase):
       dataset = data.provide_batch(
           examples=examples,
           preprocess_examples=True,
-          hparams=hparams,
-          is_training=False)
+          params=hparams,
+          is_training=False,
+          shuffle_examples=False,
+          skip_n_initial_records=0)
       iterator = dataset.make_initializable_iterator()
       next_record = iterator.get_next()
       sess.run([
@@ -281,6 +283,37 @@ class DataTest(tf.test.TestCase):
         batch_size=2,
         lengths=[10, 50, 100, 10, 50, 80],
         expected_num_inputs=6)
+
+  def testGeneratedShardedFilenamesCommaWithShard(self):
+    filenames = data.generate_sharded_filenames('/foo/bar@3,/baz/qux@2')
+    self.assertEqual(
+        [
+            '/foo/bar-00000-of-00003',
+            '/foo/bar-00001-of-00003',
+            '/foo/bar-00002-of-00003',
+            '/baz/qux-00000-of-00002',
+            '/baz/qux-00001-of-00002',
+        ],
+        filenames)
+
+  def testGeneratedShardedFilenamesCommaWithoutShard(self):
+    filenames = data.generate_sharded_filenames('/foo/bar,/baz/qux')
+    self.assertEqual(
+        [
+            '/foo/bar',
+            '/baz/qux',
+        ],
+        filenames)
+
+  def testCombineTensorBatch(self):
+    with tf.Graph().as_default():
+      tensor = tf.constant([[1, 2, 3, 0, 0], [4, 5, 0, 0, 0]])
+      lengths = tf.constant([3, 2])
+      combined = data.combine_tensor_batch(
+          tensor, lengths, max_length=5, batch_size=2)
+      sess = tf.Session()
+      np.testing.assert_equal([1, 2, 3, 4, 5, 0, 0, 0, 0, 0],
+                              sess.run(combined))
 
 
 if __name__ == '__main__':

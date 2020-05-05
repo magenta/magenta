@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 """Imports Magenta problems so that they register with Tensor2Tensor."""
 
 # pylint: disable=unused-import
-from magenta.models import score2perf
+from magenta.models import svg_vae
+from magenta.models.score2perf import score2perf
 
 # pylint: enable=unused-import

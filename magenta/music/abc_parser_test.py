@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,13 +21,13 @@ from __future__ import print_function
 import copy
 import os.path
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
+from magenta.music import testing_lib
+from magenta.music.protobuf import music_pb2
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class AbcParserTest(tf.test.TestCase):
@@ -211,7 +211,7 @@ class AbcParserTest(tf.test.TestCase):
                                abc_parser.VariantEndingError))
     self.assertTrue(isinstance(exceptions[1], abc_parser.PartError))
 
-    expected_metadata1 = common_testing_lib.parse_test_proto(
+    expected_metadata1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -260,7 +260,7 @@ class AbcParserTest(tf.test.TestCase):
           num_times: 2
         }
         """)
-    expected_expanded_metadata1 = common_testing_lib.parse_test_proto(
+    expected_expanded_metadata1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -308,7 +308,7 @@ class AbcParserTest(tf.test.TestCase):
         expected_expanded_metadata1, tunes[1])
 
     # TODO(fjord): re-enable once we support variant endings.
-    # expected_ns2_metadata = common_testing_lib.parse_test_proto(
+    # expected_ns2_metadata = testing_lib.parse_test_proto(
     #     music_pb2.NoteSequence,
     #     """
     #     ticks_per_quarter: 220
@@ -331,7 +331,7 @@ class AbcParserTest(tf.test.TestCase):
     #     'testdata/english2.mid', expected_ns2_metadata, tunes[1])
 
     # TODO(fjord): re-enable once we support parts.
-    # expected_ns3_metadata = common_testing_lib.parse_test_proto(
+    # expected_ns3_metadata = testing_lib.parse_test_proto(
     #     music_pb2.NoteSequence,
     #     """
     #     ticks_per_quarter: 220
@@ -363,7 +363,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(1, len(tunes))
     self.assertEqual(0, len(exceptions))
 
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -494,7 +494,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(3, len(tunes))
     self.assertEqual(0, len(exceptions))
 
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -569,7 +569,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(1, len(tunes))
     self.assertEqual(0, len(exceptions))
 
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -702,7 +702,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseError))
     self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseError))
     self.assertTrue(isinstance(exceptions[2], abc_parser.RepeatParseError))
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -793,7 +793,7 @@ class AbcParserTest(tf.test.TestCase):
     expected_ns6.section_groups[-1].num_times = 2
     self.assertProtoEquals(expected_ns6, tunes[6])
 
-    expected_ns7 = common_testing_lib.parse_test_proto(
+    expected_ns7 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -927,7 +927,7 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertEqual(1, len(tunes))
     self.assertEqual(0, len(exceptions))
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -1027,7 +1027,7 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertEqual(1, len(tunes))
     self.assertEqual(0, len(exceptions))
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -1075,7 +1075,7 @@ class AbcParserTest(tf.test.TestCase):
         """)
     self.assertEqual(1, len(tunes))
     self.assertEqual(0, len(exceptions))
-    expected_ns1 = common_testing_lib.parse_test_proto(
+    expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220

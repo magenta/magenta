@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Constructs a Piano Genie model."""
 
 from __future__ import absolute_import
@@ -19,7 +20,8 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.models.piano_genie import util
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import rnn as contrib_rnn
 
 
 def simple_lstm_encoder(features,
@@ -36,11 +38,11 @@ def simple_lstm_encoder(features,
     x = tf.layers.dense(x, rnn_nunits)
 
   if rnn_celltype == "lstm":
-    celltype = tf.contrib.rnn.LSTMBlockCell
+    celltype = contrib_rnn.LSTMBlockCell
   else:
     raise NotImplementedError()
 
-  cell = tf.contrib.rnn.MultiRNNCell(
+  cell = contrib_rnn.MultiRNNCell(
       [celltype(rnn_nunits) for _ in range(rnn_nlayers)])
 
   with tf.variable_scope("rnn"):
@@ -78,11 +80,11 @@ def simple_lstm_decoder(features,
     x = tf.layers.dense(x, rnn_nunits)
 
   if rnn_celltype == "lstm":
-    celltype = tf.contrib.rnn.LSTMBlockCell
+    celltype = contrib_rnn.LSTMBlockCell
   else:
     raise NotImplementedError()
 
-  cell = tf.contrib.rnn.MultiRNNCell(
+  cell = contrib_rnn.MultiRNNCell(
       [celltype(rnn_nunits) for _ in range(rnn_nlayers)])
 
   with tf.variable_scope("rnn"):

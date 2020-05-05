@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,12 +15,12 @@
 """Pipeline to create PolyphonyRNN dataset."""
 
 from magenta.models.polyphony_rnn import polyphony_lib
-from magenta.music import encoder_decoder
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
+from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
-from magenta.protobuf import music_pb2
 
 
 class PolyphonicSequenceExtractor(pipeline.Pipeline):
@@ -76,7 +76,7 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
         transposition_range, name='TranspositionPipeline_' + mode)
     poly_extractor = PolyphonicSequenceExtractor(
         min_steps=min_steps, max_steps=max_steps, name='PolyExtractor_' + mode)
-    encoder_pipeline = encoder_decoder.EncoderPipeline(
+    encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
         polyphony_lib.PolyphonicSequence, config.encoder_decoder,
         name='EncoderPipeline_' + mode)
 

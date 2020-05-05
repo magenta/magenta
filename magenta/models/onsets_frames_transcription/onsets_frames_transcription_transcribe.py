@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,15 +20,15 @@ from __future__ import print_function
 
 import os
 
+from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import split_audio_and_label_data
+from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
-from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+from magenta.music.protobuf import music_pb2
+import six
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -44,52 +44,42 @@ tf.app.flags.DEFINE_string(
     'hparams',
     '',
     'A comma-separated list of `name=value` hyperparameter values.')
+tf.app.flags.DEFINE_boolean(
+    'load_audio_with_librosa', False,
+    'Whether to use librosa for sampling audio (required for 24-bit audio)')
+tf.app.flags.DEFINE_string(
+    'transcribed_file_suffix', '',
+    'Optional suffix to add to transcribed files.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
 
 
-def create_example(filename):
+def create_example(filename, sample_rate, load_audio_with_librosa):
   """Processes an audio file into an Example proto."""
   wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
-      split_audio_and_label_data.process_record(
+      audio_label_data_utils.process_record(
           wav_data=wav_data,
+          sample_rate=sample_rate,
           ns=music_pb2.NoteSequence(),
           # decode to handle filenames with extended characters.
-          example_id=filename.decode('utf-8'),
+          example_id=six.ensure_text(filename, 'utf-8'),
           min_length=0,
           max_length=-1,
-          allow_empty_notesequence=True))
+          allow_empty_notesequence=True,
+          load_audio_with_librosa=load_audio_with_librosa))
   assert len(example_list) == 1
   return example_list[0].SerializeToString()
 
 
-def transcribe_audio(prediction, hparams):
-  """Transcribes an audio file."""
-  frame_predictions = prediction['frame_predictions']
-  onset_predictions = prediction['onset_predictions']
-  velocity_values = prediction['velocity_values']
-
-  sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
-      frame_predictions,
-      frames_per_second=data.hparams_frames_per_second(hparams),
-      min_duration_ms=0,
-      min_midi_pitch=constants.MIN_MIDI_PITCH,
-      onset_predictions=onset_predictions,
-      velocity_values=velocity_values)
-
-  return sequence_prediction
-
-
-def main(argv):
+def run(argv, config_map, data_fn):
+  """Create transcriptions."""
   tf.logging.set_verbosity(FLAGS.log)
 
-  config = configs.CONFIG_MAP[FLAGS.config]
+  config = config_map[FLAGS.config]
   hparams = config.hparams
-  # For this script, default to not using cudnn.
-  hparams.use_cudnn = False
   hparams.parse(FLAGS.hparams)
   hparams.batch_size = 1
   hparams.truncated_length_secs = 0
@@ -97,11 +87,13 @@ def main(argv):
   with tf.Graph().as_default():
     examples = tf.placeholder(tf.string, [None])
 
-    dataset = data.provide_batch(
+    dataset = data_fn(
         examples=examples,
         preprocess_examples=True,
-        hparams=hparams,
-        is_training=False)
+        params=hparams,
+        is_training=False,
+        shuffle_examples=False,
+        skip_n_initial_records=0)
 
     estimator = train_util.create_estimator(config.model_fn,
                                             os.path.expanduser(FLAGS.model_dir),
@@ -124,11 +116,15 @@ def main(argv):
         # construct all the Example protos in memory ahead of time or create
         # a temporary tfrecord file.
         tf.logging.info('Processing file...')
-        sess.run(iterator.initializer, {examples: [create_example(filename)]})
+        sess.run(iterator.initializer,
+                 {examples: [
+                     create_example(filename, hparams.sample_rate,
+                                    FLAGS.load_audio_with_librosa)]})
 
-        def input_fn(params):
+        def transcription_data(params):
           del params
           return tf.data.Dataset.from_tensors(sess.run(next_record))
+        input_fn = infer_util.labels_to_features_wrapper(transcription_data)
 
         tf.logging.info('Running inference...')
         checkpoint_path = None
@@ -141,12 +137,17 @@ def main(argv):
                 yield_single_examples=False))
         assert len(prediction_list) == 1
 
-        sequence_prediction = transcribe_audio(prediction_list[0], hparams)
+        sequence_prediction = music_pb2.NoteSequence.FromString(
+            prediction_list[0]['sequence_predictions'][0])
 
-        midi_filename = filename + '.midi'
+        midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
 
         tf.logging.info('Transcription written to %s.', midi_filename)
+
+
+def main(argv):
+  run(argv, config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
 
 
 def console_entry_point():

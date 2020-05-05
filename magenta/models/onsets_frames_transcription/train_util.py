@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,57 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Utilities for training."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+import collections
 import copy
 import functools
 import random
-
-from magenta.models.onsets_frames_transcription import data
-
-import tensorflow as tf
-
-
-def _get_data(examples, preprocess_examples, params,
-              is_training, shuffle_examples=None, skip_n_initial_records=0,
-              semisupervised_configs=None):
-  """Gets transcription data."""
-  return data.provide_batch(
-      examples=examples,
-      preprocess_examples=preprocess_examples,
-      hparams=params,
-      is_training=is_training,
-      semisupervised_configs=semisupervised_configs,
-      shuffle_examples=shuffle_examples,
-      skip_n_initial_records=skip_n_initial_records)
+import sys
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
+from tensorflow.contrib import tpu as contrib_tpu
+from tensorflow.contrib import training as contrib_training
 
 
 # Should not be called from within the graph to avoid redundant summaries.
-def _trial_summary(hparams, model_dir, examples_path,
-                   output_dir, semisupervised_configs=None):
+def _trial_summary(hparams, model_dir, output_dir, additional_trial_info):
   """Writes a tensorboard text summary of the trial."""
-  model_dir_summary = tf.summary.text(
-      'model_dir', tf.constant(model_dir, name='model_dir'), collections=[])
 
-  data_summaries = []
-  if semisupervised_configs:
-    for i, ex in enumerate(semisupervised_configs):
-      header = '| Path | Batch Ratio | Label Ratio |\n| :--- | :--- | :--- |\n'
-      line = '| %s | %s | %s |' % (ex.examples_path,
-                                   ex.batch_ratio,
-                                   ex.label_ratio)
-      table = header + line + '\n'
-      name = 'semisupervised_data_%d' % i
-      data_summaries.append(
-          tf.summary.text(name, tf.constant(table, name=name), collections=[]))
-  else:
-    data_summaries.append(tf.summary.text(
-        'examples_path', tf.constant(examples_path, name='examples_path'),
-        collections=[]))
+  summaries_to_write = collections.OrderedDict()
+  summaries_to_write['model_dir'] = model_dir
+  summaries_to_write['command_line_args'] = ' \\'.join(sys.argv)
 
   tf.logging.info('Writing hparams summary: %s', hparams)
 
@@ -74,15 +44,17 @@ def _trial_summary(hparams, model_dir, examples_path,
   lines = ['| %s | %s |' % (key, str(hparams_dict[key])) for key in keys]
   hparams_table = header + '\n'.join(lines) + '\n'
 
-  hparam_summary = tf.summary.text(
-      'hparams', tf.constant(hparams_table, name='hparams'), collections=[])
+  summaries_to_write['hparams'] = hparams_table
+
+  summaries_to_write.update(additional_trial_info)
 
   with tf.Session() as sess:
     writer = tf.summary.FileWriter(output_dir, graph=sess.graph)
-    for data_summary in data_summaries:
-      writer.add_summary(data_summary.eval())
-    writer.add_summary(model_dir_summary.eval())
-    writer.add_summary(hparam_summary.eval())
+    for name, summary in summaries_to_write.items():
+      tf.logging.info('Writing summary for %s: %s', name, summary)
+      writer.add_summary(
+          tf.summary.text(name, tf.constant(summary, name=name),
+                          collections=[]).eval())
     writer.close()
 
 
@@ -91,15 +63,34 @@ def create_estimator(model_fn,
                      hparams,
                      use_tpu=False,
                      master='',
+                     tpu_cluster=None,
                      save_checkpoint_steps=300,
                      save_summary_steps=300,
                      keep_checkpoint_max=None,
                      warm_start_from=None):
   """Creates an estimator."""
-  config = tf.contrib.tpu.RunConfig(
-      tpu_config=tf.contrib.tpu.TPUConfig(
+  def wrapped_model_fn(features, labels, mode, params, config):
+    """Wrap model_fn to restore labels value if present in features."""
+    # Workaround for Estimator API that forces 'labels' to be None when in
+    # predict mode.
+    # https://github.com/tensorflow/tensorflow/issues/17824
+    # See also infer_util.labels_to_features_wrapper
+    if labels is None and hasattr(features, 'labels'):
+      labels = features.labels
+    return model_fn(features, labels, mode, params, config)
+
+  if tpu_cluster:
+    tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
+        tpu_cluster)
+    master = None
+  else:
+    tpu_cluster_resolver = None
+
+  config = contrib_tpu.RunConfig(
+      tpu_config=contrib_tpu.TPUConfig(
           iterations_per_loop=save_checkpoint_steps),
       master=master,
+      cluster=tpu_cluster_resolver,
       save_summary_steps=save_summary_steps,
       save_checkpoints_steps=save_checkpoint_steps,
       keep_checkpoint_max=keep_checkpoint_max,
@@ -107,9 +98,9 @@ def create_estimator(model_fn,
 
   params = copy.deepcopy(hparams)
   params.del_hparam('batch_size')
-  return tf.contrib.tpu.TPUEstimator(
+  return contrib_tpu.TPUEstimator(
       use_tpu=use_tpu,
-      model_fn=model_fn,
+      model_fn=wrapped_model_fn,
       model_dir=model_dir,
       params=params,
       train_batch_size=hparams.batch_size,
@@ -121,20 +112,22 @@ def create_estimator(model_fn,
 
 
 def train(master,
+          tpu_cluster,
           model_fn,
+          data_fn,
+          additional_trial_info,
           model_dir,
-          examples_path,
           preprocess_examples,
           hparams,
           keep_checkpoint_max,
           use_tpu,
-          num_steps=None,
-          semisupervised_configs=None):
+          num_steps=None):
   """Train loop."""
   estimator = create_estimator(
       model_fn=model_fn,
       model_dir=model_dir,
       master=master,
+      tpu_cluster=tpu_cluster,
       hparams=hparams,
       keep_checkpoint_max=keep_checkpoint_max,
       use_tpu=use_tpu)
@@ -142,41 +135,42 @@ def train(master,
   if estimator.config.is_chief:
     _trial_summary(
         hparams=hparams,
-        examples_path=examples_path,
         model_dir=model_dir,
         output_dir=model_dir,
-        semisupervised_configs=semisupervised_configs)
+        additional_trial_info=additional_trial_info)
 
   transcription_data = functools.partial(
-      _get_data,
-      examples=examples_path,
+      data_fn,
       preprocess_examples=preprocess_examples,
       is_training=True,
-      semisupervised_configs=semisupervised_configs)
+      shuffle_examples=True,
+      skip_n_initial_records=0)
 
   estimator.train(input_fn=transcription_data, max_steps=num_steps)
 
 
 def evaluate(master,
              model_fn,
+             data_fn,
+             additional_trial_info,
              model_dir,
-             examples_path,
              preprocess_examples,
              hparams,
              name,
              num_steps=None):
-  """Train loop."""
+  """Evaluation loop."""
   estimator = create_estimator(
       model_fn=model_fn, model_dir=model_dir, master=master, hparams=hparams)
 
   transcription_data_base = functools.partial(
-      _get_data,
-      examples=examples_path,
+      data_fn,
       preprocess_examples=preprocess_examples,
       is_training=False)
 
   if num_steps is None:
-    transcription_data = transcription_data_base
+    transcription_data = functools.partial(
+        transcription_data_base,
+        shuffle_examples=False, skip_n_initial_records=0)
   else:
     # If num_steps is specified, we will evaluate only a subset of the data.
     #
@@ -205,7 +199,10 @@ def evaluate(master,
       record_check_params = copy.deepcopy(hparams)
       record_check_params.batch_size = 1
       iterator = transcription_data_base(
-          params=record_check_params).make_initializable_iterator()
+          params=record_check_params,
+          shuffle_examples=False,
+          skip_n_initial_records=0,
+          ).make_initializable_iterator()
       next_record = iterator.get_next()
       with tf.Session() as sess:
         sess.run(iterator.initializer)
@@ -241,12 +238,13 @@ def evaluate(master,
 
   _trial_summary(
       hparams=hparams,
-      examples_path=examples_path,
       model_dir=model_dir,
-      output_dir=estimator.eval_dir(name))
+      output_dir=estimator.eval_dir(name),
+      additional_trial_info=additional_trial_info)
 
   checkpoint_path = None
   while True:
-    checkpoint_path = tf.contrib.training.wait_for_new_checkpoint(
+    checkpoint_path = contrib_training.wait_for_new_checkpoint(
         model_dir, last_checkpoint=checkpoint_path)
-    estimator.evaluate(input_fn=transcription_data, steps=num_steps, name=name)
+    estimator.evaluate(input_fn=transcription_data, steps=num_steps,
+                       checkpoint_path=checkpoint_path, name=name)

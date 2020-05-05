@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,10 +23,10 @@ import threading
 import time
 
 from magenta.common import concurrency
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import mido
 from six.moves import queue as Queue
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
 _DEFAULT_METRONOME_PROGRAM = 117  # Melodic Tom

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,39 +15,11 @@
 """Utility functions for working with tf.train.SequenceExamples."""
 
 import math
-import numbers
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 QUEUE_CAPACITY = 500
 SHUFFLE_MIN_AFTER_DEQUEUE = QUEUE_CAPACITY // 5
-
-
-def make_sequence_example(inputs, labels):
-  """Returns a SequenceExample for the given inputs and labels.
-
-  Args:
-    inputs: A list of input vectors. Each input vector is a list of floats.
-    labels: A list of ints.
-
-  Returns:
-    A tf.train.SequenceExample containing inputs and labels.
-  """
-  input_features = [
-      tf.train.Feature(float_list=tf.train.FloatList(value=input_))
-      for input_ in inputs]
-  label_features = []
-  for label in labels:
-    if isinstance(label, numbers.Number):
-      label = [label]
-    label_features.append(
-        tf.train.Feature(int64_list=tf.train.Int64List(value=label)))
-  feature_list = {
-      'inputs': tf.train.FeatureList(feature=input_features),
-      'labels': tf.train.FeatureList(feature=label_features)
-  }
-  feature_lists = tf.train.FeatureLists(feature_list=feature_list)
-  return tf.train.SequenceExample(feature_lists=feature_lists)
 
 
 def _shuffle_inputs(input_tensors, capacity, min_after_dequeue, num_threads):

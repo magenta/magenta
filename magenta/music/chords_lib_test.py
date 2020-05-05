@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,15 +20,14 @@ from __future__ import print_function
 
 import copy
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+from magenta.music.protobuf import music_pb2
+import tensorflow.compat.v1 as tf
 
 NO_CHORD = constants.NO_CHORD
 
@@ -37,7 +36,7 @@ class ChordsLibTest(tf.test.TestCase):
 
   def setUp(self):
     self.steps_per_quarter = 1
-    self.note_sequence = common_testing_lib.parse_test_proto(
+    self.note_sequence = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         time_signatures: {
@@ -122,80 +121,6 @@ class ChordsLibTest(tf.test.TestCase):
     with self.assertRaises(chords_lib.CoincidentChordsError):
       chords.from_quantized_sequence(
           quantized_sequence, start_step=0, end_step=16)
-
-  def testExtractChords(self):
-    testing_lib.add_chords_to_sequence(
-        self.note_sequence, [('C', 2), ('G7', 6), ('F', 8)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, self.steps_per_quarter)
-    quantized_sequence.total_quantized_steps = 10
-    chord_progressions, _ = chords_lib.extract_chords(quantized_sequence)
-    expected = [[NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C', 'G7', 'G7', 'F', 'F']]
-    self.assertEqual(expected, [list(chords) for chords in chord_progressions])
-
-  def testExtractChordsAllTranspositions(self):
-    testing_lib.add_chords_to_sequence(
-        self.note_sequence, [('C', 1)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, self.steps_per_quarter)
-    quantized_sequence.total_quantized_steps = 2
-    chord_progressions, _ = chords_lib.extract_chords(quantized_sequence,
-                                                      all_transpositions=True)
-    expected = list(zip([NO_CHORD] * 12, ['Gb', 'G', 'Ab', 'A', 'Bb', 'B',
-                                          'C', 'Db', 'D', 'Eb', 'E', 'F']))
-    self.assertEqual(expected, [tuple(chords) for chords in chord_progressions])
-
-  def testExtractChordsForMelodies(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 1,
-        [(12, 127, 2, 4), (14, 50, 6, 8),
-         (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_chords_to_sequence(
-        self.note_sequence,
-        [('C', 2), ('G7', 6), ('Cmaj7', 33)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, self.steps_per_quarter)
-
-    melodies, _ = melodies_lib.extract_melodies(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True)
-    chord_progressions, _ = chords_lib.extract_chords_for_melodies(
-        quantized_sequence, melodies)
-    expected = [[NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C',
-                 'G7', 'G7', 'G7', 'G7', 'G7'],
-                [NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C', 'G7', 'G7'],
-                ['G7', 'Cmaj7', 'Cmaj7', 'Cmaj7', 'Cmaj7']]
-    self.assertEqual(expected, [list(chords) for chords in chord_progressions])
-
-  def testExtractChordsForMelodiesCoincidentChords(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(12, 100, 2, 4), (11, 1, 6, 11)])
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 1,
-        [(12, 127, 2, 4), (14, 50, 6, 8),
-         (50, 100, 33, 37), (52, 100, 34, 37)])
-    testing_lib.add_chords_to_sequence(
-        self.note_sequence,
-        [('C', 2), ('G7', 6), ('E13', 8), ('Cmaj7', 8)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, self.steps_per_quarter)
-
-    melodies, _ = melodies_lib.extract_melodies(
-        quantized_sequence, min_bars=1, gap_bars=2, min_unique_pitches=2,
-        ignore_polyphonic_notes=True)
-    chord_progressions, stats = chords_lib.extract_chords_for_melodies(
-        quantized_sequence, melodies)
-    expected = [[NO_CHORD, NO_CHORD, 'C', 'C', 'C', 'C', 'G7', 'G7'],
-                ['Cmaj7', 'Cmaj7', 'Cmaj7', 'Cmaj7', 'Cmaj7']]
-    stats_dict = dict((stat.name, stat) for stat in stats)
-    self.assertIsNone(chord_progressions[0])
-    self.assertEqual(expected,
-                     [list(chords) for chords in chord_progressions[1:]])
-    self.assertEqual(stats_dict['coincident_chords'].count, 1)
 
   def testToSequence(self):
     chords = chords_lib.ChordProgression(

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """MusicVAE training script."""
 
 from __future__ import absolute_import
@@ -22,7 +23,8 @@ import os
 
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import training as contrib_training
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -118,7 +120,7 @@ def _trial_summary(hparams, examples_path, output_dir):
 def _get_input_tensors(dataset, config):
   """Get input tensors from dataset."""
   batch_size = config.hparams.batch_size
-  iterator = dataset.make_one_shot_iterator()
+  iterator = tf.data.make_one_shot_iterator(dataset)
   (input_sequence, output_sequence, control_sequence,
    sequence_length) = iterator.get_next()
   input_sequence.set_shape(
@@ -175,7 +177,7 @@ def train(train_dir,
             num_sync_workers)
         hooks.append(optimizer.make_session_run_hook(is_chief))
 
-      grads, var_list = zip(*optimizer.compute_gradients(model.loss))
+      grads, var_list = list(zip(*optimizer.compute_gradients(model.loss)))
       global_norm = tf.global_norm(grads)
       tf.summary.scalar('global_norm', global_norm)
 
@@ -192,7 +194,8 @@ def train(train_dir,
         raise ValueError(
             'Unknown clip_mode: {}'.format(config.hparams.clip_mode))
       train_op = optimizer.apply_gradients(
-          zip(clipped_grads, var_list), global_step=model.global_step,
+          list(zip(clipped_grads, var_list)),
+          global_step=model.global_step,
           name='train_step')
 
       logging_dict = {'global_step': model.global_step,
@@ -206,7 +209,7 @@ def train(train_dir,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
-      tf.contrib.training.train(
+      contrib_training.train(
           train_op=train_op,
           logdir=train_dir,
           scaffold=scaffold,
@@ -237,9 +240,10 @@ def evaluate(train_dir,
         **_get_input_tensors(dataset_fn().take(num_batches), config))
 
     hooks = [
-        tf.contrib.training.StopAfterNEvalsHook(num_batches),
-        tf.contrib.training.SummaryAtEndHook(eval_dir)]
-    tf.contrib.training.evaluate_repeatedly(
+        contrib_training.StopAfterNEvalsHook(num_batches),
+        contrib_training.SummaryAtEndHook(eval_dir)
+    ]
+    contrib_training.evaluate_repeatedly(
         train_dir,
         eval_ops=eval_op,
         hooks=hooks,
@@ -337,6 +341,7 @@ def main(unused_argv):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.app.run(main)
 
 

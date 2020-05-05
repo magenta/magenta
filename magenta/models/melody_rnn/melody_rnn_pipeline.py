@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,13 @@
 """Pipeline to create MelodyRNN dataset."""
 
 import magenta
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class EncoderPipeline(pipeline.Pipeline):

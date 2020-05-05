@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,10 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Generate drum tracks from a trained checkpoint of a drums RNN model.
 
 Uses flags to define operation.
 """
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import ast
 import os
@@ -25,9 +30,11 @@ import magenta
 from magenta.models.drums_rnn import drums_rnn_config_flags
 from magenta.models.drums_rnn import drums_rnn_model
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
-from magenta.protobuf import generator_pb2
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+from magenta.models.shared import sequence_generator
+from magenta.models.shared import sequence_generator_bundle
+from magenta.music.protobuf import generator_pb2
+from magenta.music.protobuf import music_pb2
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -102,7 +109,7 @@ def get_checkpoint():
   """Get the training dir or checkpoint path to be used by the model."""
   if ((FLAGS.run_dir or FLAGS.checkpoint_file) and
       FLAGS.bundle_file and not FLAGS.save_generator_bundle):
-    raise magenta.music.SequenceGeneratorError(
+    raise sequence_generator.SequenceGeneratorError(
         'Cannot specify both bundle_file and run_dir or checkpoint_file')
   if FLAGS.run_dir:
     train_dir = os.path.join(os.path.expanduser(FLAGS.run_dir), 'train')
@@ -125,7 +132,7 @@ def get_bundle():
   if FLAGS.bundle_file is None:
     return None
   bundle_file = os.path.expanduser(FLAGS.bundle_file)
-  return magenta.music.read_bundle_file(bundle_file)
+  return sequence_generator_bundle.read_bundle_file(bundle_file)
 
 
 def run_with_flags(generator):

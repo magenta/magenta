@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,7 +14,8 @@
 
 """Tensorflow-related utilities."""
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import training as contrib_training
 
 
 def merge_hparams(hparams_1, hparams_2):
@@ -33,7 +34,7 @@ def merge_hparams(hparams_1, hparams_2):
   """
   hparams_map = hparams_1.values()
   hparams_map.update(hparams_2.values())
-  return tf.contrib.training.HParams(**hparams_map)
+  return contrib_training.HParams(**hparams_map)
 
 
 def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None):

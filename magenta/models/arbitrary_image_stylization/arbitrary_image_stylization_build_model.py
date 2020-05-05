@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Methods for building real-time arbitrary image stylization model."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_losses as losses
 from magenta.models.arbitrary_image_stylization import nza_model as transformer_model
 from magenta.models.image_stylization import ops
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import slim as contrib_slim
 from tensorflow.contrib.slim.python.slim.nets import inception_v3
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def build_model(content_input_,

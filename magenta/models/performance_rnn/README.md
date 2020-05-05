@@ -1,6 +1,6 @@
 ## Performance RNN
 
-Performance RNN models polyphonic performances with dynamics and expressive timing. It uses an event sequence encoding like [Polyphony RNN](/models/polyphony_rnn/README.md) but with the following event types:
+Performance RNN models polyphonic performances with dynamics and expressive timing. It uses an event sequence encoding like [Polyphony RNN](/magenta/models/polyphony_rnn/README.md) but with the following event types:
 
 * NOTE_ON(*pitch*): start a note at *pitch*
 * NOTE_OFF(*pitch*): stop a note at *pitch*
@@ -152,12 +152,12 @@ performance_rnn_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](/magenta/protobuf/generator.proto)
+The [bundle format](/magenta/music/protobuf/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 
 To generate a bundle, use the
-[create_bundle_file](/magenta/music/sequence_generator.py)
+[create_bundle_file](/magenta/models/shared/sequence_generator.py)
 method within SequenceGenerator. Our generator script
 supports a ```--save_generator_bundle``` flag that calls this method. Example:
 

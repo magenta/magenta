@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import tempfile
 
 import magenta
 from magenta.music import performance_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 
 import pygtrie
 
@@ -118,8 +118,8 @@ class MidiPerformanceEncoder(object):
     j = 0
     while j < len(event_ids):
       ngram = ()
-      for i in event_ids[j:]:
-        ngram += (i,)
+      for i in range(j, len(event_ids)):
+        ngram += (event_ids[i],)
         if self._ngrams_trie.has_key(ngram):
           best_ngram = ngram
         if not self._ngrams_trie.has_subtrie(ngram):
@@ -429,5 +429,4 @@ class FlattenedTextMelodyEncoderAbsolute(TextMelodyEncoderAbsolute):
       ids: List of encoded melody event indices.
     """
     ns = magenta.music.midi_file_to_sequence_proto(s)
-    encoded = self.encode_note_sequence(ns)
-    return encoded
+    return self.encode_note_sequence(ns)

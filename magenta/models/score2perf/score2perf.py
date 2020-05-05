@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,8 +20,8 @@ from __future__ import print_function
 
 import functools
 import itertools
-import sys
 
+from magenta.models.score2perf import datagen_beam
 from magenta.models.score2perf import modalities
 from magenta.models.score2perf import music_encoders
 from magenta.music import chord_symbols_lib
@@ -30,10 +30,8 @@ from tensor2tensor.data_generators import problem
 from tensor2tensor.layers import modalities as t2t_modalities
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
-if sys.version_info.major == 2:
-  from magenta.models.score2perf import datagen_beam  # pylint:disable=g-import-not-at-top,ungrouped-imports
 
 # TODO(iansimon): figure out the best way not to hard-code these constants
 
@@ -99,6 +97,11 @@ class Score2PerfProblem(problem.Problem):
     return [0]
 
   @property
+  def random_crop_length_in_datagen(self):
+    """Randomly crop targets to this length in datagen."""
+    return None
+
+  @property
   def random_crop_in_train(self):
     """Whether to randomly crop each training example when preprocessing."""
     return False
@@ -132,13 +135,12 @@ class Score2PerfProblem(problem.Problem):
             'Transposition caused out-of-range pitch(es).')
       return augmented_ns
 
+    augment_params = itertools.product(
+        self.stretch_factors, self.transpose_amounts)
     augment_fns = [
-        functools.partial(
-            augment_note_sequence,
-            stretch_factor=stretch_factor,
-            transpose_amount=transpose_amount)
-        for stretch_factor, transpose_amount in itertools.product(
-            self.stretch_factors, self.transpose_amounts)
+        functools.partial(augment_note_sequence,
+                          stretch_factor=s, transpose_amount=t)
+        for s, t in augment_params
     ]
 
     datagen_beam.generate_examples(
@@ -155,7 +157,8 @@ class Score2PerfProblem(problem.Problem):
         encode_score_fns=dict((name, encoder.encode_note_sequence)
                               for name, encoder in self.score_encoders()),
         augment_fns=augment_fns,
-        absolute_timing=self.absolute_timing)
+        absolute_timing=self.absolute_timing,
+        random_crop_length=self.random_crop_length_in_datagen)
 
   def hparams(self, defaults, model_hparams):
     del model_hparams   # unused
@@ -170,7 +173,7 @@ class Score2PerfProblem(problem.Problem):
         # future, refactor the tuple of the "inputs" feature to be part of the
         # features dict itself, i.e., have multiple inputs each with its own
         # modality and vocab size.
-        modality_cls = modalities.ModalityType.IDENTITY
+        modality_cls = t2t_modalities.ModalityType.IDENTITY
       else:
         modality_cls = t2t_modalities.ModalityType.SYMBOL
       defaults.modality['inputs'] = modality_cls
@@ -263,6 +266,221 @@ class Score2PerfProblem(problem.Problem):
       # If not cropping or splitting, do standard preprocessing.
       return super(Score2PerfProblem, self).preprocess_example(
           example, mode, hparams)
+
+
+class ConditionalScore2PerfProblem(Score2PerfProblem):
+  """Lightweight version of base class for musical score-to-performance problems.
+
+  This version incorporates one performance conditioning signal.
+  Data files contain tf.Example protos with encoded performance in 'targets' and
+  optional encoded score in 'inputs'.
+  """
+
+  def generate_data(self, data_dir, tmp_dir, task_id=-1):
+    del task_id
+
+    def augment_note_sequence(ns, stretch_factor, transpose_amount):
+      """Augment a NoteSequence by time stretch and pitch transposition."""
+      augmented_ns = sequences_lib.stretch_note_sequence(
+          ns, stretch_factor, in_place=False)
+      try:
+        _, num_deleted_notes = sequences_lib.transpose_note_sequence(
+            augmented_ns, transpose_amount,
+            min_allowed_pitch=MIN_PITCH, max_allowed_pitch=MAX_PITCH,
+            in_place=True)
+      except chord_symbols_lib.ChordSymbolError:
+        raise datagen_beam.DataAugmentationError(
+            'Transposition of chord symbol(s) failed.')
+      if num_deleted_notes:
+        raise datagen_beam.DataAugmentationError(
+            'Transposition caused out-of-range pitch(es).')
+      return augmented_ns
+
+    augment_params = itertools.product(
+        self.stretch_factors, self.transpose_amounts)
+    augment_fns = [
+        functools.partial(augment_note_sequence,
+                          stretch_factor=s, transpose_amount=t)
+        for s, t in augment_params
+    ]
+
+    datagen_beam.generate_conditional_examples(
+        input_transform=self.performances_input_transform(tmp_dir),
+        output_dir=data_dir,
+        problem_name=self.dataset_filename(),
+        splits=self.splits,
+        min_pitch=MIN_PITCH,
+        max_pitch=MAX_PITCH,
+        melody=False,
+        noisy=False,
+        encode_performance_fn=self.performance_encoder().encode_note_sequence,
+        encode_score_fns=dict((name, encoder.encode_note_sequence)
+                              for name, encoder in self.score_encoders()),
+        augment_fns=augment_fns,
+        num_replications=self.num_replications)
+
+  def example_reading_spec(self):
+    data_fields = {
+        'inputs': tf.VarLenFeature(tf.int64),
+        'targets': tf.VarLenFeature(tf.int64)
+    }
+    for name, _ in self.score_encoders():
+      data_fields[name] = tf.VarLenFeature(tf.int64)
+
+    # We don't actually "decode" anything here; the encodings are simply read as
+    # tensors.
+    data_items_to_decoders = None
+
+    return data_fields, data_items_to_decoders
+
+  def preprocess_example(self, example, mode, hparams):
+    return problem.preprocess_example_common(example, mode, hparams)
+
+
+class ConditionalMelodyScore2PerfProblem(Score2PerfProblem):
+  """Lightweight version of base class for musical score-to-performance problems.
+
+  This version incorporates one performance conditioning signal.
+  Data files contain tf.Example protos with encoded performance in 'targets' and
+  encoded score in 'melody' and 'performance'.
+  """
+
+  def generate_data(self, data_dir, tmp_dir, task_id=-1):
+    del task_id
+
+    def augment_note_sequence(ns, stretch_factor, transpose_amount):
+      """Augment a NoteSequence by time stretch and pitch transposition."""
+      augmented_ns = sequences_lib.stretch_note_sequence(
+          ns, stretch_factor, in_place=False)
+      try:
+        _, num_deleted_notes = sequences_lib.transpose_note_sequence(
+            augmented_ns, transpose_amount,
+            min_allowed_pitch=MIN_PITCH, max_allowed_pitch=MAX_PITCH,
+            in_place=True)
+      except chord_symbols_lib.ChordSymbolError:
+        raise datagen_beam.DataAugmentationError(
+            'Transposition of chord symbol(s) failed.')
+      if num_deleted_notes:
+        raise datagen_beam.DataAugmentationError(
+            'Transposition caused out-of-range pitch(es).')
+      return augmented_ns
+
+    augment_params = itertools.product(
+        self.stretch_factors, self.transpose_amounts)
+    augment_fns = [
+        functools.partial(augment_note_sequence,
+                          stretch_factor=s, transpose_amount=t)
+        for s, t in augment_params
+    ]
+    datagen_beam.generate_conditional_examples(
+        input_transform=self.performances_input_transform(tmp_dir),
+        output_dir=data_dir,
+        problem_name=self.dataset_filename(),
+        splits=self.splits,
+        min_pitch=MIN_PITCH,
+        max_pitch=MAX_PITCH,
+        melody=True,
+        noisy=False,
+        encode_performance_fn=self.performance_encoder().encode_note_sequence,
+        encode_score_fns=dict((name, encoder.encode_note_sequence)
+                              for name, encoder in self.score_encoders()),
+        augment_fns=augment_fns,
+        num_replications=self.num_replications)
+
+  def hparams(self, defaults, model_hparams):
+    del model_hparams   # unused
+    perf_encoder = self.get_feature_encoders()['targets']
+    defaults.modality = {'targets': t2t_modalities.ModalityType.SYMBOL}
+    defaults.vocab_size = {'targets': perf_encoder.vocab_size}
+    if self.has_inputs:
+      score_encoder = self.score_encoders()
+      # iterate over each score encoder and update modality/vocab_size
+      for name, se in score_encoder:
+        defaults.modality[name] = t2t_modalities.ModalityType.SYMBOL
+        defaults.vocab_size[name] = se.vocab_size
+
+  def feature_encoders(self, data_dir):
+    del data_dir
+    encoders = {
+        'targets': self.performance_encoder()
+    }
+    score_encoders = self.score_encoders()
+    # CompositeScoreEncoder is tricky, so using a list of encoders instead.
+    if len(score_encoders) > 1:
+      for name, encoder in score_encoders:
+        encoders[name] = encoder
+    else:
+      # If only one score component, just use its encoder.
+      _, encoders['inputs'] = score_encoders[0]
+    return encoders
+
+  def example_reading_spec(self):
+    data_fields = {
+        'targets': tf.VarLenFeature(tf.int64),
+    }
+    for name, _ in self.score_encoders():
+      data_fields[name] = tf.VarLenFeature(tf.int64)
+
+    # We don't actually "decode" anything here; the encodings are simply read as
+    # tensors.
+    data_items_to_decoders = None
+
+    return data_fields, data_items_to_decoders
+
+  def preprocess_example(self, example, mode, hparams):
+    return problem.preprocess_example_common(example, mode, hparams)
+
+
+class ConditionalMelodyNoisyScore2PerfProblem(
+    ConditionalMelodyScore2PerfProblem):
+  """Lightweight version of base class for musical score-to-performance problems.
+
+  This version incorporates one performance conditioning signal.
+  Data files contain tf.Example protos with encoded performance in 'targets' and
+  encoded score in 'melody' and 'performance'.
+  """
+
+  def generate_data(self, data_dir, tmp_dir, task_id=-1):
+    del task_id
+
+    def augment_note_sequence(ns, stretch_factor, transpose_amount):
+      """Augment a NoteSequence by time stretch and pitch transposition."""
+      augmented_ns = sequences_lib.stretch_note_sequence(
+          ns, stretch_factor, in_place=False)
+      try:
+        _, num_deleted_notes = sequences_lib.transpose_note_sequence(
+            augmented_ns, transpose_amount,
+            min_allowed_pitch=MIN_PITCH, max_allowed_pitch=MAX_PITCH,
+            in_place=True)
+      except chord_symbols_lib.ChordSymbolError:
+        raise datagen_beam.DataAugmentationError(
+            'Transposition of chord symbol(s) failed.')
+      if num_deleted_notes:
+        raise datagen_beam.DataAugmentationError(
+            'Transposition caused out-of-range pitch(es).')
+      return augmented_ns
+
+    augment_params = itertools.product(
+        self.stretch_factors, self.transpose_amounts)
+    augment_fns = [
+        functools.partial(augment_note_sequence,
+                          stretch_factor=s, transpose_amount=t)
+        for s, t in augment_params
+    ]
+    datagen_beam.generate_conditional_examples(
+        input_transform=self.performances_input_transform(tmp_dir),
+        output_dir=data_dir,
+        problem_name=self.dataset_filename(),
+        splits=self.splits,
+        min_pitch=MIN_PITCH,
+        max_pitch=MAX_PITCH,
+        melody=True,
+        noisy=True,
+        encode_performance_fn=self.performance_encoder().encode_note_sequence,
+        encode_score_fns=dict((name, encoder.encode_note_sequence)
+                              for name, encoder in self.score_encoders()),
+        augment_fns=augment_fns,
+        num_replications=self.num_replications)
 
 
 class Chords2PerfProblem(Score2PerfProblem):
@@ -391,6 +609,156 @@ class Score2PerfMaestroAbsMel2Perf5sTo30sAug10x(AbsoluteMelody2PerfProblem):
   def transpose_amounts(self):
     # Transpose no more than a minor third.
     return [-3, -2, -1, 0, 1, 2, 3]
+
+
+@registry.register_problem('score2perf_maestro_perf_conditional_aug_10x')
+class Score2PerfMaestroPerfConditionalAug10x(ConditionalScore2PerfProblem):
+  """Generate performances from scratch (or from primer)."""
+
+  def performances_input_transform(self, tmp_dir):
+    del tmp_dir
+    return dict(
+        (split_name, datagen_beam.ReadNoteSequencesFromTFRecord(tfrecord_path))
+        for split_name, tfrecord_path in MAESTRO_TFRECORD_PATHS.items())
+
+  @property
+  def splits(self):
+    return
+
+  @property
+  def num_replications(self):
+    return 10
+
+  @property
+  def add_eos_symbol(self):
+    return False
+
+  @property
+  def stretch_factors(self):
+    # Stretch by -5%, -2.5%, 0%, 2.5%, and 5%.
+    return [0.95, 0.975, 1.0, 1.025, 1.05]
+
+  @property
+  def transpose_amounts(self):
+    # Transpose no more than a minor third.
+    return [-3, -2, -1, 0, 1, 2, 3]
+
+  @property
+  def has_inputs(self):
+    encoders = self.get_feature_encoders()
+    return ('performance' in encoders) or ('inputs' in encoders)
+
+  def score_encoders(self):
+    return [
+        ('performance', music_encoders.MidiPerformanceEncoder(
+            steps_per_second=100,
+            num_velocity_bins=32,
+            min_pitch=21,
+            max_pitch=108,
+            add_eos=self.add_eos_symbol))
+    ]
+
+
+@registry.register_problem('score2perf_maestro_mel_perf_conditional_aug_10x')
+class Score2PerfMaestroMelPerfConditionalAug10x(
+    ConditionalMelodyScore2PerfProblem):
+  """Generate performances from scratch (or from primer)."""
+
+  def performances_input_transform(self, tmp_dir):
+    del tmp_dir
+    return dict(
+        (split_name, datagen_beam.ReadNoteSequencesFromTFRecord(tfrecord_path))
+        for split_name, tfrecord_path in MAESTRO_TFRECORD_PATHS.items())
+
+  @property
+  def splits(self):
+    return
+
+  @property
+  def num_replications(self):
+    return 10
+
+  @property
+  def add_eos_symbol(self):
+    return False
+
+  @property
+  def stretch_factors(self):
+    # Stretch by -5%, -2.5%, 0%, 2.5%, and 5%.
+    return [0.95, 0.975, 1.0, 1.025, 1.05]
+
+  @property
+  def transpose_amounts(self):
+    # Transpose no more than a minor third.
+    return [-3, -2, -1, 0, 1, 2, 3]
+
+  @property
+  def has_inputs(self):
+    encoders = self.get_feature_encoders()
+    return ('performance' in encoders) or ('inputs' in encoders)
+
+  def score_encoders(self):
+    return [
+        ('performance', music_encoders.MidiPerformanceEncoder(
+            steps_per_second=100,
+            num_velocity_bins=32,
+            min_pitch=21,
+            max_pitch=108,
+            add_eos=self.add_eos_symbol)),
+        ('melody', music_encoders.TextMelodyEncoderAbsolute(
+            steps_per_second=10, min_pitch=21, max_pitch=108))
+    ]
+
+
+@registry.register_problem('score2perf_maestro_mel_perf_conditional_noisy_10x')
+class Score2PerfMaestroMelPerfConditionalNoisy10x(
+    ConditionalMelodyNoisyScore2PerfProblem):
+  """Generate performances from scratch (or from primer)."""
+
+  def performances_input_transform(self, tmp_dir):
+    del tmp_dir
+    return dict(
+        (split_name, datagen_beam.ReadNoteSequencesFromTFRecord(tfrecord_path))
+        for split_name, tfrecord_path in MAESTRO_TFRECORD_PATHS.items())
+
+  @property
+  def splits(self):
+    return
+
+  @property
+  def num_replications(self):
+    return 10
+
+  @property
+  def add_eos_symbol(self):
+    return False
+
+  @property
+  def stretch_factors(self):
+    # Stretch by -5%, -2.5%, 0%, 2.5%, and 5%.
+    return [0.95, 0.975, 1.0, 1.025, 1.05]
+
+  @property
+  def transpose_amounts(self):
+    # Transpose no more than a minor third.
+    return [-3, -2, -1, 0, 1, 2, 3]
+
+  @property
+  def has_inputs(self):
+    encoders = self.get_feature_encoders()
+    return ('performance' in encoders) or ('inputs' in encoders)
+
+  def score_encoders(self):
+    return [
+        ('performance', music_encoders.MidiPerformanceEncoder(
+            steps_per_second=100,
+            num_velocity_bins=32,
+            min_pitch=21,
+            max_pitch=108,
+            add_eos=self.add_eos_symbol)),
+        ('melody', music_encoders.TextMelodyEncoderAbsolute(
+            steps_per_second=10, min_pitch=21, max_pitch=108))
+    ]
 
 
 @registry.register_hparams

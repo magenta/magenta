@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,36 +12,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Inference for onset conditioned model.
 
-Can be used to get a final inference score for a trained model with
---eval_loop=False. In this case, a summary will be written for every example
-processed, and the resulting MIDI and pianoroll images will also be written
-for every example. The final summary value is the mean score for all examples.
-
-Or, with --eval_loop=True, the script will watch for new checkpoints and re-run
-the same scoring code over every example, but only the final mean scores will be
-written for every checkpoint.
+A histogram summary will be written for every example processed, and the
+resulting MIDI and pianoroll images will also be written for every example.
+The final summary value is the mean score for all examples.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+import collections
+import functools
 import os
 import time
-
+import imageio
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import train_util
 from magenta.music import midi_io
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
-
+from magenta.music.protobuf import music_pb2
 import numpy as np
-import scipy
-import tensorflow as tf
+import six
+import tensorflow.compat.v1 as tf
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -63,19 +56,8 @@ tf.app.flags.DEFINE_string(
 tf.app.flags.DEFINE_string(
     'hparams', '',
     'A comma-separated list of `name=value` hyperparameter values.')
-tf.app.flags.DEFINE_integer(
-    'max_seconds_per_sequence', None,
-    'If set, will truncate sequences to be at most this many seconds long.')
 tf.app.flags.DEFINE_boolean(
-    'require_onset', True,
-    'If set, require an onset prediction for a new note to start.')
-tf.app.flags.DEFINE_boolean(
-    'use_offset', False,
-    'If set, use the offset predictions to force notes to end.')
-tf.app.flags.DEFINE_boolean(
-    'eval_loop', False,
-    'If set, will re-run inference every time a new checkpoint is written. '
-    'And will only output the final results.')
+    'shuffle_examples', False, 'Whether to shuffle examples.')
 tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
@@ -87,13 +69,14 @@ tf.app.flags.DEFINE_boolean('preprocess_examples', False,
 def model_inference(model_fn,
                     model_dir,
                     checkpoint_path,
+                    data_fn,
                     hparams,
                     examples_path,
                     output_dir,
                     summary_writer,
                     master,
                     preprocess_examples,
-                    write_summary_every_step=True):
+                    shuffle_examples):
   """Runs inference for the given examples."""
   tf.logging.info('model_dir=%s', model_dir)
   tf.logging.info('checkpoint_path=%s', checkpoint_path)
@@ -103,177 +86,113 @@ def model_inference(model_fn,
   estimator = train_util.create_estimator(
       model_fn, model_dir, hparams, master=master)
 
-  with tf.Graph().as_default():
-    num_dims = constants.MIDI_PITCHES
+  transcription_data = functools.partial(
+      data_fn, examples=examples_path, preprocess_examples=preprocess_examples,
+      is_training=False, shuffle_examples=shuffle_examples,
+      skip_n_initial_records=0)
 
-    dataset = data.provide_batch(
-        examples=examples_path,
-        preprocess_examples=preprocess_examples,
-        hparams=hparams,
-        is_training=False)
+  input_fn = infer_util.labels_to_features_wrapper(transcription_data)
 
-    # Define some metrics.
-    (metrics_to_updates, metric_note_precision, metric_note_recall,
-     metric_note_f1, metric_note_precision_with_offsets,
-     metric_note_recall_with_offsets, metric_note_f1_with_offsets,
-     metric_note_precision_with_offsets_velocity,
-     metric_note_recall_with_offsets_velocity,
-     metric_note_f1_with_offsets_velocity, metric_frame_labels,
-     metric_frame_predictions) = infer_util.define_metrics(num_dims)
+  start_time = time.time()
+  infer_times = []
+  num_frames = []
 
-    summary_op = tf.summary.merge_all()
+  file_num = 0
 
-    if write_summary_every_step:
-      global_step = tf.train.get_or_create_global_step()
-      global_step_increment = global_step.assign_add(1)
-    else:
-      global_step = tf.constant(
-          estimator.get_variable_value(tf.GraphKeys.GLOBAL_STEP))
-      global_step_increment = global_step
+  all_metrics = collections.defaultdict(list)
 
-    iterator = dataset.make_initializable_iterator()
-    next_record = iterator.get_next()
-    with tf.Session() as sess:
-      sess.run([
-          tf.initializers.global_variables(),
-          tf.initializers.local_variables()
-      ])
+  for predictions in estimator.predict(
+      input_fn, checkpoint_path=checkpoint_path, yield_single_examples=False):
 
-      infer_times = []
-      num_frames = []
+    # Remove batch dimension for convenience.
+    for k in predictions.keys():
+      if predictions[k].shape[0] != 1:
+        raise ValueError(
+            'All predictions must have batch size 1, but shape of '
+            '{} was: {}'.format(k, + predictions[k].shape[0]))
+      predictions[k] = predictions[k][0]
 
-      sess.run(iterator.initializer)
-      while True:
-        try:
-          record = sess.run(next_record)
-        except tf.errors.OutOfRangeError:
-          break
+    end_time = time.time()
+    infer_time = end_time - start_time
+    infer_times.append(infer_time)
+    num_frames.append(predictions['frame_predictions'].shape[0])
+    tf.logging.info(
+        'Infer time %f, frames %d, frames/sec %f, running average %f',
+        infer_time, num_frames[-1], num_frames[-1] / infer_time,
+        np.sum(num_frames) / np.sum(infer_times))
 
-        def input_fn(params):
-          del params
-          return tf.data.Dataset.from_tensors(record)
+    tf.logging.info('Scoring sequence %s', predictions['sequence_ids'])
 
-        start_time = time.time()
+    sequence_prediction = music_pb2.NoteSequence.FromString(
+        predictions['sequence_predictions'])
+    sequence_label = music_pb2.NoteSequence.FromString(
+        predictions['sequence_labels'])
 
-        # TODO(fjord): This is a hack that allows us to keep using our existing
-        # infer/scoring code with a tf.Estimator model. Ideally, we should
-        # move things around so that we can use estimator.evaluate, which will
-        # also be more efficient because it won't have to restore the checkpoint
-        # for every example.
-        prediction_list = list(
-            estimator.predict(
-                input_fn,
-                checkpoint_path=checkpoint_path,
-                yield_single_examples=False))
-        assert len(prediction_list) == 1
+    # Make filenames UNIX-friendly.
+    filename_chars = six.ensure_text(predictions['sequence_ids'], 'utf-8')
+    filename_chars = [c if c.isalnum() else '_' for c in filename_chars]
+    filename_safe = ''.join(filename_chars).rstrip()
+    filename_safe = '{:04d}_{}'.format(file_num, filename_safe[:200])
+    file_num += 1
+    output_file = os.path.join(output_dir, filename_safe + '.mid')
+    tf.logging.info('Writing inferred midi file to %s', output_file)
+    midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
 
-        input_features = record[0]
-        input_labels = record[1]
+    label_output_file = os.path.join(output_dir, filename_safe + '_label.mid')
+    tf.logging.info('Writing label midi file to %s', label_output_file)
+    midi_io.sequence_proto_to_midi_file(sequence_label, label_output_file)
 
-        filename = input_features.sequence_id[0]
-        note_sequence = music_pb2.NoteSequence.FromString(
-            input_labels.note_sequence[0])
-        labels = input_labels.labels[0]
-        frame_probs = prediction_list[0]['frame_probs'][0]
-        frame_predictions = prediction_list[0]['frame_predictions'][0]
-        onset_predictions = prediction_list[0]['onset_predictions'][0]
-        velocity_values = prediction_list[0]['velocity_values'][0]
-        offset_predictions = prediction_list[0]['offset_predictions'][0]
+    # Also write a pianoroll showing acoustic model output vs labels.
+    pianoroll_output_file = os.path.join(
+        output_dir, filename_safe + '_pianoroll.png')
+    tf.logging.info('Writing acoustic logit/label file to %s',
+                    pianoroll_output_file)
+    # Calculate frames based on the sequence. Includes any postprocessing done
+    # to turn raw onsets/frames predictions into the final sequence.
+    # TODO(fjord): This work is duplicated in metrics.py.
+    sequence_frame_predictions = sequences_lib.sequence_to_pianoroll(
+        sequence_prediction,
+        frames_per_second=data.hparams_frames_per_second(hparams),
+        min_pitch=constants.MIN_MIDI_PITCH,
+        max_pitch=constants.MAX_MIDI_PITCH).active
+    with tf.gfile.GFile(pianoroll_output_file, mode='w') as f:
+      imageio.imwrite(
+          f,
+          infer_util.posterior_pianoroll_image(
+              predictions['onset_probs'],
+              predictions['onset_labels'],
+              predictions['frame_probs'],
+              predictions['frame_labels'],
+              sequence_frame_predictions),
+          format='png')
 
-        if not FLAGS.require_onset:
-          onset_predictions = None
+    # Update histogram and current scalar for metrics.
+    with tf.Graph().as_default(), tf.Session().as_default():
+      for k, v in predictions.items():
+        if not k.startswith('metrics/'):
+          continue
+        all_metrics[k].extend(v)
+        histogram_name = k + '_histogram'
+        metric_summary = tf.summary.histogram(histogram_name, all_metrics[k])
+        summary_writer.add_summary(metric_summary.eval(), global_step=file_num)
+        scalar_name = k
+        metric_summary = tf.summary.scalar(scalar_name, np.mean(all_metrics[k]))
+        summary_writer.add_summary(metric_summary.eval(), global_step=file_num)
+      summary_writer.flush()
 
-        if not FLAGS.use_offset:
-          offset_predictions = None
+    start_time = time.time()
 
-        sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
-            frame_predictions,
-            frames_per_second=data.hparams_frames_per_second(hparams),
-            min_duration_ms=0,
-            min_midi_pitch=constants.MIN_MIDI_PITCH,
-            onset_predictions=onset_predictions,
-            offset_predictions=offset_predictions,
-            velocity_values=velocity_values)
-
-        end_time = time.time()
-        infer_time = end_time - start_time
-        infer_times.append(infer_time)
-        num_frames.append(frame_predictions.shape[0])
-        tf.logging.info(
-            'Infer time %f, frames %d, frames/sec %f, running average %f',
-            infer_time, frame_predictions.shape[0],
-            frame_predictions.shape[0] / infer_time,
-            np.sum(num_frames) / np.sum(infer_times))
-
-        tf.logging.info('Scoring sequence %s', filename)
-
-        def shift_notesequence(ns_time):
-          return ns_time + hparams.backward_shift_amount_ms / 1000.
-
-        sequence_label = sequences_lib.adjust_notesequence_times(
-            note_sequence, shift_notesequence)[0]
-        infer_util.score_sequence(
-            sess,
-            global_step_increment,
-            metrics_to_updates,
-            metric_note_precision,
-            metric_note_recall,
-            metric_note_f1,
-            metric_note_precision_with_offsets,
-            metric_note_recall_with_offsets,
-            metric_note_f1_with_offsets,
-            metric_note_precision_with_offsets_velocity,
-            metric_note_recall_with_offsets_velocity,
-            metric_note_f1_with_offsets_velocity,
-            metric_frame_labels,
-            metric_frame_predictions,
-            frame_labels=labels,
-            sequence_prediction=sequence_prediction,
-            frames_per_second=data.hparams_frames_per_second(hparams),
-            sequence_label=sequence_label,
-            sequence_id=filename)
-
-        if write_summary_every_step:
-          # Make filenames UNIX-friendly.
-          chars = filename.decode('utf-8')
-          chars = [c if c.isalnum() else '_' for c in chars]
-          filename_safe = ''.join(chars).rstrip()
-          output_file = os.path.join(output_dir, filename_safe + '.mid')
-          tf.logging.info('Writing inferred midi file to %s', output_file)
-          midi_io.sequence_proto_to_midi_file(sequence_prediction, output_file)
-
-          label_output_file = os.path.join(output_dir,
-                                           filename_safe + '_label.mid')
-          tf.logging.info('Writing label midi file to %s', label_output_file)
-          midi_io.sequence_proto_to_midi_file(sequence_label, label_output_file)
-
-          # Also write a pianoroll showing acoustic model output vs labels.
-          pianoroll_output_file = os.path.join(output_dir,
-                                               filename_safe + '_pianoroll.png')
-          tf.logging.info('Writing acoustic logit/label file to %s',
-                          pianoroll_output_file)
-          with tf.gfile.GFile(pianoroll_output_file, mode='w') as f:
-            scipy.misc.imsave(
-                f,
-                infer_util.posterior_pianoroll_image(
-                    frame_probs,
-                    sequence_prediction,
-                    labels,
-                    overlap=True,
-                    frames_per_second=data.hparams_frames_per_second(hparams)))
-
-          summary = sess.run(summary_op)
-          summary_writer.add_summary(summary, sess.run(global_step))
-          summary_writer.flush()
-
-      if not write_summary_every_step:
-        # Only write the summary variables for the final step.
-        summary = sess.run(summary_op)
-        summary_writer.add_summary(summary, sess.run(global_step))
-        summary_writer.flush()
+  # Write final mean values for all metrics.
+  with tf.Graph().as_default(), tf.Session().as_default():
+    for k, v in all_metrics.items():
+      final_scalar_name = 'final/' + k
+      metric_summary = tf.summary.scalar(
+          final_scalar_name, np.mean(all_metrics[k]))
+      summary_writer.add_summary(metric_summary.eval())
+    summary_writer.flush()
 
 
-def run(config_map):
+def run(config_map, data_fn):
   """Run the infer script."""
   output_dir = os.path.expanduser(FLAGS.output_dir)
 
@@ -283,11 +202,6 @@ def run(config_map):
 
   # Batch size should always be 1 for inference.
   hparams.batch_size = 1
-
-  if FLAGS.max_seconds_per_sequence:
-    hparams.truncated_length_secs = FLAGS.max_seconds_per_sequence
-  else:
-    hparams.truncated_length_secs = 0
 
   tf.logging.info(hparams)
 
@@ -308,32 +222,15 @@ def run(config_map):
         collections=[])
     summary_writer.add_summary(run_config_summary.eval())
 
-  if FLAGS.eval_loop:
-    assert not FLAGS.checkpoint_path
-
-    checkpoint_path = None
-    while True:
-      checkpoint_path = tf.contrib.training.wait_for_new_checkpoint(
-          FLAGS.model_dir, last_checkpoint=checkpoint_path)
-      model_inference(
-          model_fn=config.model_fn,
-          model_dir=FLAGS.model_dir,
-          checkpoint_path=checkpoint_path,
-          hparams=hparams,
-          examples_path=FLAGS.examples_path,
-          output_dir=output_dir,
-          summary_writer=summary_writer,
-          master=FLAGS.master,
-          preprocess_examples=FLAGS.preprocess_examples,
-          write_summary_every_step=False)
-  else:
-    model_inference(
-        model_fn=config.model_fn,
-        model_dir=FLAGS.model_dir,
-        checkpoint_path=FLAGS.checkpoint_path,
-        hparams=hparams,
-        examples_path=FLAGS.examples_path,
-        output_dir=output_dir,
-        summary_writer=summary_writer,
-        preprocess_examples=FLAGS.preprocess_examples,
-        master=FLAGS.master)
+  model_inference(
+      model_fn=config.model_fn,
+      model_dir=FLAGS.model_dir,
+      checkpoint_path=FLAGS.checkpoint_path,
+      data_fn=data_fn,
+      hparams=hparams,
+      examples_path=FLAGS.examples_path,
+      output_dir=output_dir,
+      summary_writer=summary_writer,
+      preprocess_examples=FLAGS.preprocess_examples,
+      master=FLAGS.master,
+      shuffle_examples=FLAGS.shuffle_examples)

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Train a progressive GAN model.
 
 See https://arxiv.org/abs/1710.10196 for details about the model.
@@ -20,19 +21,14 @@ See https://github.com/tkarras/progressive_growing_of_gans for the original
 theano implementation.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import time
 
 from absl import logging
 from magenta.models.gansynth.lib import networks
 import numpy as np
-import tensorflow as tf
-
-tfgan = tf.contrib.gan
+import tensorflow.compat.v1 as tf
+import tensorflow_gan as tfgan
 
 
 def make_train_sub_dir(stage_id, **kwargs):
@@ -67,7 +63,7 @@ def get_stage_ids(**kwargs):
   # stage, i.e. start_stage_id = n - 1.
   start_stage_id = max(0, len(train_sub_dirs) - 1)
 
-  return range(start_stage_id, get_total_num_stages(**kwargs))
+  return list(range(start_stage_id, get_total_num_stages(**kwargs)))
 
 
 def get_total_num_stages(**kwargs):
@@ -448,6 +444,7 @@ class TrainTimeHook(tf.train.SessionRunHook):
 
   Optionally stops training if we've passed a time limit.
   """
+  _last_run_start_time = Ellipsis  # type: float
 
   def __init__(self, train_time, time_limit=None):
     super(TrainTimeHook, self).__init__()

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Evaluates a real-time arbitrary image stylization model.
 
 For example of usage see README.md.
@@ -24,9 +25,10 @@ import ast
 
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_model as build_model
 from magenta.models.image_stylization import image_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1.0}'
 DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 1e-3, "vgg_16/conv2": 1e-3,'
@@ -114,13 +116,13 @@ def main(_):
                      stylized_noise, 3)
 
     metrics = {}
-    for key, value in loss_dict.iteritems():
+    for key, value in loss_dict.items():
       metrics[key] = tf.metrics.mean(value)
 
     names_values, names_updates = slim.metrics.aggregate_metric_map(metrics)
-    for name, value in names_values.iteritems():
+    for name, value in names_values.items():
       slim.summaries.add_scalar_summary(value, name, print_summary=True)
-    eval_op = names_updates.values()
+    eval_op = list(names_updates.values())
     num_evals = FLAGS.num_evaluation_styles / FLAGS.batch_size
 
     slim.evaluation.evaluation_loop(

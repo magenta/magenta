@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Provides function to build an RNN-NADE model's graph."""
 
 import collections
@@ -19,10 +20,10 @@ import collections
 import magenta
 from magenta.common import Nade
 from magenta.models.shared import events_rnn_graph
-import tensorflow as tf
-from tensorflow.python.layers import base as tf_layers_base
-from tensorflow.python.layers import core as tf_layers_core
-from tensorflow.python.util import nest as tf_nest
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import metrics as contrib_metrics
+from tensorflow.contrib import seq2seq as contrib_seq2seq
+from tensorflow.contrib import slim as contrib_slim
 
 _RnnNadeStateTuple = collections.namedtuple(
     'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
@@ -65,14 +66,14 @@ class RnnNade(object):
   def __init__(self, rnn_cell, num_dims, num_hidden):
     self._num_dims = num_dims
     self._rnn_cell = rnn_cell
-    self._fc_layer = tf_layers_core.Dense(units=num_dims + num_hidden)
+    self._fc_layer = tf.layers.Dense(units=num_dims + num_hidden)
     self._nade = Nade(num_dims, num_hidden)
 
   def _get_rnn_zero_state(self, batch_size):
     """Return a tensor or tuple of tensors for an initial rnn state."""
     return self._rnn_cell.zero_state(batch_size, tf.float32)
 
-  class SampleNadeLayer(tf_layers_base.Layer):
+  class SampleNadeLayer(tf.layers.Layer):
     """Layer that computes samples from a NADE."""
 
     def __init__(self, nade, name=None, **kwargs):
@@ -110,17 +111,16 @@ class RnnNade(object):
     else:
       initial_rnn_state = initial_state.rnn_state
 
-    helper = tf.contrib.seq2seq.TrainingHelper(
-        inputs=inputs,
-        sequence_length=lengths)
+    helper = contrib_seq2seq.TrainingHelper(
+        inputs=inputs, sequence_length=lengths)
 
-    decoder = tf.contrib.seq2seq.BasicDecoder(
+    decoder = contrib_seq2seq.BasicDecoder(
         cell=self._rnn_cell,
         helper=helper,
         initial_state=initial_rnn_state,
         output_layer=self._fc_layer)
 
-    final_outputs, final_rnn_state = tf.contrib.seq2seq.dynamic_decode(
+    final_outputs, final_rnn_state = contrib_seq2seq.dynamic_decode(
         decoder)[0:2]
 
     # Flatten time dimension.
@@ -288,7 +288,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
         optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
 
-        train_op = tf.contrib.slim.learning.create_train_op(
+        train_op = contrib_slim.learning.create_train_op(
             loss, optimizer, clip_gradient_norm=hparams.clip_norm)
         tf.add_to_collection('train_op', train_op)
 
@@ -300,17 +300,18 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
             'metrics/recall': recall,
         }
       elif mode == 'eval':
-        vars_to_summarize, update_ops = tf.contrib.metrics.aggregate_metric_map(
-            {
-                'loss': tf.metrics.mean(-log_probs),
-                'metrics/perplexity': tf.metrics.mean(tf.exp(log_probs)),
-                'metrics/accuracy': tf.metrics.accuracy(
-                    inputs_flat, predictions_flat),
-                'metrics/precision': tf.metrics.precision(
-                    inputs_flat, predictions_flat),
-                'metrics/recall': tf.metrics.recall(
-                    inputs_flat, predictions_flat),
-            })
+        vars_to_summarize, update_ops = contrib_metrics.aggregate_metric_map({
+            'loss':
+                tf.metrics.mean(-log_probs),
+            'metrics/perplexity':
+                tf.metrics.mean(tf.exp(log_probs)),
+            'metrics/accuracy':
+                tf.metrics.accuracy(inputs_flat, predictions_flat),
+            'metrics/precision':
+                tf.metrics.precision(inputs_flat, predictions_flat),
+            'metrics/recall':
+                tf.metrics.recall(inputs_flat, predictions_flat),
+        })
         for updates_op in update_ops.values():
           tf.add_to_collection('eval_ops', updates_op)
 
@@ -335,9 +336,9 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       tf.add_to_collection('log_prob', log_prob)
 
       # Flatten state tuples for metagraph compatibility.
-      for state in tf_nest.flatten(initial_state):
+      for state in tf.nest.flatten(initial_state):
         tf.add_to_collection('initial_state', state)
-      for state in tf_nest.flatten(final_state):
+      for state in tf.nest.flatten(final_state):
         tf.add_to_collection('final_state', state)
 
   return build

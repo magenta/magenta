@@ -119,7 +119,7 @@ polyphony_rnn_train \
 --run_dir=/tmp/polyphony_rnn/logdir/run1 \
 --sequence_example_file=/tmp/polyphony_rnn/sequence_examples/eval_poly_tracks.tfrecord \
 --hparams="batch_size=64,rnn_layer_sizes=[64,64]" \
---num_training_steps=20000 \
+--num_eval_examples=20000 \
 --eval
 ```
 
@@ -157,11 +157,11 @@ polyphony_rnn_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](/magenta/protobuf/generator.proto)
+The [bundle format](/magenta/music/protobuf/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 
-To generate a bundle, use the [create_bundle_file](/magenta/music/sequence_generator.py) method within SequenceGenerator. Our generator script supports a `--save_generator_bundle` flag that calls this method. When using the `--save_generator_bundle` mode, you need to supply the `--hparams` flag with the same values used during training.
+To generate a bundle, use the [create_bundle_file](/magenta/models/shared/sequence_generator.py) method within SequenceGenerator. Our generator script supports a `--save_generator_bundle` flag that calls this method. When using the `--save_generator_bundle` mode, you need to supply the `--hparams` flag with the same values used during training.
 
 Example:
 

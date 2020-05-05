@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import tempfile
 import librosa
 import numpy as np
@@ -156,6 +157,26 @@ def crop_samples(samples, sample_rate, crop_beginning_seconds,
   total_samples = int(total_length_seconds * sample_rate)
   cropped_samples = samples[samples_to_crop:(samples_to_crop + total_samples)]
   return cropped_samples
+
+
+def repeat_samples_to_duration(samples, sample_rate, duration):
+  """Repeat a sequence of samples until it is a given duration, trimming extra.
+
+  Args:
+    samples: The sequence to repeat
+    sample_rate: The sample rate at which to interpret the samples.
+    duration: The desired duration
+
+  Returns:
+    The repeated and possibly trimmed sequence.
+  """
+  sequence_duration = len(samples) / sample_rate
+  num_repeats = int(math.ceil(duration / sequence_duration))
+  repeated_samples = np.concatenate([samples] * num_repeats)
+  trimmed = crop_samples(
+      repeated_samples, sample_rate,
+      crop_beginning_seconds=0, total_length_seconds=duration)
+  return trimmed
 
 
 def crop_wav_data(wav_data, sample_rate, crop_beginning_seconds,

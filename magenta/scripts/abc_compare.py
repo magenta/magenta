@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Compare a directory of abc and midi files.
 
 Assumes a directory of abc files converted with something like:
@@ -21,10 +22,6 @@ ls *.abc | xargs -l1 sed -i '/R: hornpipe/d'
 ls *.abc | xargs -l1 abc2midi
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import pdb
 import re
@@ -32,7 +29,7 @@ import re
 from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 

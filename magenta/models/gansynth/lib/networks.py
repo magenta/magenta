@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Generator and discriminator for a progressive GAN model.
 
 See https://arxiv.org/abs/1710.10196 for details about the model.
@@ -20,14 +21,11 @@ See https://github.com/tkarras/progressive_growing_of_gans for the original
 theano implementation.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import math
 from magenta.models.gansynth.lib import layers
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 class ResolutionSchedule(object):
@@ -346,13 +344,13 @@ def generator(z,
         activation=to_rgb_activation,
         scope='to_rgb')
 
-  he_init = tf.contrib.layers.variance_scaling_initializer()
+  he_init = contrib_layers.variance_scaling_initializer()
 
   end_points = {}
 
   with tf.variable_scope(scope, reuse=reuse):
     with tf.name_scope('input'):
-      x = tf.contrib.layers.flatten(z)
+      x = contrib_layers.flatten(z)
       end_points['latent_vector'] = x
 
     with tf.variable_scope(block_name(1)):
@@ -458,7 +456,7 @@ def discriminator(x,
   Returns:
     A `Tensor` of model output and a dictionary of model end points.
   """
-  he_init = tf.contrib.layers.variance_scaling_initializer()
+  he_init = contrib_layers.variance_scaling_initializer()
 
   if num_blocks is None:
     num_blocks = resolution_schedule.num_resolutions

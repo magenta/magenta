@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,9 @@
 """Testing support code."""
 
 from magenta.music import encoder_decoder
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
+
+from google.protobuf import text_format
 
 # Shortcut to text annotation types.
 BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
@@ -127,3 +129,9 @@ class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
       return self._num_steps[event]
     else:
       return 1
+
+
+def parse_test_proto(proto_type, proto_string):
+  instance = proto_type()
+  text_format.Merge(proto_string, instance)
+  return instance

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ import collections
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 Type0 = collections.namedtuple('Type0', ['x', 'y', 'z'])
 Type1 = collections.namedtuple('Type1', ['x', 'y'])

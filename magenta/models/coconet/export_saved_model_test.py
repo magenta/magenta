@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import tempfile
 from magenta.models.coconet import export_saved_model
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class ExportSavedModelTest(tf.test.TestCase):

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,14 +23,19 @@ import numbers
 import magenta
 import numpy as np
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
+from tensorflow.contrib import layers as contrib_layers
+from tensorflow.contrib import metrics as contrib_metrics
+from tensorflow.contrib import rnn as contrib_rnn
+from tensorflow.contrib import slim as contrib_slim
 from tensorflow.python.util import nest as tf_nest
 
 
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
                   attn_length=0,
-                  base_cell=tf.contrib.rnn.BasicLSTMCell,
+                  base_cell=contrib_rnn.BasicLSTMCell,
                   residual_connections=False):
   """Makes a RNN cell from the given hyperparameters.
 
@@ -52,17 +57,16 @@ def make_rnn_cell(rnn_layer_sizes,
     cell = base_cell(rnn_layer_sizes[i])
     if attn_length and not cells:
       # Add attention wrapper to first layer.
-      cell = tf.contrib.rnn.AttentionCellWrapper(
+      cell = contrib_rnn.AttentionCellWrapper(
           cell, attn_length, state_is_tuple=True)
     if residual_connections:
-      cell = tf.contrib.rnn.ResidualWrapper(cell)
+      cell = contrib_rnn.ResidualWrapper(cell)
       if i == 0 or rnn_layer_sizes[i] != rnn_layer_sizes[i - 1]:
-        cell = tf.contrib.rnn.InputProjectionWrapper(cell, rnn_layer_sizes[i])
-    cell = tf.contrib.rnn.DropoutWrapper(
-        cell, output_keep_prob=dropout_keep_prob)
+        cell = contrib_rnn.InputProjectionWrapper(cell, rnn_layer_sizes[i])
+    cell = contrib_rnn.DropoutWrapper(cell, output_keep_prob=dropout_keep_prob)
     cells.append(cell)
 
-  cell = tf.contrib.rnn.MultiRNNCell(cells)
+  cell = contrib_rnn.MultiRNNCell(cells)
 
   return cell
 
@@ -78,7 +82,7 @@ def cudnn_lstm_state_to_state_tuples(cudnn_lstm_state):
   """Convert CudnnLSTM format to LSTMStateTuples."""
   h, c = cudnn_lstm_state
   return tuple(
-      tf.contrib.rnn.LSTMStateTuple(h=h_i, c=c_i)
+      contrib_rnn.LSTMStateTuple(h=h_i, c=c_i)
       for h_i, c_i in zip(tf.unstack(h), tf.unstack(c)))
 
 
@@ -109,7 +113,7 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
 
   if len(set(rnn_layer_sizes)) == 1 and not residual_connections:
     initial_state = tuple(
-        tf.contrib.rnn.LSTMStateTuple(
+        contrib_rnn.LSTMStateTuple(
             h=tf.zeros([batch_size, num_units], dtype=tf.float32),
             c=tf.zeros([batch_size, num_units], dtype=tf.float32))
         for num_units in rnn_layer_sizes)
@@ -118,7 +122,7 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
       # We can make a single call to CudnnLSTM since all layers are the same
       # size and we aren't using residual connections.
       cudnn_initial_state = state_tuples_to_cudnn_lstm_state(initial_state)
-      cell = tf.contrib.cudnn_rnn.CudnnLSTM(
+      cell = contrib_cudnn_rnn.CudnnLSTM(
           num_layers=len(rnn_layer_sizes),
           num_units=rnn_layer_sizes[0],
           direction='unidirectional',
@@ -130,9 +134,10 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
 
     else:
       # At generation time we use CudnnCompatibleLSTMCell.
-      cell = tf.contrib.rnn.MultiRNNCell(
-          [tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
-           for num_units in rnn_layer_sizes])
+      cell = contrib_rnn.MultiRNNCell([
+          contrib_cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
+          for num_units in rnn_layer_sizes
+      ])
       cudnn_outputs, final_state = tf.nn.dynamic_rnn(
           cell, cudnn_inputs, initial_state=initial_state, time_major=True,
           scope='cudnn_lstm/rnn')
@@ -149,17 +154,16 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
       # (projected) input can be added to the output.
       if residual_connections:
         if i == 0 or rnn_layer_sizes[i] != rnn_layer_sizes[i - 1]:
-          cudnn_inputs = tf.contrib.layers.linear(
-              cudnn_inputs, rnn_layer_sizes[i])
+          cudnn_inputs = contrib_layers.linear(cudnn_inputs, rnn_layer_sizes[i])
 
-      layer_initial_state = (tf.contrib.rnn.LSTMStateTuple(
+      layer_initial_state = (contrib_rnn.LSTMStateTuple(
           h=tf.zeros([batch_size, rnn_layer_sizes[i]], dtype=tf.float32),
           c=tf.zeros([batch_size, rnn_layer_sizes[i]], dtype=tf.float32)),)
 
       if mode != 'generate':
         cudnn_initial_state = state_tuples_to_cudnn_lstm_state(
             layer_initial_state)
-        cell = tf.contrib.cudnn_rnn.CudnnLSTM(
+        cell = contrib_cudnn_rnn.CudnnLSTM(
             num_layers=1,
             num_units=rnn_layer_sizes[i],
             direction='unidirectional',
@@ -171,8 +175,8 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
 
       else:
         # At generation time we use CudnnCompatibleLSTMCell.
-        cell = tf.contrib.rnn.MultiRNNCell(
-            [tf.contrib.cudnn_rnn.CudnnCompatibleLSTMCell(rnn_layer_sizes[i])])
+        cell = contrib_rnn.MultiRNNCell(
+            [contrib_cudnn_rnn.CudnnCompatibleLSTMCell(rnn_layer_sizes[i])])
         cudnn_outputs, layer_final_state = tf.nn.dynamic_rnn(
             cell, cudnn_inputs, initial_state=layer_initial_state,
             time_major=True,
@@ -277,7 +281,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       num_logits = num_classes
     else:
       num_logits = sum(num_classes)
-    logits_flat = tf.contrib.layers.linear(outputs_flat, num_logits)
+    logits_flat = contrib_layers.linear(outputs_flat, num_logits)
 
     if mode in ('train', 'eval'):
       labels_flat = magenta.common.flatten_maybe_padded_sequences(
@@ -334,7 +338,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
         optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
 
-        train_op = tf.contrib.slim.learning.create_train_op(
+        train_op = contrib_slim.learning.create_train_op(
             loss, optimizer, clip_gradient_norm=hparams.clip_norm)
         tf.add_to_collection('train_op', train_op)
 
@@ -348,22 +352,24 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
             'metrics/perplexity_per_step': perplexity_per_step,
         }
       elif mode == 'eval':
-        vars_to_summarize, update_ops = tf.contrib.metrics.aggregate_metric_map(
-            {
-                'loss': tf.metrics.mean(softmax_cross_entropy),
-                'metrics/accuracy': tf.metrics.accuracy(
-                    labels_flat, predictions_flat),
-                'metrics/per_class_accuracy':
-                    tf.metrics.mean_per_class_accuracy(
-                        labels_flat, predictions_flat, num_classes),
-                'metrics/event_accuracy': tf.metrics.recall(
-                    event_positions, correct_predictions),
-                'metrics/no_event_accuracy': tf.metrics.recall(
-                    no_event_positions, correct_predictions),
-                'metrics/loss_per_step': tf.metrics.mean(
+        vars_to_summarize, update_ops = contrib_metrics.aggregate_metric_map({
+            'loss':
+                tf.metrics.mean(softmax_cross_entropy),
+            'metrics/accuracy':
+                tf.metrics.accuracy(labels_flat, predictions_flat),
+            'metrics/per_class_accuracy':
+                tf.metrics.mean_per_class_accuracy(labels_flat,
+                                                   predictions_flat,
+                                                   num_classes),
+            'metrics/event_accuracy':
+                tf.metrics.recall(event_positions, correct_predictions),
+            'metrics/no_event_accuracy':
+                tf.metrics.recall(no_event_positions, correct_predictions),
+            'metrics/loss_per_step':
+                tf.metrics.mean(
                     tf.reduce_sum(softmax_cross_entropy) / num_steps,
                     weights=num_steps),
-            })
+        })
         for updates_op in update_ops.values():
           tf.add_to_collection('eval_ops', updates_op)
 

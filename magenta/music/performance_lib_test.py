@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,12 +13,11 @@
 # limitations under the License.
 
 """Tests for performance_lib."""
-
 from magenta.music import performance_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+from magenta.music.protobuf import music_pb2
+import tensorflow.compat.v1 as tf
 
 
 class PerformanceLibTest(tf.test.TestCase):
@@ -417,104 +416,10 @@ class PerformanceLibTest(tf.test.TestCase):
       performance.append(event)
     self.assertListEqual([100, 100, 100, 200, 200], performance.steps)
 
-  def testExtractPerformances(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
-    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
-        self.note_sequence, steps_per_second=100)
-
-    perfs, _ = performance_lib.extract_performances(quantized_sequence)
-    self.assertEqual(1, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=1, max_events_truncate=10)
-    self.assertEqual(1, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=8, max_events_truncate=10)
-    self.assertEqual(0, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=1, max_events_truncate=3)
-    self.assertEqual(1, len(perfs))
-    self.assertEqual(3, len(perfs[0]))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, max_steps_truncate=100)
-    self.assertEqual(1, len(perfs))
-    self.assertEqual(100, perfs[0].num_steps)
-
-  def testExtractPerformancesMultiProgram(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0,
-        [(60, 100, 0.0, 4.0), (64, 100, 0.0, 3.0), (67, 100, 1.0, 2.0)])
-    self.note_sequence.notes[0].program = 2
-    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
-        self.note_sequence, steps_per_second=100)
-
-    perfs, _ = performance_lib.extract_performances(quantized_sequence)
-    self.assertEqual(0, len(perfs))
-
-  def testExtractPerformancesNonZeroStart(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
-    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
-        self.note_sequence, steps_per_second=100)
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, start_step=400, min_events_discard=1)
-    self.assertEqual(0, len(perfs))
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, start_step=0, min_events_discard=1)
-    self.assertEqual(1, len(perfs))
-
-  def testExtractPerformancesRelativeQuantized(self):
-    self.note_sequence.tempos.add(qpm=60.0)
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
-    quantized_sequence = sequences_lib.quantize_note_sequence(
-        self.note_sequence, steps_per_quarter=100)
-
-    perfs, _ = performance_lib.extract_performances(quantized_sequence)
-    self.assertEqual(1, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=1, max_events_truncate=10)
-    self.assertEqual(1, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=8, max_events_truncate=10)
-    self.assertEqual(0, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=1, max_events_truncate=3)
-    self.assertEqual(1, len(perfs))
-    self.assertEqual(3, len(perfs[0]))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, max_steps_truncate=100)
-    self.assertEqual(1, len(perfs))
-    self.assertEqual(100, perfs[0].num_steps)
-
-  def testExtractPerformancesSplitInstruments(self):
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 0, [(60, 100, 0.0, 4.0)])
-    testing_lib.add_track_to_sequence(
-        self.note_sequence, 1, [(62, 100, 0.0, 2.0), (64, 100, 2.0, 4.0)])
-    quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
-        self.note_sequence, steps_per_second=100)
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, split_instruments=True)
-    self.assertEqual(2, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=8, split_instruments=True)
-    self.assertEqual(1, len(perfs))
-
-    perfs, _ = performance_lib.extract_performances(
-        quantized_sequence, min_events_discard=16, split_instruments=True)
-    self.assertEqual(0, len(perfs))
+  def testPeEqAndHash(self):
+    pe = performance_lib.PerformanceEvent
+    self.assertEqual(pe(pe.NOTE_ON, 60), pe(pe.NOTE_ON, 60))
+    self.assertEqual(1, len(set([pe(pe.NOTE_ON, 60), pe(pe.NOTE_ON, 60)])))
 
 
 if __name__ == '__main__':

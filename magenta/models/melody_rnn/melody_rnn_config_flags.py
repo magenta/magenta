@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,8 @@
 
 import magenta
 from magenta.models.melody_rnn import melody_rnn_model
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
@@ -116,7 +117,7 @@ def config_from_flags():
           '`--melody_encoder_decoder` must be one of %s. Got %s.' % (
               melody_encoder_decoders.keys(), FLAGS.melody_encoder_decoder))
     if FLAGS.generator_id is not None:
-      generator_details = magenta.protobuf.generator_pb2.GeneratorDetails(
+      generator_details = magenta.music.protobuf.generator_pb2.GeneratorDetails(
           id=FLAGS.generator_id)
       if FLAGS.generator_description is not None:
         generator_details.description = FLAGS.generator_description
@@ -124,7 +125,7 @@ def config_from_flags():
       generator_details = None
     encoder_decoder = melody_encoder_decoders[FLAGS.melody_encoder_decoder](
         melody_rnn_model.DEFAULT_MIN_NOTE, melody_rnn_model.DEFAULT_MAX_NOTE)
-    hparams = tf.contrib.training.HParams()
+    hparams = contrib_training.HParams()
     hparams.parse(FLAGS.hparams)
     return melody_rnn_model.MelodyRnnConfig(
         generator_details, encoder_decoder, hparams)

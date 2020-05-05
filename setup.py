@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,8 +14,6 @@
 
 """A setuptools based setup module for magenta."""
 
-import sys
-
 from setuptools import find_packages
 from setuptools import setup
 
@@ -26,18 +24,23 @@ from setuptools import setup
 with open('magenta/version.py') as in_file:
   exec(in_file.read())  # pylint: disable=exec-used
 
-if '--gpu' in sys.argv:
-  gpu_mode = True
-  sys.argv.remove('--gpu')
-else:
-  gpu_mode = False
-
 REQUIRED_PACKAGES = [
     'IPython',
-    'absl-py',
     'Pillow >= 3.4.2',
+    'absl-py',
+    'attrs',
     'backports.tempfile',
     'bokeh >= 0.12.0',
+    # Temporary fix for gast issue with TF.
+    # Details:
+    # https://github.com/tensorflow/tensorflow/issues/32319
+    # https://github.com/tensorflow/tensorflow/commit/c72125bd59858ec82a9238b232bbd77c45889c5a
+    'gast == 0.2.2',
+    # tensor2tensor requires gym, but the newest version of gym depends on a
+    # a version of cloudpickle that is incompatible with tensorflow-probability
+    # 0.7.0.
+    'gym < 0.16.0',
+    'imageio',
     'intervaltree >= 2.1.0',
     'joblib >= 0.12',
     'librosa >= 0.6.2',
@@ -50,22 +53,35 @@ REQUIRED_PACKAGES = [
     'protobuf >= 3.6.1',
     'pygtrie >= 2.3',
     'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
-    'scipy >= 0.18.1, <= 1.2.0',  # 1.2.1 causes segfaults in pytest.
+    'scikit-image',
+    'scipy >= 0.18.1',
+    'six >= 1.12.0',
     'sk-video',
-    'sonnet',
+    # Keep Sonnet < 2.0.0 because that requires TF2.
+    # For now, restrict to < 1.36 because that requires tensorflow-probability
+    # 0.8.0, which causes problems with tensor2tensor.
+    'dm-sonnet < 1.36.0',  # Sonnet 2 requires TF2.
     'sox >= 1.3.7',
+    'tensorflow >= 1.15.0, < 2.0.0',  # Magenta is not yet TF2 compatible.
     'tensorflow-datasets >= 1.0.2',
-    'tensorflow-probability >= 0.5.0',
-    'tensor2tensor >= 1.10.0',
+    # Pinned to be compatible with tensor2tensor requirements.
+    'tensorflow-probability == 0.7.0',
+    'tensor2tensor >= 1.13.4',
     'wheel',
     'futures;python_version=="2.7"',
-    'apache-beam[gcp] >= 2.8.0;python_version=="2.7"',
+    'apache-beam[gcp] >= 2.14.0',
+    # Temporary fix for:
+    # https://issues.apache.org/jira/projects/AVRO/issues/AVRO-2737?filter=allopenissues
+    'avro-python3 !=1.9.2',
 ]
 
-if gpu_mode:
-  REQUIRED_PACKAGES.append('tensorflow-gpu >= 1.12.0')
-else:
-  REQUIRED_PACKAGES.append('tensorflow >= 1.12.0')
+EXTRAS_REQUIRE = {
+    'onsets_frames_realtime': [
+        'pyaudio',
+        'colorama',
+        'tflite',
+    ],
+}
 
 # pylint:disable=line-too-long
 CONSOLE_SCRIPTS = [
@@ -95,11 +111,13 @@ CONSOLE_SCRIPTS = [
     'magenta.models.music_vae.music_vae_train',
     'magenta.models.nsynth.wavenet.nsynth_generate',
     'magenta.models.nsynth.wavenet.nsynth_save_embeddings',
+    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_create_dataset',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_create_dataset_maps',
-    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_create_dataset_maestro',
+    'magenta.models.onsets_frames_transcription.onsets_frames_transcription_create_tfrecords',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_infer',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_train',
     'magenta.models.onsets_frames_transcription.onsets_frames_transcription_transcribe',
+    'magenta.models.onsets_frames_transcription.realtime.onsets_frames_transcription_realtime',
     'magenta.models.performance_rnn.performance_rnn_create_dataset',
     'magenta.models.performance_rnn.performance_rnn_generate',
     'magenta.models.performance_rnn.performance_rnn_train',
@@ -119,7 +137,7 @@ CONSOLE_SCRIPTS = [
 # pylint:enable=line-too-long
 
 setup(
-    name='magenta-gpu' if gpu_mode else 'magenta',
+    name='magenta',
     version=__version__,  # pylint: disable=undefined-variable
     description='Use machine learning to create art and music',
     long_description='',
@@ -134,7 +152,6 @@ setup(
         'Intended Audience :: Education',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: Apache Software License',
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
         'Topic :: Scientific/Engineering :: Mathematics',
         'Topic :: Software Development :: Libraries :: Python Modules',
@@ -144,6 +161,7 @@ setup(
 
     packages=find_packages(),
     install_requires=REQUIRED_PACKAGES,
+    extras_require=EXTRAS_REQUIRE,
     entry_points={
         'console_scripts': ['%s = %s:console_entry_point' % (n, p) for n, p in
                             ((s.split('.')[-1], s) for s in CONSOLE_SCRIPTS)],
@@ -155,11 +173,9 @@ setup(
     },
     setup_requires=['pytest-runner', 'pytest-pylint'],
     tests_require=[
-        'pytest',
+        'pytest >= 5.2.0',
+        'pytest-xdist < 1.30.0',  # 1.30 has problems working with pylint plugin
         'pylint < 2.0.0;python_version<"3"',
-        # pylint 2.3.0 and astroid 2.2.0 caused spurious errors,
-        # so lock them down to known good versions.
-        'pylint == 2.2.2;python_version>="3"',
-        'astroid == 2.0.4;python_version>="3"',
+        'pylint >= 2.4.2;python_version>="3"',
     ],
 )

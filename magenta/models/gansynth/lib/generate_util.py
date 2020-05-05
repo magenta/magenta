@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Helper functions for generating sounds.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from magenta import music as mm
 from magenta.models.gansynth.lib import util
@@ -64,6 +62,11 @@ def get_z_notes(start_times, z_instruments, t_instruments):
   z_notes = []
   for t in start_times:
     idx = np.searchsorted(t_instruments, t, side='left') - 1
+
+    # Handles out of bounds errors.
+    if idx.item() == t_instruments.size - 1:
+      idx -= 1
+
     t_left = t_instruments[idx]
     t_right = t_instruments[idx + 1]
     interp = (t - t_left) / (t_right - t_left)

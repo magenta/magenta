@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,11 +24,11 @@ import os.path
 import tempfile
 import zipfile
 
-from magenta.common import testing_lib as common_testing_lib
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+from magenta.music import testing_lib
+from magenta.music.protobuf import music_pb2
+import tensorflow.compat.v1 as tf
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -245,7 +245,7 @@ class MusicXMLParserTest(tf.test.TestCase):
       part_name: name of the part the sequence is expected to contain.
     """
 
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -363,7 +363,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     """Verify properties of the flute scale."""
     ns = musicxml_reader.musicxml_file_to_sequence_proto(
         self.flute_scale_filename)
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -414,7 +414,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     """
     ns = musicxml_reader.musicxml_file_to_sequence_proto(
         self.atonal_transposition_filename)
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -477,7 +477,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     """
     ns = musicxml_reader.musicxml_file_to_sequence_proto(
         self.unmetered_filename)
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -554,7 +554,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     """
     ns = musicxml_reader.musicxml_file_to_sequence_proto(
         self.st_anne_filename)
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -825,7 +825,7 @@ class MusicXMLParserTest(tf.test.TestCase):
       ns = musicxml_reader.musicxml_file_to_sequence_proto(
           temp_file.name)
 
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -866,7 +866,7 @@ class MusicXMLParserTest(tf.test.TestCase):
       ns = musicxml_reader.musicxml_file_to_sequence_proto(
           temp_file.name)
 
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -905,7 +905,7 @@ class MusicXMLParserTest(tf.test.TestCase):
       ns = musicxml_reader.musicxml_file_to_sequence_proto(
           temp_file.name)
 
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -991,7 +991,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     """
     ns = musicxml_reader.musicxml_file_to_sequence_proto(
         self.whole_measure_rest_forward_filename)
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220
@@ -1066,7 +1066,7 @@ class MusicXMLParserTest(tf.test.TestCase):
     """
     ns = musicxml_reader.musicxml_file_to_sequence_proto(
         self.meter_test_filename)
-    expected_ns = common_testing_lib.parse_test_proto(
+    expected_ns = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
         ticks_per_quarter: 220

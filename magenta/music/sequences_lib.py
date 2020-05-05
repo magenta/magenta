@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,6 +14,10 @@
 
 """Defines sequence of notes objects for creating datasets."""
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import collections
 import copy
 import itertools
@@ -23,10 +27,10 @@ import random
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -519,6 +523,29 @@ def concatenate_sequences(sequences, sequence_durations=None):
   return remove_redundant_data(cat_seq)
 
 
+def repeat_sequence_to_duration(sequence, duration, sequence_duration=None):
+  """Repeat a sequence until it is a given duration, trimming any extra.
+
+  Args:
+    sequence: the sequence to repeat
+    duration: the desired duration
+    sequence_duration: If provided, will be used instead of sequence.total_time
+
+  Returns:
+    The repeated and possibly trimmed sequence.
+  """
+  if not sequence_duration:
+    sequence_duration = sequence.total_time
+  num_repeats = int(math.ceil(duration / sequence_duration))
+  repeated_ns = concatenate_sequences(
+      [sequence] * num_repeats,
+      sequence_durations=[sequence_duration] * num_repeats)
+
+  trimmed = extract_subsequence(repeated_ns, start_time=0, end_time=duration)
+  trimmed.ClearField('subsequence_info')  # Not relevant in this case.
+  return trimmed
+
+
 def expand_section_groups(sequence):
   """Expands a NoteSequence based on its section_groups.
 
@@ -825,6 +852,41 @@ def split_note_sequence_on_time_changes(note_sequence,
 
   if len(valid_split_times) > 1:
     return _extract_subsequences(note_sequence, valid_split_times)
+  else:
+    return []
+
+
+def split_note_sequence_on_silence(note_sequence, gap_seconds=3.0):
+  """Split one NoteSequence into many around gaps of silence.
+
+  This function splits a NoteSequence into multiple NoteSequences, each of which
+  contains no gaps of silence longer than `gap_seconds`. Each of the resulting
+  NoteSequences is shifted such that the first note starts at time zero.
+
+  Args:
+    note_sequence: The NoteSequence to split.
+    gap_seconds: The maximum amount of contiguous silence to allow within a
+        NoteSequence, in seconds.
+
+  Returns:
+    A Python list of NoteSequences.
+  """
+  notes_by_start_time = sorted(
+      list(note_sequence.notes), key=lambda note: note.start_time)
+
+  split_times = [0.0]
+  last_active_time = 0.0
+
+  for note in notes_by_start_time:
+    if note.start_time > last_active_time + gap_seconds:
+      split_times.append(note.start_time)
+    last_active_time = max(last_active_time, note.end_time)
+
+  if note_sequence.total_time > split_times[-1]:
+    split_times.append(note_sequence.total_time)
+
+  if len(split_times) > 1:
+    return _extract_subsequences(note_sequence, split_times)
   else:
     return []
 
@@ -1465,6 +1527,8 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
   is done on a per instrument basis, so notes are only affected by sustain
   events for the same instrument.
 
+  Drum notes will not be modified.
+
   Args:
     note_sequence: The NoteSequence for which to apply sustain. This object will
       not be modified.
@@ -1489,8 +1553,10 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
 
   # Sort all note on/off and sustain on/off events.
   events = []
-  events.extend([(note.start_time, _NOTE_ON, note) for note in sequence.notes])
-  events.extend([(note.end_time, _NOTE_OFF, note) for note in sequence.notes])
+  events.extend([(note.start_time, _NOTE_ON, note) for note in sequence.notes
+                 if not note.is_drum])
+  events.extend([(note.end_time, _NOTE_OFF, note) for note in sequence.notes
+                 if not note.is_drum])
 
   for cc in sequence.control_changes:
     if cc.control_number != sustain_control_number:
@@ -1504,9 +1570,9 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
     elif value < 64:
       events.append((cc.time, _SUSTAIN_OFF, cc))
 
-  # Sort, using the event type constants to ensure the order events are
+  # Sort, using the time and event type constants to ensure the order events are
   # processed.
-  events.sort(key=operator.itemgetter(0))
+  events.sort(key=operator.itemgetter(0, 1))
 
   # Lists of active notes, keyed by instrument.
   active_notes = collections.defaultdict(list)
@@ -1756,8 +1822,9 @@ def sequence_to_pianoroll(
     if (min_frame_occupancy_for_label > 0.0 and
         end_frame_occupancy < min_frame_occupancy_for_label):
       end_frame -= 1
-      # can be a problem for very short notes
-      end_frame = max(start_frame, end_frame)
+
+    # Ensure that every note fills at least one frame.
+    end_frame = max(start_frame + 1, end_frame)
 
     return start_frame, end_frame
 
@@ -1810,7 +1877,7 @@ def sequence_to_pianoroll(
                        (note.velocity, max_velocity))
 
     velocities_roll[start_frame:end_frame, note.pitch -
-                    min_pitch] = float(note.velocity) / max_velocity
+                    min_pitch] = note.velocity / max_velocity
     roll_weights[onset_start_frame:onset_end_frame, note.pitch - min_pitch] = (
         onset_upweight)
     roll_weights[onset_end_frame:end_frame, note.pitch - min_pitch] = [
@@ -1837,6 +1904,26 @@ def sequence_to_pianoroll(
       control_changes=control_changes)
 
 
+def _unscale_velocity(velocity, scale, bias):
+  """Translates a velocity estimate to a MIDI velocity value.
+
+  Note that this scaling is totally arbitrary and was chosen only because it
+  sounded decent when synthesized.
+
+  Args:
+    velocity: Velocity estimate. Should be in [0, 1].
+    scale: Scale to use for conversion to MIDI velocity.
+    bias: Bias to use for conversion to MIDI velocity.
+
+  Returns:
+    MIDI velocity value.
+  """
+  unscaled = max(min(velocity, 1.), 0) * scale + bias
+  if math.isnan(unscaled):
+    return 0
+  return int(unscaled)
+
+
 def pianoroll_to_note_sequence(frames,
                                frames_per_second,
                                min_duration_ms,
@@ -1847,8 +1934,31 @@ def pianoroll_to_note_sequence(frames,
                                min_midi_pitch=constants.MIN_MIDI_PITCH,
                                onset_predictions=None,
                                offset_predictions=None,
-                               velocity_values=None):
-  """Convert frames to a NoteSequence."""
+                               velocity_values=None,
+                               velocity_scale=80,
+                               velocity_bias=10):
+  """Convert frames (with optional onsets, offsets, velocities) to NoteSequence.
+
+  Args:
+    frames: Numpy array of active frames.
+    frames_per_second: Frames per second.
+    min_duration_ms: Notes active for less than this duration will be ignored.
+    velocity: Default note velocity if velocity_values is not provided.
+    instrument: Instrument for the note sequence.
+    program: Program for the note sequence.
+    qpm: QPM for the note sequence.
+    min_midi_pitch: MIDI pitch offset.
+    onset_predictions: Numpy array of onset predictions. If specified, a new
+      note will not start unless it is active in this array.
+    offset_predictions: Numpy array of onset predictions. If specified, notes
+      will end no later than when these offsets are predicted.
+    velocity_values: Numpy array of floats representing velocities.
+    velocity_scale: Scale to use for conversion to MIDI velocity.
+    velocity_bias: Bias to use for conversion to MIDI velocity.
+
+  Returns:
+    Generated NoteSequence proto.
+  """
   frame_length_seconds = 1 / frames_per_second
 
   sequence = music_pb2.NoteSequence()
@@ -1856,14 +1966,11 @@ def pianoroll_to_note_sequence(frames,
   sequence.ticks_per_quarter = constants.STANDARD_PPQ
 
   pitch_start_step = {}
-  onset_velocities = velocity * np.ones(
-      constants.MAX_MIDI_PITCH, dtype=np.int32)
+  onset_velocities = np.zeros(constants.MAX_MIDI_PITCH, dtype=np.int32)
 
   # Add silent frame at the end so we can do a final loop and terminate any
   # notes that are still active.
   frames = np.append(frames, [np.zeros(frames[0].shape)], 0)
-  if velocity_values is None:
-    velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
 
   if onset_predictions is not None:
     onset_predictions = np.append(onset_predictions,
@@ -1893,13 +2000,6 @@ def pianoroll_to_note_sequence(frames,
 
     del pitch_start_step[pitch]
 
-  def unscale_velocity(velocity):
-    """Translates a velocity estimate to a MIDI velocity value."""
-    unscaled = max(min(velocity, 1.), 0) * 80. + 10.
-    if math.isnan(unscaled):
-      return 0
-    return int(unscaled)
-
   def process_active_pitch(pitch, i):
     """Process a pitch being active in a given frame."""
     if pitch not in pitch_start_step:
@@ -1908,7 +2008,13 @@ def pianoroll_to_note_sequence(frames,
         # if we've predicted an onset.
         if onset_predictions[i, pitch]:
           pitch_start_step[pitch] = i
-          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+          if velocity_values is not None:
+            onset_velocities[pitch] = _unscale_velocity(
+                velocity_values[i, pitch],
+                scale=velocity_scale,
+                bias=velocity_bias)
+          else:
+            onset_velocities[pitch] = velocity
         else:
           # Even though the frame is active, the onset predictor doesn't
           # say there should be an onset, so ignore it.
@@ -1923,7 +2029,13 @@ def pianoroll_to_note_sequence(frames,
             not onset_predictions[i - 1, pitch]):
           end_pitch(pitch, i)
           pitch_start_step[pitch] = i
-          onset_velocities[pitch] = unscale_velocity(velocity_values[i, pitch])
+          if velocity_values is not None:
+            onset_velocities[pitch] = _unscale_velocity(
+                velocity_values[i, pitch],
+                scale=velocity_scale,
+                bias=velocity_bias)
+          else:
+            onset_velocities[pitch] = velocity
 
   for i, frame in enumerate(frames):
     for pitch, active in enumerate(frame):
@@ -1933,6 +2045,73 @@ def pianoroll_to_note_sequence(frames,
         end_pitch(pitch, i)
 
   sequence.total_time = len(frames) * frame_length_seconds
+  if sequence.notes:
+    assert sequence.total_time >= sequence.notes[-1].end_time
+
+  return sequence
+
+
+def pianoroll_onsets_to_note_sequence(onsets,
+                                      frames_per_second,
+                                      note_duration_seconds=0.05,
+                                      velocity=70,
+                                      instrument=0,
+                                      program=0,
+                                      qpm=constants.DEFAULT_QUARTERS_PER_MINUTE,
+                                      min_midi_pitch=constants.MIN_MIDI_PITCH,
+                                      velocity_values=None,
+                                      velocity_scale=80,
+                                      velocity_bias=10):
+  """Convert onsets to a NoteSequence.
+
+  This converts an matrix of onsets into a NoteSequence. Every active onset
+  is considered to be a new note with a fixed duration of note_duration_seconds.
+  This is different from pianoroll_to_note_sequence, which considers onsets in
+  consecutive frames to represent a single new note.
+
+
+  Args:
+    onsets: Numpy array of onsets.
+    frames_per_second: Frames per second.
+    note_duration_seconds: Fixed length of every note.
+    velocity: Default note velocity if velocity_values is not provided.
+    instrument: Instrument for the note sequence.
+    program: Program for the note sequence.
+    qpm: QPM for the note sequence.
+    min_midi_pitch: MIDI pitch offset.
+    velocity_values: Numpy array of floats representing velocities.
+    velocity_scale: Scale to use for conversion to MIDI velocity.
+    velocity_bias: Bias to use for conversion to MIDI velocity.
+
+  Returns:
+    Generated NoteSequence proto.
+  """
+  frame_length_seconds = 1 / frames_per_second
+
+  sequence = music_pb2.NoteSequence()
+  sequence.tempos.add().qpm = qpm
+  sequence.ticks_per_quarter = constants.STANDARD_PPQ
+
+  if velocity_values is None:
+    velocity_values = velocity * np.ones_like(onsets, dtype=np.int32)
+
+  for frame, pitch in zip(*np.nonzero(onsets)):
+    start_time = frame * frame_length_seconds
+    end_time = start_time + note_duration_seconds
+
+    note = sequence.notes.add()
+    note.start_time = start_time
+    note.end_time = end_time
+    note.pitch = pitch + min_midi_pitch
+    note.velocity = _unscale_velocity(
+        velocity_values[frame, pitch],
+        scale=velocity_scale,
+        bias=velocity_bias)
+    note.instrument = instrument
+    note.program = program
+
+  sequence.total_time = (
+      len(onsets) * frame_length_seconds + note_duration_seconds)
   if sequence.notes:
     assert sequence.total_time >= sequence.notes[-1].end_time
 

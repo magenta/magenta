@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python2, python3
 """Autoencoder model for training on spectrograms."""
 
 from __future__ import absolute_import
@@ -20,9 +21,11 @@ from __future__ import print_function
 
 from magenta.models.nsynth import utils
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import slim as contrib_slim
+from tensorflow.contrib import training as contrib_training
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
 def get_hparams(config_name):
@@ -34,7 +37,7 @@ def get_hparams(config_name):
   Returns:
     A HParams object (magenta) with defaults.
   """
-  hparams = tf.contrib.training.HParams(
+  hparams = contrib_training.HParams(
       # Optimization
       batch_size=16,
       learning_rate=1e-4,
@@ -199,7 +202,7 @@ def eval_op(batch, hparams, config_name):
   })
 
   # Define the summaries
-  for name, value in names_to_values.iteritems():
+  for name, value in names_to_values.items():
     slim.summaries.add_scalar_summary(value, name, print_summary=True)
 
   # Interpolate
@@ -233,4 +236,4 @@ def eval_op(batch, hparams, config_name):
   utils.specgram_summaries(xhat_pitch_plus_2, "Pitch +2", hparams, phase=phase)
   utils.specgram_summaries(xhat_pitch_minus_2, "Pitch -2", hparams, phase=phase)
 
-  return names_to_updates.values()
+  return list(names_to_updates.values())

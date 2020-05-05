@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.common import sequence_example_lib
 from magenta.music import constants
 from magenta.music import encoder_decoder
 from magenta.music import melodies_lib
 from magenta.music import melody_encoder_decoder
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
@@ -108,7 +107,7 @@ class MelodyOneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
         [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
     expected_labels = [2, 9, 13, 0, 13, 2, 1, 0]
-    expected_sequence_example = sequence_example_lib.make_sequence_example(
+    expected_sequence_example = encoder_decoder.make_sequence_example(
         expected_inputs, expected_labels)
     self.assertEqual(sequence_example, expected_sequence_example)
 

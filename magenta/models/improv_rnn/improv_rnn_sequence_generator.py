@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,10 +17,13 @@
 import functools
 
 from magenta.models.improv_rnn import improv_rnn_model
+from magenta.models.shared import sequence_generator
 import magenta.music as mm
+from magenta.pipelines import chord_pipelines
+from magenta.pipelines import melody_pipelines
 
 
-class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
+class ImprovRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   """Improv RNN generation code as a SequenceGenerator interface."""
 
   def __init__(self, model, details, steps_per_quarter=4, checkpoint=None,
@@ -43,11 +46,11 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
 
   def _generate(self, input_sequence, generator_options):
     if len(generator_options.input_sections) > 1:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'This model supports at most one input_sections message, but got %s' %
           len(generator_options.input_sections))
     if len(generator_options.generate_sections) != 1:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'This model supports only 1 generate_sections message, but got %s' %
           len(generator_options.generate_sections))
 
@@ -83,7 +86,7 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
     else:
       last_end_time = 0
     if last_end_time >= generate_section.start_time:
-      raise mm.SequenceGeneratorError(
+      raise sequence_generator.SequenceGeneratorError(
           'Got GenerateSection request for section that is before or equal to '
           'the end of the input section. This model can only extend melodies. '
           'Requested start time: %s, Final note end time: %s' %
@@ -96,7 +99,7 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
         backing_sequence, self.steps_per_quarter)
 
     # Setting gap_bars to infinite ensures that the entire input will be used.
-    extracted_melodies, _ = mm.extract_melodies(
+    extracted_melodies, _ = melody_pipelines.extract_melodies(
         quantized_primer_sequence, search_start_step=input_start_step,
         min_bars=0, min_unique_pitches=1, gap_bars=float('inf'),
         ignore_polyphonic_notes=True)
@@ -123,7 +126,8 @@ class ImprovRnnSequenceGenerator(mm.BaseSequenceGenerator):
                          steps_per_bar=steps_per_bar,
                          steps_per_quarter=self.steps_per_quarter)
 
-    extracted_chords, _ = mm.extract_chords(quantized_backing_sequence)
+    extracted_chords, _ = chord_pipelines.extract_chords(
+        quantized_backing_sequence)
     chords = extracted_chords[0]
 
     # Make sure that chords and melody start on the same step.

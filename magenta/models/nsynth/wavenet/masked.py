@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def shift_right(x):
@@ -51,7 +51,7 @@ def mul_or_none(a, b):
   """
   if a is None or b is None:
     return None
-  return a * b
+  return int(a * b)
 
 
 def time_to_batch(x, block_size):
@@ -114,7 +114,8 @@ def conv1d(x,
            dilation=1,
            causal=True,
            kernel_initializer=tf.uniform_unit_scaling_initializer(1.0),
-           biases_initializer=tf.constant_initializer(0.0)):
+           biases_initializer=tf.constant_initializer(0.0),
+           is_training=True):
   """Fast 1D convolution that supports causal padding and dilation.
 
   Args:
@@ -126,6 +127,7 @@ def conv1d(x,
     causal: Whether or not this is a causal convolution.
     kernel_initializer: The kernel initialization function.
     biases_initializer: The biases initialization function.
+    is_training: Whether or not ot use traininable variables.
 
   Returns:
     y: The output of the 1D convolution.
@@ -140,9 +142,11 @@ def conv1d(x,
 
   with tf.variable_scope(name):
     weights = tf.get_variable(
-        'W', shape=kernel_shape, initializer=kernel_initializer)
+        'W', shape=kernel_shape, initializer=kernel_initializer,
+        trainable=is_training)
     biases = tf.get_variable(
-        'biases', shape=biases_shape, initializer=biases_initializer)
+        'biases', shape=biases_shape, initializer=biases_initializer,
+        trainable=is_training)
 
   x_ttb = time_to_batch(x, dilation)
   if filter_length > 1 and causal:

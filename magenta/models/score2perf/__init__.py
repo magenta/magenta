@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,3 +15,5 @@
 """Import of Score2Perf problem module."""
 
 from magenta.models.score2perf import score2perf
+from magenta.models.score2perf import score2perf_hparams
+from magenta.models.score2perf import transformer_autoencoder

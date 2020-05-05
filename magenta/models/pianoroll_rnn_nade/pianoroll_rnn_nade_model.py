@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,11 +14,12 @@
 
 """RNN-NADE model."""
 
-import magenta
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
-import tensorflow as tf
+from magenta.music.protobuf import generator_pb2
+
+from tensorflow.contrib import training as contrib_training
 
 
 class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
@@ -99,11 +100,11 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
 
 default_configs = {
     'rnn-nade': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='rnn-nade',
             description='RNN-NADE'),
         mm.PianorollEncoderDecoder(),
-        tf.contrib.training.HParams(
+        contrib_training.HParams(
             batch_size=64,
             rnn_layer_sizes=[128, 128, 128],
             nade_hidden_units=128,
@@ -111,11 +112,11 @@ default_configs = {
             clip_norm=5,
             learning_rate=0.001)),
     'rnn-nade_attn': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
+        generator_pb2.GeneratorDetails(
             id='rnn-nade_attn',
             description='RNN-NADE with attention.'),
         mm.PianorollEncoderDecoder(),
-        tf.contrib.training.HParams(
+        contrib_training.HParams(
             batch_size=48,
             rnn_layer_sizes=[128, 128],
             attn_length=32,

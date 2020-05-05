@@ -105,3 +105,30 @@ $ image_stylization_finetune \
       --vgg_checkpoint=/path/to/vgg_16.ckpt \
       --imagenet_data_dir=/path/to/imagenet-2012-tfrecord
 ```
+
+# Image Stylization on Mobile
+For better performance on mobile, you should train a slimmed down version of the model by specifying an alpha multiplier at training. This is an [output sample](sample_images/benchmark.png) of the models trained with different alpha values.
+
+Here are the steps to train and convert the model to TensorFlow Lite to run on mobile:
+
+1. (Optional but Recommended) Train a slimmed down version of the model by specifying an alpha multiplier:
+
+```bash
+$ image_stylization_train \
+      --train_dir=/tmp/image_stylization/run1/train
+      --style_dataset_file=/tmp/image_stylization/style_images.tfrecord \
+      --num_styles=<NUMBER_OF_STYLES> \
+      --alpha=0.25 \
+      --vgg_checkpoint=/path/to/vgg_16.ckpt \
+      --imagenet_data_dir=/path/to/imagenet-2012-tfrecord
+```
+
+2. Convert the trained model to TensorFlow Lite:
+
+```bash
+$ image_stylization_convert_tflite \
+      --checkpoint=/tmp/image_stylization/run1/train \
+      --num_styles=<NUMBER_OF_STYLES> \
+      --alpha=0.25 \
+      --output_model='/tmp/image_stylization/model.tflite'
+```

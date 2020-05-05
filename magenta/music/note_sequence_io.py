@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 
 import hashlib
 
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+from magenta.music.protobuf import music_pb2
+import tensorflow.compat.v1 as tf
 
 
 def generate_note_sequence_id(filename, collection_name, source_type):
@@ -57,7 +57,7 @@ def note_sequence_record_iterator(path):
     yield music_pb2.NoteSequence.FromString(serialized_sequence)
 
 
-class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
+class NoteSequenceRecordWriter(tf.io.TFRecordWriter):
   """A class to write serialized NoteSequence protos to a TFRecord file.
 
   This class implements `__enter__` and `__exit__`, and can be used in `with`
@@ -74,4 +74,4 @@ class NoteSequenceRecordWriter(tf.python_io.TFRecordWriter):
     Args:
       note_sequence: A NoteSequence proto to write.
     """
-    tf.python_io.TFRecordWriter.write(self, note_sequence.SerializeToString())
+    tf.io.TFRecordWriter.write(self, note_sequence.SerializeToString())

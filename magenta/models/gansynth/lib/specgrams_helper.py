@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ from __future__ import print_function
 
 from magenta.models.gansynth.lib import spectral_ops
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class SpecgramsHelper(object):
@@ -83,7 +83,7 @@ class SpecgramsHelper(object):
       stfts: Complex64 tensor of stft, shape [batch, time, freq, 1].
     """
     waves_padded = tf.pad(waves, [[0, 0], [self._pad_l, self._pad_r], [0, 0]])
-    stfts = tf.contrib.signal.stft(
+    stfts = tf.signal.stft(
         waves_padded[:, :, 0],
         frame_length=self._nfft,
         frame_step=self._nhop,
@@ -109,12 +109,12 @@ class SpecgramsHelper(object):
     dc = 1 if self._discard_dc else 0
     nyq = 1 - dc
     stfts = tf.pad(stfts, [[0, 0], [0, 0], [dc, nyq], [0, 0]])
-    waves_resyn = tf.contrib.signal.inverse_stft(
+    waves_resyn = tf.signal.inverse_stft(
         stfts=stfts[:, :, :, 0],
         frame_length=self._nfft,
         frame_step=self._nhop,
         fft_length=self._nfft,
-        window_fn=tf.contrib.signal.inverse_stft_window_fn(
+        window_fn=tf.signal.inverse_stft_window_fn(
             frame_step=self._nhop))[:, :, tf.newaxis]
     # Python does not allow rslice of -0
     if self._pad_r == 0:

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Common functions/helpers for the joint model.
 
 This library contains many comman functions and helpers used to train (using
@@ -39,10 +40,6 @@ components are classified in the following categories:
         `prepare_dirs`
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import importlib
 import os
 
@@ -50,7 +47,7 @@ from magenta.models.latent_transfer import common
 from magenta.models.latent_transfer import model_dataspace
 import numpy as np
 from scipy.io import wavfile
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.flags.FLAGS
 tf.flags.DEFINE_string(

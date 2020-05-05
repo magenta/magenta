@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Python functions which run only within a Jupyter or Colab notebook."""
 
 from __future__ import absolute_import
@@ -30,8 +31,9 @@ from magenta.music import midi_synth
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
+import six
 from six.moves import urllib
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 _DEFAULT_SAMPLE_RATE = 44100
 _play_id = 0  # Used for ephemeral colab_play.
@@ -65,7 +67,8 @@ def colab_play(array_of_floats, sample_rate, ephemeral=True, autoplay=False):
             </audio>"""
   html = html.format(
       autoplay='autoplay' if autoplay else '',
-      base64_wavfile=base64.b64encode(memfile.getvalue()))
+      base64_wavfile=six.ensure_text(
+          base64.b64encode(memfile.getvalue()), 'ascii'))
   memfile.close()
   global _play_id
   _play_id += 1
@@ -144,7 +147,7 @@ def plot_sequence(sequence,
   # These are hard-coded reasonable values, but the user can override them
   # by updating the figure if need be.
   fig = bokeh.plotting.figure(
-      tools='hover,pan,box_zoom,reset,previewsave')
+      tools='hover,pan,box_zoom,reset,save')
   fig.plot_width = 500
   fig.plot_height = 200
   fig.xaxis.axis_label = 'time (sec)'

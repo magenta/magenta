@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,8 @@ from magenta.models.shared import events_rnn_graph
 import magenta.music as mm
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import training as contrib_training
 
 # Model state when generating event sequences, consisting of the next inputs to
 # feed the model, the current RNN state, the current control sequence (if
@@ -526,6 +527,6 @@ class EventSequenceRnnConfig(object):
 
     self.details = details
     self.encoder_decoder = encoder_decoder
-    self.hparams = tf.contrib.training.HParams(**hparams_dict)
+    self.hparams = contrib_training.HParams(**hparams_dict)
     self.steps_per_quarter = steps_per_quarter
     self.steps_per_second = steps_per_second

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Drums RNN model."""
+
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
 
 import magenta
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
-import tensorflow as tf
+from tensorflow.contrib import training as contrib_training
 
 
 class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
@@ -61,36 +66,37 @@ class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
 
 # Default configurations.
 default_configs = {
-    'one_drum': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='one_drum',
-            description='Drums RNN with 2-state encoding.'),
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MultiDrumOneHotEncoding([
-                [39] +  # use hand clap as default when decoding
-                list(range(mm.MIN_MIDI_PITCH, 39)) +
-                list(range(39, mm.MAX_MIDI_PITCH + 1))])),
-        tf.contrib.training.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[128, 128],
-            dropout_keep_prob=0.5,
-            clip_norm=5,
-            learning_rate=0.001),
-        steps_per_quarter=2),
-
-    'drum_kit': events_rnn_model.EventSequenceRnnConfig(
-        magenta.protobuf.generator_pb2.GeneratorDetails(
-            id='drum_kit',
-            description='Drums RNN with multiple drums and binary counters.'),
-        magenta.music.LookbackEventSequenceEncoderDecoder(
-            magenta.music.MultiDrumOneHotEncoding(),
-            lookback_distances=[],
-            binary_counter_bits=6),
-        tf.contrib.training.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[256, 256, 256],
-            dropout_keep_prob=0.5,
-            attn_length=32,
-            clip_norm=3,
-            learning_rate=0.001))
+    'one_drum':
+        events_rnn_model.EventSequenceRnnConfig(
+            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+                id='one_drum', description='Drums RNN with 2-state encoding.'),
+            magenta.music.OneHotEventSequenceEncoderDecoder(
+                magenta.music.MultiDrumOneHotEncoding(
+                    [[39] +  # use hand clap as default when decoding
+                     list(range(mm.MIN_MIDI_PITCH, 39)) +
+                     list(range(39, mm.MAX_MIDI_PITCH + 1))])),
+            contrib_training.HParams(
+                batch_size=128,
+                rnn_layer_sizes=[128, 128],
+                dropout_keep_prob=0.5,
+                clip_norm=5,
+                learning_rate=0.001),
+            steps_per_quarter=2),
+    'drum_kit':
+        events_rnn_model.EventSequenceRnnConfig(
+            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+                id='drum_kit',
+                description='Drums RNN with multiple drums and binary counters.'
+            ),
+            magenta.music.LookbackEventSequenceEncoderDecoder(
+                magenta.music.MultiDrumOneHotEncoding(),
+                lookback_distances=[],
+                binary_counter_bits=6),
+            contrib_training.HParams(
+                batch_size=128,
+                rnn_layer_sizes=[256, 256, 256],
+                dropout_keep_prob=0.5,
+                attn_length=32,
+                clip_norm=3,
+                learning_rate=0.001))
 }

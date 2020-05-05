@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,7 +22,8 @@ from __future__ import print_function
 from magenta.models.gansynth.lib import data_normalizer
 from magenta.models.gansynth.lib import layers
 from magenta.models.gansynth.lib import networks
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import layers as contrib_layers
 
 
 def _num_filters_fn(block_id, **kwargs):
@@ -72,7 +73,7 @@ def discriminator_fn_specgram(images, **kwargs):
       kernel_size=kwargs['kernel_size'],
       simple_arch=kwargs['simple_arch'])
   with tf.variable_scope('discriminator_cond'):
-    x = tf.contrib.layers.flatten(end_points['last_conv'])
+    x = contrib_layers.flatten(end_points['last_conv'])
     end_points['classification_logits'] = layers.custom_dense(
         x=x, units=kwargs['num_tokens'], scope='classification_logits')
   return logits, end_points

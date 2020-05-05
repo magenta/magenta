@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ from magenta import music as mm
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import TrainedModel
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 flags = tf.app.flags
 logging = tf.logging
@@ -132,7 +132,7 @@ def run(config_map):
             FLAGS.output_dir,
             '%s_input%d-extractions_%s-*-of-%03d.mid' %
             (FLAGS.config, input_number, date_and_time, len(tensors)))
-        for i, ns in enumerate(config.data_converter.to_notesequences(tensors)):
+        for i, ns in enumerate(config.data_converter.from_tensors(tensors)):
           mm.sequence_proto_to_midi_file(ns, basename.replace('*', '%03d' % i))
         print(
             '%d valid inputs extracted from `%s`. Outputting these potential '

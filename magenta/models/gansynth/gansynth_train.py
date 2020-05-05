@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,13 +49,12 @@ from magenta.models.gansynth.lib import flags as lib_flags
 from magenta.models.gansynth.lib import model as lib_model
 from magenta.models.gansynth.lib import train_util
 from magenta.models.gansynth.lib import util
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 absl.flags.DEFINE_string('hparams', '{}', 'Flags dict as JSON string.')
 absl.flags.DEFINE_string('config', '', 'Name of config module.')
 FLAGS = absl.flags.FLAGS
-tfgan = tf.contrib.gan
 tf.logging.set_verbosity(tf.logging.INFO)
 
 
@@ -85,7 +84,7 @@ def run(config):
 
   stage_ids = train_util.get_stage_ids(**config)
   if not config['train_progressive']:
-    stage_ids = stage_ids[-1:]
+    stage_ids = list(stage_ids)[-1:]
 
   # Train one stage at a time
   for stage_id in stage_ids:
@@ -126,7 +125,7 @@ def main(unused_argv):
   # Save the flags to help with loading the model latter
   fname = os.path.join(flags['train_root_dir'], 'experiment.json')
   with tf.gfile.Open(fname, 'w') as f:
-    json.dump(flags, f)
+    json.dump(flags, f)  # pytype: disable=wrong-arg-types
 
   # Run training
   run(flags)

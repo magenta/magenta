@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ import os
 
 from magenta.music import musicnet_io
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class MusicNetIoTest(tf.test.TestCase):
@@ -28,7 +28,7 @@ class MusicNetIoTest(tf.test.TestCase):
     # chord.
     self.musicnet_example_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/musicnet_example.npz')
+        'testdata/musicnet_example.npz')
 
   def testNoteIntervalTreeToSequenceProto(self):
     # allow_pickle is required because the npz files contain intervaltrees.

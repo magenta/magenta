@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,39 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Copyright 2017 Google Inc. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Lint as: python3
 """Create the tfrecord files necessary for training onsets and frames.
 
 The training files are split in ~20 second chunks by default, the test files
 are not split.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import glob
 import os
 import re
 
-from magenta.models.onsets_frames_transcription import split_audio_and_label_data
+from magenta.models.onsets_frames_transcription import audio_label_data_utils
 
 from magenta.music import audio_io
 from magenta.music import midi_io
 
-import tensorflow as tf
+import six
+import tensorflow.compat.v1 as tf
 
 
 FLAGS = tf.app.flags.FLAGS
@@ -67,7 +52,7 @@ train_dirs = [
 def filename_to_id(filename):
   """Translate a .wav or .mid path to a MAPS sequence id."""
   return re.match(r'.*MUS-(.*)_[^_]+\.\w{3}',
-                  os.path.basename(filename)).group(1)
+                  six.ensure_str(os.path.basename(filename))).group(1)
 
 
 def generate_train_set(exclude_ids):
@@ -94,7 +79,7 @@ def generate_train_set(exclude_ids):
       wav_data = tf.gfile.Open(pair[0], 'rb').read()
       # load the midi data and convert to a notesequence
       ns = midi_io.midi_file_to_note_sequence(pair[1])
-      for example in split_audio_and_label_data.process_record(
+      for example in audio_label_data_utils.process_record(
           wav_data, ns, pair[0], FLAGS.min_length, FLAGS.max_length,
           FLAGS.sample_rate):
         writer.write(example.SerializeToString())
@@ -126,7 +111,7 @@ def generate_test_set():
       # load the midi data and convert to a notesequence
       ns = midi_io.midi_file_to_note_sequence(pair[1])
 
-      example = split_audio_and_label_data.create_example(pair[0], ns, wav_data)
+      example = audio_label_data_utils.create_example(pair[0], ns, wav_data)
       writer.write(example.SerializeToString())
 
   return [filename_to_id(wav) for wav, _ in test_file_pairs]

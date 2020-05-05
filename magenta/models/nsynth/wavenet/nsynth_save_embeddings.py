@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """With a trained model, compute the embeddings on a directory of WAV files."""
 
 import os
@@ -20,8 +21,7 @@ import sys
 from magenta.models.nsynth import utils
 from magenta.models.nsynth.wavenet.fastgen import encode
 import numpy as np
-from six.moves import xrange  # pylint: disable=redefined-builtin
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -86,7 +86,7 @@ def main(unused_argv=None):
       for fname in tf.gfile.ListDirectory(source_path) if is_wav(fname)
   ])
 
-  for start_file in xrange(0, len(wavfiles), batch_size):
+  for start_file in range(0, len(wavfiles), batch_size):
     batch_number = (start_file / batch_size) + 1
     tf.logging.info("On file number %s (batch %d).", start_file, batch_number)
     end_file = start_file + batch_size
@@ -95,8 +95,9 @@ def main(unused_argv=None):
     # Ensure that files has batch_size elements.
     batch_filler = batch_size - len(wavefiles_batch)
     wavefiles_batch.extend(batch_filler * [wavefiles_batch[-1]])
-    wav_data = np.array(
-        [utils.load_audio(f, sample_length) for f in wavefiles_batch])
+    wav_data = [utils.load_audio(f, sample_length) for f in wavefiles_batch]
+    min_len = min([x.shape[0] for x in wav_data])
+    wav_data = np.array([x[:min_len] for x in wav_data])
     try:
       tf.reset_default_graph()
       # Load up the model for encoding and find the encoding

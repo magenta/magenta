@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Trains a real-time arbitrary image stylization model.
 
 For example of usage see start_training_locally.sh and start_training_on_borg.sh
@@ -26,9 +27,10 @@ import os
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_model as build_model
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import vgg
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1}'
 DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 0.5e-3, "vgg_16/conv2": 0.5e-3,'
@@ -112,7 +114,7 @@ def main(unused_argv=None):
           total_variation_weight=FLAGS.total_variation_weight)
 
       # Adding scalar summaries to the tensorboard.
-      for key, value in loss_dict.iteritems():
+      for key, value in loss_dict.items():
         tf.summary.scalar(key, value)
 
       # Adding Image summaries to the tensorboard.

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,9 +31,10 @@ import os
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_model as build_model
 from magenta.models.image_stylization import image_utils
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 flags = tf.flags
 flags.DEFINE_string('checkpoint', None, 'Path to the model checkpoint.')
@@ -43,10 +44,10 @@ flags.DEFINE_string('content_images_paths', None, 'Paths to the content images'
                     'for evaluation.')
 flags.DEFINE_string('output_dir', None, 'Output directory.')
 flags.DEFINE_integer('image_size', 256, 'Image size.')
-flags.DEFINE_boolean('content_square_crop', False, 'Wheather to center crop'
+flags.DEFINE_boolean('content_square_crop', False, 'Whether to center crop'
                      'the content image to be a square or not.')
 flags.DEFINE_integer('style_image_size', 256, 'Style image size.')
-flags.DEFINE_boolean('style_square_crop', False, 'Wheather to center crop'
+flags.DEFINE_boolean('style_square_crop', False, 'Whether to center crop'
                      'the style image to be a square or not.')
 flags.DEFINE_integer('maximum_styles_to_evaluate', 1024, 'Maximum number of'
                      'styles to evaluate.')

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,18 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Classes for datasets and batches."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 from magenta.models.coconet import lib_mask
 from magenta.models.coconet import lib_pianoroll
 from magenta.models.coconet import lib_util
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class Dataset(lib_util.Factory):
@@ -173,7 +170,7 @@ class Batch(object):
     assert set(kwargs.keys()) == self.keys
     assert all(
         len(value) == len(list(kwargs.values())[0])
-        for value in list(kwargs.values()))
+        for value in kwargs.values())
     self.features = kwargs
 
   def get_feed_dict(self, placeholders):

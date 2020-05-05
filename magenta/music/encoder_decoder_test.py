@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,11 +18,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.common import sequence_example_lib
 from magenta.music import encoder_decoder
 from magenta.music import testing_lib
 import numpy as np
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
@@ -71,7 +70,7 @@ class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
                        [1.0, 0.0, 0.0],
                        [0.0, 0.0, 1.0]]
     expected_labels = [1, 0, 2, 0]
-    expected_sequence_example = sequence_example_lib.make_sequence_example(
+    expected_sequence_example = encoder_decoder.make_sequence_example(
         expected_inputs, expected_labels)
     self.assertEqual(sequence_example, expected_sequence_example)
 
@@ -142,7 +141,7 @@ class OneHotIndexEventSequenceEncoderDecoderTest(tf.test.TestCase):
     sequence_example = self.enc.encode(events)
     expected_inputs = [[0], [1], [0], [2]]
     expected_labels = [1, 0, 2, 0]
-    expected_sequence_example = sequence_example_lib.make_sequence_example(
+    expected_sequence_example = encoder_decoder.make_sequence_example(
         expected_inputs, expected_labels)
     self.assertEqual(sequence_example, expected_sequence_example)
 
@@ -330,7 +329,7 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
                        [1.0, 0.0, 1.0, 0.0, 0.0],
                        [1.0, 0.0, 0.0, 0.0, 1.0]]
     expected_labels = [1, 0, 2, 0]
-    expected_sequence_example = sequence_example_lib.make_sequence_example(
+    expected_sequence_example = encoder_decoder.make_sequence_example(
         expected_inputs, expected_labels)
     self.assertEqual(sequence_example, expected_sequence_example)
 

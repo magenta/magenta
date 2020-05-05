@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,9 +17,9 @@
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
+from magenta.music.protobuf import music_pb2
 from magenta.pipelines import note_sequence_pipelines
-from magenta.protobuf import music_pb2
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class PipelineUnitsCommonTest(tf.test.TestCase):

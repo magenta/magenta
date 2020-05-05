@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,17 +19,24 @@ from __future__ import division
 from __future__ import print_function
 
 from magenta.models.image_stylization import ops
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib import slim as contrib_slim
 
-slim = tf.contrib.slim
+slim = contrib_slim
 
 
-def transform(input_, normalizer_fn=ops.conditional_instance_norm,
-              normalizer_params=None, reuse=False):
+def transform(input_,
+              alpha=1.0,
+              normalizer_fn=ops.conditional_instance_norm,
+              normalizer_params=None,
+              reuse=False):
   """Maps content images to stylized images.
 
   Args:
     input_: Tensor. Batch of input images.
+    alpha: Float. Width multiplier to reduce the number of filters in the model
+        and slim it down. Defaults to 1.0, which results in the hyper-parameters
+        used in the published paper.
     normalizer_fn: normalization layer function.  Defaults to
         ops.conditional_instance_norm.
     normalizer_params: dict of parameters to pass to the conditional instance
@@ -50,9 +57,9 @@ def transform(input_, normalizer_fn=ops.conditional_instance_norm,
         weights_initializer=tf.random_normal_initializer(0.0, 0.01),
         biases_initializer=tf.constant_initializer(0.0)):
       with tf.variable_scope('contract'):
-        h = conv2d(input_, 9, 1, 32, 'conv1')
-        h = conv2d(h, 3, 2, 64, 'conv2')
-        h = conv2d(h, 3, 2, 128, 'conv3')
+        h = conv2d(input_, 9, 1, int(alpha * 32), 'conv1')
+        h = conv2d(h, 3, 2, int(alpha * 64), 'conv2')
+        h = conv2d(h, 3, 2, int(alpha * 128), 'conv3')
       with tf.variable_scope('residual'):
         h = residual_block(h, 3, 'residual1')
         h = residual_block(h, 3, 'residual2')
@@ -60,8 +67,8 @@ def transform(input_, normalizer_fn=ops.conditional_instance_norm,
         h = residual_block(h, 3, 'residual4')
         h = residual_block(h, 3, 'residual5')
       with tf.variable_scope('expand'):
-        h = upsampling(h, 3, 2, 64, 'conv1')
-        h = upsampling(h, 3, 2, 32, 'conv2')
+        h = upsampling(h, 3, 2, int(alpha * 64), 'conv1')
+        h = upsampling(h, 3, 2, int(alpha * 32), 'conv2')
         return upsampling(h, 9, 1, 3, 'conv3', activation_fn=tf.nn.sigmoid)
 
 

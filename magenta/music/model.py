@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,23 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Abstract class for models.
 
 Provides a uniform interface for interacting with any model.
 """
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import abc
 
-import tensorflow as tf
+import six
+import tensorflow.compat.v1 as tf
 
 
-class BaseModel(object):
+class BaseModel(six.with_metaclass(abc.ABCMeta, object)):
   """Abstract class for models.
 
   Implements default session checkpoint restore methods.
   """
-
-  __metaclass__ = abc.ABCMeta
 
   def __init__(self):
     """Constructs a BaseModel."""

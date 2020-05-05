@@ -1,6 +1,7 @@
 language: python
+dist: xenial
 python:
-  - "3.5"
+  - "3.7"
 # command to install dependencies
 install:
   - ./ci-install.sh

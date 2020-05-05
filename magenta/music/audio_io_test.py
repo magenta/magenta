@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ from magenta.music import audio_io
 import numpy as np
 import scipy
 import six
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 class AudioIoTest(tf.test.TestCase):
@@ -66,6 +66,13 @@ class AudioIoTest(tf.test.TestCase):
     y_from_float = audio_io.wav_data_to_samples(
         wav_io.getvalue(), sample_rate=16000)
     np.testing.assert_array_equal(y, y_from_float)
+
+  def testRepeatSamplesToDuration(self):
+    samples = np.arange(5)
+    repeated = audio_io.repeat_samples_to_duration(
+        samples, sample_rate=5, duration=1.8)
+    expected_samples = [0, 1, 2, 3, 4, 0, 1, 2, 3]
+    self.assertAllEqual(expected_samples, repeated)
 
 
 if __name__ == '__main__':

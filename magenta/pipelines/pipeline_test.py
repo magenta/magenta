@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import tempfile
 from magenta.common import testing_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 MockStringProto = testing_lib.MockStringProto  # pylint: disable=invalid-name
 

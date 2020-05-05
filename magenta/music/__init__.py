@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,19 +35,15 @@ from magenta.music.chords_encoder_decoder import TriadChordOneHotEncoding
 
 from magenta.music.chords_lib import BasicChordRenderer
 from magenta.music.chords_lib import ChordProgression
-from magenta.music.chords_lib import extract_chords
-from magenta.music.chords_lib import extract_chords_for_melodies
 
 from magenta.music.constants import *  # pylint: disable=wildcard-import
 
 from magenta.music.drums_encoder_decoder import MultiDrumOneHotEncoding
 
 from magenta.music.drums_lib import DrumTrack
-from magenta.music.drums_lib import extract_drum_tracks
 from magenta.music.drums_lib import midi_file_to_drum_track
 
 from magenta.music.encoder_decoder import ConditionalEventSequenceEncoderDecoder
-from magenta.music.encoder_decoder import EncoderPipeline
 from magenta.music.encoder_decoder import EventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import LookbackEventSequenceEncoderDecoder
 from magenta.music.encoder_decoder import MultipleEventSequenceEncoder
@@ -58,17 +54,18 @@ from magenta.music.encoder_decoder import OptionalEventSequenceEncoder
 
 from magenta.music.events_lib import NonIntegerStepsPerBarError
 
-from magenta.music.lead_sheets_lib import extract_lead_sheet_fragments
 from magenta.music.lead_sheets_lib import LeadSheet
 
 from magenta.music.melodies_lib import BadNoteError
-from magenta.music.melodies_lib import extract_melodies
 from magenta.music.melodies_lib import Melody
 from magenta.music.melodies_lib import midi_file_to_melody
 from magenta.music.melodies_lib import PolyphonicMelodyError
 
 from magenta.music.melody_encoder_decoder import KeyMelodyEncoderDecoder
 from magenta.music.melody_encoder_decoder import MelodyOneHotEncoding
+
+from magenta.music.melody_inference import infer_melody_for_sequence
+from magenta.music.melody_inference import MelodyInferenceError
 
 from magenta.music.midi_io import midi_file_to_note_sequence
 from magenta.music.midi_io import midi_file_to_sequence_proto
@@ -102,24 +99,16 @@ from magenta.music.performance_encoder_decoder import NotePerformanceEventSequen
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_encoder_decoder import PerformanceOneHotEncoding
 
-from magenta.music.performance_lib import extract_performances
 from magenta.music.performance_lib import MetricPerformance
 from magenta.music.performance_lib import Performance
 
 from magenta.music.pianoroll_encoder_decoder import PianorollEncoderDecoder
 
-from magenta.music.pianoroll_lib import extract_pianoroll_sequences
 from magenta.music.pianoroll_lib import PianorollSequence
-
-
-from magenta.music.sequence_generator import BaseSequenceGenerator
-from magenta.music.sequence_generator import SequenceGeneratorError
-
-from magenta.music.sequence_generator_bundle import GeneratorBundleParseError
-from magenta.music.sequence_generator_bundle import read_bundle_file
 
 from magenta.music.sequences_lib import apply_sustain_control_changes
 from magenta.music.sequences_lib import BadTimeSignatureError
+from magenta.music.sequences_lib import concatenate_sequences
 from magenta.music.sequences_lib import extract_subsequence
 from magenta.music.sequences_lib import infer_dense_chords_for_sequence
 from magenta.music.sequences_lib import MultipleTempoError

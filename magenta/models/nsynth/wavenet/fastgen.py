@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ from magenta.models.nsynth.wavenet.h512_bo16 import Config
 from magenta.models.nsynth.wavenet.h512_bo16 import FastGenerationConfig
 import numpy as np
 from scipy.io import wavfile
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 
 def sample_categorical(probability_mass_function):

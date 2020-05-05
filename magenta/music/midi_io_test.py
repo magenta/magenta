@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,10 +24,10 @@ import tempfile
 
 from magenta.music import constants
 from magenta.music import midi_io
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import mido
 import pretty_midi
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 # self.midi_simple_filename contains a c-major scale of 8 quarter notes each
 # with a sustain of .95 of the entire note. Here are the first two notes dumped
@@ -60,16 +60,16 @@ class MidiIoTest(tf.test.TestCase):
 
   def setUp(self):
     self.midi_simple_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(), '../testdata/example.mid')
+        tf.resource_loader.get_data_files_path(), 'testdata/example.mid')
     self.midi_complex_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/example_complex.mid')
+        'testdata/example_complex.mid')
     self.midi_is_drum_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/example_is_drum.mid')
+        'testdata/example_is_drum.mid')
     self.midi_event_order_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
-        '../testdata/example_event_order.mid')
+        'testdata/example_event_order.mid')
 
   def CheckPrettyMidiAndSequence(self, midi, sequence_proto):
     """Compares PrettyMIDI object against a sequence proto.

@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# pylint: skip-file
-# TODO(iansimon): Enable when Apache Beam supports Python 3.
 """Beam pipeline to generate examples for a Score2Perf dataset."""
 
 from __future__ import absolute_import
@@ -26,23 +24,28 @@ import hashlib
 import logging
 import os
 import random
-
-from absl import flags
 import apache_beam as beam
 from apache_beam import typehints
 from apache_beam.metrics import Metrics
+from magenta.models.score2perf import music_encoders
+import magenta.music as mm
 from magenta.music import chord_inference
 from magenta.music import melody_inference
 from magenta.music import sequences_lib
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import numpy as np
 from tensor2tensor.data_generators import generator_utils
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+import typing
 
 # TODO(iansimon): this should probably be defined in the problem
 SCORE_BPM = 120.0
 
-FLAGS = flags.FLAGS
+# Shortcut to beat annotation.
+BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
+
+FLAGS = tf.app.flags.FLAGS
+flags = tf.app.flags
 flags.DEFINE_string(
     'pipeline_options', '',
     'Command line flags to use in constructing the Beam pipeline options.')
@@ -51,7 +54,7 @@ flags.DEFINE_string(
 # deserializing NoteSequence protos.
 
 
-@typehints.with_output_types(typehints.KV[str, str])
+@typehints.with_output_types(typing.Tuple[str, str])
 class ReadNoteSequencesFromTFRecord(beam.PTransform):
   """Beam PTransform that reads NoteSequence protos from TFRecord."""
 
@@ -72,7 +75,7 @@ class ReadNoteSequencesFromTFRecord(beam.PTransform):
 def select_split(cumulative_splits, kv, unused_num_partitions):
   """Select split for an `(id, _)` tuple using a hash of `id`."""
   key, _ = kv
-  m = hashlib.md5(key)
+  m = hashlib.md5(key.encode('utf-8'))
   r = int(m.hexdigest(), 16) / (2 ** (8 * m.digest_size))
   for i, (name, p) in enumerate(cumulative_splits):
     if r < p:
@@ -104,7 +107,8 @@ class ExtractExamplesDoFn(beam.DoFn):
 
   def __init__(self, min_hop_size_seconds, max_hop_size_seconds,
                num_replications, encode_performance_fn, encode_score_fns,
-               augment_fns, absolute_timing, *unused_args, **unused_kwargs):
+               augment_fns, absolute_timing, random_crop_length,
+               *unused_args, **unused_kwargs):
     """Initialize an ExtractExamplesDoFn.
 
     If any of the `encode_score_fns` or `encode_performance_fn` returns an empty
@@ -131,16 +135,22 @@ class ExtractExamplesDoFn(beam.DoFn):
       absolute_timing: If True, each score will use absolute instead of tempo-
           relative timing. Since chord inference depends on having beats, the
           score will only contain melody.
+      random_crop_length: If specified, crop each encoded performance
+          ('targets') to this length.
 
     Raises:
       ValueError: If the maximum hop size is less than twice the minimum hop
-          size.
+          size, or if `encode_score_fns` and `random_crop_length` are both
+          specified.
     """
     if (max_hop_size_seconds and
         max_hop_size_seconds != min_hop_size_seconds and
         max_hop_size_seconds < 2 * min_hop_size_seconds):
       raise ValueError(
           'Maximum hop size must be at least twice minimum hop size.')
+
+    if encode_score_fns and random_crop_length:
+      raise ValueError('Cannot perform random crop when scores are used.')
 
     super(ExtractExamplesDoFn, self).__init__(*unused_args, **unused_kwargs)
     self._min_hop_size_seconds = min_hop_size_seconds
@@ -150,12 +160,13 @@ class ExtractExamplesDoFn(beam.DoFn):
     self._encode_score_fns = encode_score_fns
     self._augment_fns = augment_fns if augment_fns else [lambda ns: ns]
     self._absolute_timing = absolute_timing
+    self._random_crop_length = random_crop_length
 
   def process(self, kv):
     # Seed random number generator based on key so that hop times are
     # deterministic.
     key, ns_str = kv
-    m = hashlib.md5(key)
+    m = hashlib.md5(key.encode('utf-8'))
     random.seed(int(m.hexdigest(), 16))
 
     # Deserialize NoteSequence proto.
@@ -210,8 +221,7 @@ class ExtractExamplesDoFn(beam.DoFn):
           # Beats are required to extract a score with metric timing.
           beats = [
               ta for ta in performance_sequence.text_annotations
-              if (ta.annotation_type ==
-                  music_pb2.NoteSequence.TextAnnotation.BEAT)
+              if ta.annotation_type == BEAT
               and ta.time <= performance_sequence.total_time
           ]
           if len(beats) < 2:
@@ -296,6 +306,14 @@ class ExtractExamplesDoFn(beam.DoFn):
           Metrics.counter('extract_examples', 'skipped_empty_targets').inc()
           continue
 
+        if (self._random_crop_length and
+            len(example_dict['targets']) > self._random_crop_length):
+          # Take a random crop of the encoded performance.
+          max_offset = len(example_dict['targets']) - self._random_crop_length
+          offset = random.randrange(max_offset + 1)
+          example_dict['targets'] = example_dict['targets'][
+              offset:offset + self._random_crop_length]
+
         if self._encode_score_fns:
           # Augment the extracted score.
           try:
@@ -328,7 +346,8 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
                       min_hop_size_seconds, max_hop_size_seconds,
                       num_replications, min_pitch, max_pitch,
                       encode_performance_fn, encode_score_fns=None,
-                      augment_fns=None, absolute_timing=False):
+                      augment_fns=None, absolute_timing=False,
+                      random_crop_length=None):
   """Generate data for a Score2Perf problem.
 
   Args:
@@ -360,6 +379,8 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
     absolute_timing: If True, each score will use absolute instead of tempo-
         relative timing. Since chord inference depends on having beats, the
         score will only contain melody.
+    random_crop_length: If specified, crop each encoded performance to this
+        length. Cannot be specified if using scores.
 
   Raises:
     ValueError: If split probabilities do not add up to 1, or if splits are not
@@ -375,7 +396,7 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
       raise ValueError(
           'Split probabilities must be provided if input is not presplit.')
     split_names, split_probabilities = zip(*splits.items())
-    cumulative_splits = zip(split_names, np.cumsum(split_probabilities))
+    cumulative_splits = list(zip(split_names, np.cumsum(split_probabilities)))
     if cumulative_splits[-1][1] != 1.0:
       raise ValueError('Split probabilities must sum to 1; got %f' %
                        cumulative_splits[-1][1])
@@ -431,7 +452,245 @@ def generate_examples(input_transform, output_dir, problem_name, splits,
               min_hop, max_hop,
               num_replications if split_name == 'train' else 1,
               encode_performance_fn, encode_score_fns,
-              augment_fns if split_name == 'train' else None, absolute_timing))
+              augment_fns if split_name == 'train' else None,
+              absolute_timing,
+              random_crop_length))
+      s |= 'shuffle_%s' % split_name >> beam.Reshuffle()
+      s |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
+          output_filename, coder=beam.coders.ProtoCoder(tf.train.Example))
+
+
+class ConditionalExtractExamplesDoFn(beam.DoFn):
+  """Extracts Score2Perf examples from NoteSequence protos for conditioning."""
+
+  def __init__(self, melody, noisy, encode_performance_fn, encode_score_fns,
+               augment_fns, num_replications, *unused_args, **unused_kwargs):
+    """Initialize a ConditionalExtractExamplesDoFn.
+
+    If any of the `encode_score_fns` or `encode_performance_fn` returns an empty
+    encoding for a particular example, the example will be discarded.
+
+    Args:
+      melody: If True, uses both melody and performance conditioning.
+      noisy: If True, uses a perturbed version of the performance for
+             conditioning. Currently only supported for mel & perf autoencoder.
+      encode_performance_fn: Performance encoding function. Will be applied to
+          the performance NoteSequence and the resulting encoding will be stored
+          as 'targets' in each example.
+      encode_score_fns: Optional dictionary of named score encoding functions.
+          If provided, each function will be applied to the score NoteSequence
+          and the resulting encodings will be stored in each example.
+      augment_fns: Optional list of data augmentation functions. If provided,
+          each function will be applied to each performance NoteSequence (and
+          score, when using scores), creating a separate example per
+          augmentation function. Should not modify the NoteSequence.
+      num_replications: Number of times input NoteSequence protos will be
+          replicated prior to splitting.
+
+    Raises:
+      ValueError: If the maximum hop size is less than twice the minimum hop
+          size, or if `encode_score_fns` and `random_crop_length` are both
+          specified.
+    """
+    super(ConditionalExtractExamplesDoFn, self).__init__(
+        *unused_args, **unused_kwargs)
+    self._melody = melody
+    self._noisy = noisy
+    self._encode_performance_fn = encode_performance_fn
+    self._encode_score_fns = encode_score_fns
+    self._num_replications = num_replications
+    self._augment_fns = augment_fns if augment_fns else [lambda ns: ns]
+    self._decode_performance_fn = music_encoders.MidiPerformanceEncoder(
+        steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108,
+        add_eos=False).decode
+
+  def process(self, kv):
+    # Seed random number generator based on key so that hop times are
+    # deterministic.
+    key, ns_str = kv
+    m = hashlib.md5(key)
+    random.seed(int(m.hexdigest(), 16))
+
+    # Deserialize NoteSequence proto.
+    ns = music_pb2.NoteSequence.FromString(ns_str)
+
+    # Apply sustain pedal.
+    ns = sequences_lib.apply_sustain_control_changes(ns)
+
+    # Remove control changes as there are potentially a lot of them and they are
+    # no longer needed.
+    del ns.control_changes[:]
+
+    for _ in range(self._num_replications):
+      for augment_fn in self._augment_fns:
+        # Augment and encode the performance.
+        try:
+          augmented_performance_sequence = augment_fn(ns)
+        except DataAugmentationError:
+          Metrics.counter(
+              'extract_examples', 'augment_performance_failed').inc()
+          continue
+        seq = self._encode_performance_fn(augmented_performance_sequence)
+        # feed in performance as both input/output to music transformer
+        # chopping sequence into length 2048 (throw out shorter sequences)
+        if len(seq) >= 2048:
+          max_offset = len(seq) - 2048
+          offset = random.randrange(max_offset + 1)
+          cropped_seq = seq[offset:offset + 2048]
+
+          example_dict = {
+              'inputs': cropped_seq,
+              'targets': cropped_seq
+          }
+
+          if self._melody:
+            # decode truncated performance sequence for melody inference
+            decoded_midi = self._decode_performance_fn(cropped_seq)
+            decoded_ns = mm.midi_io.midi_file_to_note_sequence(decoded_midi)
+
+            # extract melody from cropped performance sequence
+            melody_instrument = melody_inference.infer_melody_for_sequence(
+                decoded_ns,
+                melody_interval_scale=2.0,
+                rest_prob=0.1,
+                instantaneous_non_max_pitch_prob=1e-15,
+                instantaneous_non_empty_rest_prob=0.0,
+                instantaneous_missing_pitch_prob=1e-15)
+
+            # remove non-melody notes from score
+            score_sequence = copy.deepcopy(decoded_ns)
+            score_notes = []
+            for note in score_sequence.notes:
+              if note.instrument == melody_instrument:
+                score_notes.append(note)
+            del score_sequence.notes[:]
+            score_sequence.notes.extend(score_notes)
+
+            # encode melody
+            encode_score_fn = self._encode_score_fns['melody']
+            example_dict['melody'] = encode_score_fn(score_sequence)
+            # make sure performance input also matches targets; needed for
+            # compatibility of both perf and (mel & perf) autoencoders
+
+            if self._noisy:
+              # randomly sample a pitch shift to construct noisy performance
+              all_pitches = [x.pitch for x in decoded_ns.notes]
+              min_val = min(all_pitches)
+              max_val = max(all_pitches)
+              transpose_range = range(-(min_val - 21), 108 - max_val + 1)
+              try:
+                transpose_range.remove(0)  # make sure you transpose
+              except ValueError:
+                pass
+              transpose_amount = random.choice(transpose_range)
+              augmented_ns, _ = sequences_lib.transpose_note_sequence(
+                  decoded_ns, transpose_amount, min_allowed_pitch=21,
+                  max_allowed_pitch=108, in_place=False)
+              aug_seq = self._encode_performance_fn(augmented_ns)
+              example_dict['performance'] = aug_seq
+            else:
+              example_dict['performance'] = example_dict['targets']
+            del example_dict['inputs']
+
+          Metrics.counter('extract_examples', 'encoded_example').inc()
+          Metrics.distribution(
+              'extract_examples', 'performance_length_in_seconds').update(
+                  int(augmented_performance_sequence.total_time))
+
+          yield generator_utils.to_example(example_dict)
+
+
+def generate_conditional_examples(input_transform, output_dir, problem_name,
+                                  splits, min_pitch, max_pitch, melody, noisy,
+                                  encode_performance_fn, encode_score_fns=None,
+                                  augment_fns=None, num_replications=None):
+  """Generate data for a ConditionalScore2Perf problem.
+
+  Args:
+    input_transform: The input PTransform object that reads input NoteSequence
+        protos, or dictionary mapping split names to such PTransform objects.
+        Should produce `(id, NoteSequence)` tuples.
+    output_dir: The directory to write the resulting TFRecord file containing
+        examples.
+    problem_name: Name of the Tensor2Tensor problem, used as a base filename
+        for generated data.
+    splits: A dictionary of split names and their probabilities. Probabilites
+        should add up to 1. If `input_filename` is a dictionary, this argument
+        will be ignored.
+    min_pitch: Minimum MIDI pitch value; notes with lower pitch will be dropped.
+    max_pitch: Maximum MIDI pitch value; notes with greater pitch will be
+        dropped.
+    melody: If True, uses both melody and performance conditioning.
+    noisy: If True, uses a perturbed version of the performance for
+           conditioning. Currently only supported for mel & perf autoencoder.
+    encode_performance_fn: Required performance encoding function.
+    encode_score_fns: Optional dictionary of named score encoding functions.
+    augment_fns: Optional list of data augmentation functions. Only applied in
+        the 'train' split.
+    num_replications: Number of times input NoteSequence protos will be
+        replicated prior to splitting.
+  Raises:
+    ValueError: If split probabilities do not add up to 1, or if splits are not
+        provided but `input_filename` is not a dictionary.
+  """
+  # Make sure Beam's log messages are not filtered.
+  logging.getLogger().setLevel(logging.INFO)
+
+  if isinstance(input_transform, dict):
+    split_names = input_transform.keys()
+  else:
+    if not splits:
+      raise ValueError(
+          'Split probabilities must be provided if input is not presplit.')
+    split_names, split_probabilities = zip(*splits.items())
+    cumulative_splits = zip(split_names, np.cumsum(split_probabilities))
+    if cumulative_splits[-1][1] != 1.0:
+      raise ValueError('Split probabilities must sum to 1; got %f' %
+                       cumulative_splits[-1][1])
+
+  # Check for existence of prior outputs. Since the number of shards may be
+  # different, the prior outputs will not necessarily be overwritten and must
+  # be deleted explicitly.
+  output_filenames = [
+      os.path.join(output_dir, '%s-%s.tfrecord' % (problem_name, split_name))
+      for split_name in split_names
+  ]
+  for split_name, output_filename in zip(split_names, output_filenames):
+    existing_output_filenames = tf.gfile.Glob(output_filename + '*')
+    if existing_output_filenames:
+      tf.logging.info(
+          'Data files already exist for split %s in problem %s, deleting.',
+          split_name, problem_name)
+      for filename in existing_output_filenames:
+        tf.gfile.Remove(filename)
+
+  pipeline_options = beam.options.pipeline_options.PipelineOptions(
+      FLAGS.pipeline_options.split(','))
+
+  with beam.Pipeline(options=pipeline_options) as p:
+    if isinstance(input_transform, dict):
+      # Input data is already partitioned into splits.
+      split_partitions = [
+          p | 'input_transform_%s' % split_name >> input_transform[split_name]
+          for split_name in split_names
+      ]
+    else:
+      # Read using a single PTransform.
+      p |= 'input_transform' >> input_transform
+      split_partitions = p | 'partition' >> beam.Partition(
+          functools.partial(select_split, cumulative_splits),
+          len(cumulative_splits))
+
+    for split_name, output_filename, s in zip(
+        split_names, output_filenames, split_partitions):
+      s |= 'preshuffle_%s' % split_name >> beam.Reshuffle()
+      s |= 'filter_invalid_notes_%s' % split_name >> beam.Map(
+          functools.partial(filter_invalid_notes, min_pitch, max_pitch))
+      s |= 'extract_examples_%s' % split_name >> beam.ParDo(
+          ConditionalExtractExamplesDoFn(
+              melody, noisy, encode_performance_fn, encode_score_fns,
+              augment_fns if split_name == 'train' else None,
+              num_replications if split_name == 'train' else 1))
       s |= 'shuffle_%s' % split_name >> beam.Reshuffle()
       s |= 'write_%s' % split_name >> beam.io.WriteToTFRecord(
           output_filename, coder=beam.coders.ProtoCoder(tf.train.Example))

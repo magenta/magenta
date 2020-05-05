@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,10 +14,10 @@
 
 """Import NoteSequences from MusicNet."""
 
-from magenta.protobuf import music_pb2
+from magenta.music.protobuf import music_pb2
 import numpy as np
 from six import BytesIO
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 MUSICNET_SAMPLE_RATE = 44100
 MUSICNET_NOTE_VELOCITY = 100

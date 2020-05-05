@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 from tensor2tensor.layers import common_layers
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
+from tensorflow.contrib.eager.python import tfe as contrib_eager
 
 
 def _get_weights(model_hparams, vocab_size, hidden_dim=None):
@@ -41,7 +42,7 @@ def _get_weights(model_hparams, vocab_size, hidden_dim=None):
   else:
     ret = tf.concat(shards, 0)
   # Convert ret to tensor.
-  if not tf.contrib.eager.in_eager_mode():
+  if not contrib_eager.in_eager_mode():
     ret = common_layers.convert_gradient_to_tensor(ret)
   return ret
 

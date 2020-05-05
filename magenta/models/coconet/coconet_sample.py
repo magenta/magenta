@@ -1,4 +1,4 @@
-# Copyright 2019 The Magenta Authors.
+# Copyright 2020 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,12 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Lint as: python3
 """Generate from trained model from scratch or condition on a partial score."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import itertools as it
 import os
 import re
@@ -32,7 +28,7 @@ from magenta.models.coconet import lib_tfsampling
 from magenta.models.coconet import lib_util
 import numpy as np
 import pretty_midi
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
@@ -658,7 +654,7 @@ def parse_art_to_pianoroll(art, tt=None):
       assert match.group("octave")
       klass = match.group("class")
       octave = int(match.group("octave"))
-      cycle = reversed(list(it.product(range(octave + 1), klasses)))
+      cycle = reversed(list(it.product(list(range(octave + 1)), klasses)))
       cycle = list(cycle)
       print(cycle)
       cycle = it.dropwhile(lambda ok: ok[1] != match.group("class"), cycle)  # pylint: disable=cell-var-from-loop
