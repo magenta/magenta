@@ -183,7 +183,7 @@ class TimbrePredictionMetrics(MetricsCallback):
     def predict(self, X, y, epoch=None):
         y_probs = self.model.predict_on_batch(X)
         print(y_probs + K.cast_to_floatx(y[0]))
-        scores = flatten_f1_wrapper(self.hparams)(y[0], y_probs)
+        scores = flatten_f1_wrapper()(y[0], y_probs)
         del y_probs
         return TimbrePredictionOutputMetrics(scores)
 

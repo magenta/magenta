@@ -1,99 +1,15 @@
-from collections import namedtuple
-from itertools import product
-
 import tensorflow as tf
 import tensorflow.keras.backend as K
 
-from tensorflow.keras import losses
-from keras.layers import Multiply
-from tensorflow.keras.losses import categorical_crossentropy, CategoricalCrossentropy, Reduction
 from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
-from tensorflow_core.python.keras.engine.training_utils import get_loss_function
-from tensorflow_core.python.keras.losses import LossFunctionWrapper
 
-from magenta.common import tf_utils
-from magenta.models.polyamp import constants
-from magenta.models.polyamp.metrics import calculate_frame_metrics, \
-    accuracy_without_true_negatives
-
-
-def recall_weighing_loss(labels, predictions, epsilon=1e-9, recall_weighing=None):
-    """Log Loss with Recall Weighing
-
-    :param labels: The ground truth values.
-    :param predictions: The predicted values.
-    :param epsilon: Add this to prevent log of zero.
-    :param recall_weighing: This is a scalar to weigh
-    the trues by this many times more than falses.
-
-    :return: Individual log losses.
-    """
-
-    predictions = K.cast_to_floatx(predictions)
-    labels = K.cast_to_floatx(labels)
-    predictions.get_shape().assert_is_compatible_with(labels.get_shape())
-    losses = -labels * K.log(predictions + epsilon) - (1 - labels) * K.log(
-        1 - predictions + epsilon)
-    if recall_weighing != 0:
-        if recall_weighing < 0:
-            # Weigh towards precision if negative.
-            labels = 1 - labels
-            recall_weighing = -recall_weighing
-            losses = losses * (labels + 1 / recall_weighing) / (1 + 1 / recall_weighing)
-
-        else:
-            losses = losses * (labels + 1 / recall_weighing) / (1 + 1 / recall_weighing)
-
-    return losses
-
-
-def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
-    def multi_track_loss(y_true, y_probs):
-        # Permute to: num_instruments, batch, time, pitch.
-        permuted_y_true = K.permute_dimensions(y_true, (3, 0, 1, 2))
-        permuted_y_probs = K.permute_dimensions(y_probs, (3, 0, 1, 2))
-
-        loss_list = []
-
-        for instrument_idx in range(hparams.timbre_num_classes):
-            ignore_melodic_probs = permuted_y_probs[instrument_idx] \
-                                   * K.cast_to_floatx(permuted_y_true[-1])
-            instrument_loss = tf.reduce_mean(
-                tf_utils.log_loss(permuted_y_true[instrument_idx],
-                                  ignore_melodic_probs + epsilon,
-                                  epsilon=epsilon,
-                                  recall_weighing=recall_weighing
-                                                  * 1.5
-                                                  * hparams.family_recall_weight[instrument_idx]))
-
-            if K.sum(permuted_y_true[instrument_idx]) == 0:
-                # Still learn from samples without that instrument
-                # present; don't mess up under-represented instruments.
-                instrument_loss *= 1e-2
-
-            loss_list.append(instrument_loss)
-
-        instrument_debug_info = (
-            [f'{i}: {x:.4f}. {K.max(permuted_y_probs[i]):.3f}'
-             for i, x in enumerate(loss_list)]
-        )
-        print(f'total loss: {tf.reduce_sum(loss_list)} '
-              f'{instrument_debug_info}')
-
-        # Add instrument-independent loss.
-        return tf.reduce_mean(loss_list) + K.mean(
-            tf_utils.log_loss(permuted_y_true[-1],
-                              permuted_y_probs[-1] + epsilon,
-                              epsilon=epsilon,
-                              recall_weighing=recall_weighing))
-
-    return lambda *x: multi_track_loss(*x)
+from magenta.models.polyamp.metrics import calculate_frame_metrics
 
 
 def _convert_to_multi_instrument_predictions(y_true, y_probs,
                                              threshold=0.5,
-                                             multiple_instruments_threshold=0.2,
+                                             multiple_instruments_threshold=0.6,
                                              hparams=None):
     flat_y_predictions = tf.reshape(y_probs, (-1, K.int_shape(y_probs)[-1]))
     y_predictions = convert_multi_instrument_probs_to_predictions(flat_y_predictions,
@@ -129,8 +45,8 @@ def get_last_channel(y):
 
 
 def convert_multi_instrument_probs_to_predictions(y_probs,
-                                                  threshold,
-                                                  multiple_instruments_threshold=0.5,
+                                                  threshold=0.5,
+                                                  multiple_instruments_threshold=0.6,
                                                   hparams=None):
     """
     Convert probabilities into boolean predictions for
@@ -170,7 +86,13 @@ def convert_multi_instrument_probs_to_predictions(y_probs,
     return y_predictions
 
 
-def single_track_present_accuracy_wrapper(threshold):
+def single_track_present_accuracy_wrapper(threshold=0.5):
+    """
+    Get the instrument-agnostic accuracy for the Full Model.
+    :param threshold: Threshold for Melodic probabilities.
+    :param hparams: Hyperparameters.
+    :return: Single-track binary accuracy.
+    """
     def _single_present_acc(y_true, y_probs):
         reshaped_y_true = K.reshape(y_true, (-1, y_true.shape[-1]))
         reshaped_y_probs = K.reshape(y_probs, (-1, y_probs.shape[-1]))
@@ -187,8 +109,17 @@ def single_track_present_accuracy_wrapper(threshold):
     return _single_present_acc
 
 
-def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_threshold=0.2,
+def multi_track_present_accuracy_wrapper(threshold=0.5,
+                                         multiple_instruments_threshold=0.6,
                                          hparams=None):
+    """
+    Get the multi-track accuracy for the Full Model.
+    :param threshold: Threshold for Melodic probabilities.
+    :param multiple_instruments_threshold: Threshold for Timbre
+    probabilities.
+    :param hparams: Hyperparameters.
+    :return: Multi-track binary accuracy.
+    """
     def _present_acc(y_true, y_probs):
         flat_y_true, flat_y_predictions = (
             _convert_to_multi_instrument_predictions(y_true,
@@ -216,8 +147,18 @@ def multi_track_present_accuracy_wrapper(threshold, multiple_instruments_thresho
     return _present_acc
 
 
-def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.5,
+def multi_track_prf_wrapper(threshold=0.5, multiple_instruments_threshold=0.6,
                             print_report=False, only_f1=True, hparams=None):
+    """
+    Get the Full Model PRF scores.
+    :param threshold: Threshold for Melodic probabilities.
+    :param multiple_instruments_threshold: Threshold for Timbre
+    probabilities.
+    :param print_report: Whether to print to console.
+    :param only_f1: Include only F1 or include P, R, and F1.
+    :param hparams: Hyperparameters.
+    :return: Either the PRF or the F1-Score.
+    """
     def _multi_track_prf(y_true, y_probs):
         flat_y_true, flat_y_predictions = (
             _convert_to_multi_instrument_predictions(y_true,
@@ -271,10 +212,13 @@ def multi_track_prf_wrapper(threshold, multiple_instruments_threshold=0.5,
     return _multi_track_prf
 
 
-def binary_accuracy_wrapper(threshold):
+def binary_accuracy_wrapper(threshold=0.5):
+    """
+    Get the Melodic binary accuracy while removing any true negatives.
+    :param threshold: Threshold for Melodic probabilities.
+    :return: The accuracy without true negatives.
+    """
     def _acc(labels, probs):
-        # return binary_accuracy(labels, probs, threshold)
-
         return calculate_frame_metrics(labels, probs > threshold)[
             'accuracy_without_true_negatives'
         ]
@@ -282,19 +226,13 @@ def binary_accuracy_wrapper(threshold):
     return _acc
 
 
-def true_positive_wrapper(threshold):
-    def _pos(labels, probs):
-
-        return calculate_frame_metrics(labels, probs > threshold)[
-            'true_positives'
-        ]
-
-    return _pos
-
-
-def f1_wrapper(threshold):
+def f1_wrapper(threshold=0.5):
+    """
+    Get Melodic F1-Score scores after flattening the inputs.
+    :param threshold: Threshold for Melodic probabilities.
+    :return: F1-Score
+    """
     def _f1(labels, probs):
-
         return calculate_frame_metrics(labels, probs > threshold)[
             'f1_score'
         ]
@@ -302,9 +240,13 @@ def f1_wrapper(threshold):
     return _f1
 
 
-def flatten_f1_wrapper(hparams, threshold=0.5):
+def flatten_f1_wrapper(threshold=0.5):
+    """
+    Get Timbre PRF scores after flattening the inputs.
+    :param threshold: Threshold for Timbre probabilities.
+    :return: Precision, Recall, and F1-Score
+    """
     def flatten_f1_fn(y_true, y_probs):
-        # y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1])
         print([f'{i}:{x}' for i, x in
                enumerate(K.max(K.reshape(y_probs, (-1, K.int_shape(y_probs)[-1])), 0))])
         y_predictions = K.cast_to_floatx(y_probs > threshold)
@@ -312,16 +254,19 @@ def flatten_f1_wrapper(hparams, threshold=0.5):
 
         reshaped_y_true = K.reshape(y_true, (-1, K.int_shape(y_true)[-1]))
 
-        # remove any predictions from padded values
+        # Remove any predictions from padded values.
         y_predictions = y_predictions * K.expand_dims(
             K.cast_to_floatx(K.sum(reshaped_y_true, -1) > 0))
 
-        print(classification_report(reshaped_y_true, y_predictions, digits=4, zero_division=0))
+        print(classification_report(reshaped_y_true, y_predictions,
+                                    digits=4, zero_division=0))
         print([f'{i}:{x}' for i, x in enumerate(K.cast(K.sum(y_predictions, 0), 'int32'))])
-        precision, recall, f1, _ = precision_recall_fscore_support(reshaped_y_true,
-                                                                   y_predictions,
-                                                                   average='micro',
-                                                                   zero_division=0)  # TODO maybe 'macro'
+        precision, recall, f1, _ = (
+            precision_recall_fscore_support(reshaped_y_true,
+                                            y_predictions,
+                                            average='micro',
+                                            zero_division=0)
+        )
         scores = {
             'precision': K.constant(precision),
             'recall': K.constant(recall),
@@ -332,32 +277,16 @@ def flatten_f1_wrapper(hparams, threshold=0.5):
     return flatten_f1_fn
 
 
-# use epsilon to prevent nans when doing log
-def flatten_loss_wrapper(hparams, epsilon=1e-9):
-    def flatten_loss_fn(y_true, y_pred):
-        if hparams.timbre_coagulate_mini_batches:
-            return categorical_crossentropy(y_true, y_pred + epsilon,
-                                            label_smoothing=hparams.timbre_label_smoothing)
-        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
-        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
-        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
-        return categorical_crossentropy(rebatched_true, rebatched_pred + epsilon,
-                                        label_smoothing=hparams.timbre_label_smoothing)
+def flatten_accuracy_wrapper():
+    """Return categorical accuracy after flattening
+    the truths and predictions.
+    """
 
-    return flatten_loss_fn
-
-
-def flatten_accuracy_wrapper(hparams):
     def flatten_accuracy_fn(y_true, y_pred):
-        if hparams.timbre_coagulate_mini_batches:
-            # remove any predictions from padded values
-            y_pred = y_pred * K.cast_to_floatx(K.sum(y_true, -1) > 0)
-            return categorical_accuracy(y_true, y_pred)
-        rebatched_pred = K.reshape(y_pred, (-1, y_pred.shape[-1]))
-        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
-        rebatched_true = K.reshape(y_true, (-1, y_pred.shape[-1]))
+        rebatched_pred = K.reshape(y_pred, (-1, K.int_shape(y_pred)[-1]))
+        rebatched_true = K.reshape(y_true, (-1, K.int_shape(y_true)[-1]))
 
-        # remove any predictions from padded values
+        # Remove any predictions from padded values.
         rebatched_pred = rebatched_pred * K.expand_dims(
             K.cast_to_floatx(K.sum(rebatched_true, -1) > 0))
         return categorical_accuracy(rebatched_true, rebatched_pred)
@@ -365,64 +294,3 @@ def flatten_accuracy_wrapper(hparams):
     return flatten_accuracy_fn
 
 
-def flatten_weighted_logit_loss(pos_weight=1):
-    def weighted_logit_loss(y_true_unshaped, y_logits_unshaped):
-        y_logits = K.reshape(y_logits_unshaped, (-1, y_logits_unshaped.shape[-1]))
-        # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
-        y_true = K.reshape(K.cast(y_true_unshaped, K.floatx()), (-1, y_logits_unshaped.shape[-1]))
-
-        # remove any predictions from padded values
-        y_logits = y_logits + K.expand_dims(tf.where(K.sum(y_true, -1) > 0, 0.0, -1e+9))
-        return tf.nn.weighted_cross_entropy_with_logits(y_true, y_logits, pos_weight=pos_weight)
-
-    return weighted_logit_loss
-
-
-class WeightedCrossentropy(LossFunctionWrapper):
-
-    def __init__(
-            self,
-            hparams,
-            weights,
-            from_logits=False,
-            label_smoothing=0,
-            reduction=Reduction.SUM_OVER_BATCH_SIZE,
-            name='categorical_crossentropy',
-            recall_weighing=2,  # increase recall
-    ):
-        super().__init__(reduction, name=f"weighted_{name}")
-        self.hparams = hparams
-        self.loss_fn = get_loss_function(name)
-        self.from_logits = from_logits
-        self.weights = weights
-        self.recall_weighing = recall_weighing
-
-    def call(self, y_true, y_probs, epsilon=1e-9):
-        permuted_y_true = K.transpose(
-            K.reshape(K.cast_to_floatx(y_true), (-1, y_true.shape[-1])))
-        permuted_y_probs = K.transpose(
-            K.reshape(y_probs, (-1, y_probs.shape[-1])))
-        permuted_y_probs = permuted_y_probs \
-                           * K.expand_dims(K.cast_to_floatx(K.sum(permuted_y_true, 0) > 0), 0) \
-                           + epsilon
-        loss_list = []
-
-        for instrument_idx in range(self.hparams.timbre_num_classes):
-            # 50/50 for something not in melody prediction
-            instrument_loss = tf.reduce_mean(
-                tf_utils.log_loss(permuted_y_true[instrument_idx],
-                                  permuted_y_probs[instrument_idx] + epsilon,
-                                  epsilon=epsilon,
-                                  recall_weighing=self.recall_weighing
-                                                  * 4
-                                                  * self.hparams.family_recall_weight[
-                                                      instrument_idx]))
-
-            # instrument_loss *= hparams.inv_frequency_weight[instrument_idx]
-            if K.sum(permuted_y_true[instrument_idx]) == 0:
-                # Still learn a little from samples without the instrument present
-                # Don't mess up under-represented instruments much
-                instrument_loss *= 1e-2
-
-            loss_list.append(instrument_loss)
-        return tf.reduce_mean(loss_list)

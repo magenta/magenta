@@ -1,25 +1,18 @@
-import operator
-
-import numpy as np
 import tensorflow as tf
 from dotmap import DotMap
 from tensorflow.keras import backend as K
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 
-from magenta.models.polyamp import constants, data, infer_util
-from magenta.models.polyamp.accuracy_util import flatten_accuracy_wrapper, \
-    multi_track_prf_wrapper, flatten_loss_wrapper, multi_track_loss_wrapper, \
-    multi_track_present_accuracy_wrapper, single_track_present_accuracy_wrapper
-from magenta.models.polyamp.instrument_family_mappings import \
-    family_to_midi_instrument
+from magenta.models.polyamp import constants, infer_util
+from magenta.models.polyamp.accuracy_util import multi_track_present_accuracy_wrapper, multi_track_prf_wrapper, \
+    single_track_present_accuracy_wrapper
+from magenta.models.polyamp.loss_util import full_model_loss_wrapper
 from magenta.models.polyamp.layer_util import NoteCroppingsToPianorolls
-from magenta.models.polyamp.loss_util import log_loss_wrapper
 from magenta.models.polyamp.timbre_dataset_reader import NoteCropping
 
+
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
-from magenta.models.polyamp.timbre_model import get_timbre_output_layer
-from magenta.music import midi_io
 
 
 def get_default_hparams():
@@ -208,12 +201,12 @@ class FullModel:
             [pianoroll_no_gradient, expanded_offsets])
 
         losses = {
-            'multi_frames': multi_track_loss_wrapper(self.hparams,
-                                                     self.hparams.frames_true_weighing),
-            'multi_onsets': multi_track_loss_wrapper(self.hparams,
-                                                     self.hparams.onsets_true_weighing),
-            'multi_offsets': multi_track_loss_wrapper(self.hparams,
-                                                      self.hparams.offsets_true_weighing),
+            'multi_frames': full_model_loss_wrapper(self.hparams,
+                                                    self.hparams.frames_true_weighing),
+            'multi_onsets': full_model_loss_wrapper(self.hparams,
+                                                    self.hparams.onsets_true_weighing),
+            'multi_offsets': full_model_loss_wrapper(self.hparams,
+                                                     self.hparams.offsets_true_weighing),
         }
 
         accuracies = {

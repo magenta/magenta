@@ -1,20 +1,13 @@
 from __future__ import absolute_import, division, print_function
 
-import os
-
-import sklearn
-from dotmap import DotMap
-
 # if not using plaidml, use tensorflow.keras.* instead of keras.*
 # if using plaidml, use keras.*
 import tensorflow.compat.v1 as tf
+from dotmap import DotMap
 
-from magenta.common import tf_utils
 from magenta.models.polyamp.accuracy_util import binary_accuracy_wrapper, \
-    f1_wrapper, true_positive_wrapper
-from magenta.models.polyamp.loss_util import log_loss_wrapper, \
-    log_loss_flattener
-from sklearn.metrics import f1_score
+    f1_wrapper
+from magenta.models.polyamp.loss_util import melodic_loss_wrapper
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -24,18 +17,14 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
 
     from keras import backend as K
-    from keras.regularizers import l2
-    from keras.initializers import VarianceScaling, he_uniform
-    from keras.layers import Activation, BatchNormalization, Conv2D, Dense, Dropout, \
+    from keras.layers import BatchNormalization, Conv2D, Dense, Dropout, \
     Input, MaxPooling2D, Reshape, concatenate, ELU, Lambda
     from keras.models import Model
 else:
     # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
 
     from tensorflow.keras import backend as K
-    from tensorflow.keras.regularizers import l2
-    from tensorflow.keras.initializers import VarianceScaling, he_uniform
-    from tensorflow.keras.layers import Activation, BatchNormalization, Bidirectional, Conv2D, \
+    from tensorflow.keras.layers import BatchNormalization, Bidirectional, Conv2D, \
         Dense, Dropout, \
         Input, LSTM, MaxPooling2D, Reshape, concatenate, ELU, Lambda
     from tensorflow.keras.models import Model
@@ -227,9 +216,9 @@ def midi_prediction_model(hparams=None):
 
     # use recall_weighing > 0 to care more about recall than precision
     losses = {
-        'frames': log_loss_wrapper(hparams.frames_true_weighing),
-        'onsets': log_loss_wrapper(hparams.onsets_true_weighing),
-        'offsets': log_loss_wrapper(hparams.offsets_true_weighing),
+        'frames': melodic_loss_wrapper(hparams.frames_true_weighing),
+        'onsets': melodic_loss_wrapper(hparams.onsets_true_weighing),
+        'offsets': melodic_loss_wrapper(hparams.offsets_true_weighing),
     }
 
     accuracies = {
