@@ -65,6 +65,8 @@ tf.app.flags.DEFINE_integer('num_steps', 1000000,
 tf.app.flags.DEFINE_integer(
     'eval_num_steps', None,
     'Number of eval steps or `None` to go through all examples.')
+tf.app.flags.DEFINE_boolean('note_based', False,
+                            'Whether eval metrics are note-based for Melodic model.')
 tf.app.flags.DEFINE_integer(
     'keep_checkpoint_max', 100,
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
@@ -155,7 +157,8 @@ def run(config_map, data_fn, additional_trial_info):
             name=FLAGS.eval_name,
             preprocess_examples=FLAGS.preprocess_examples,
             hparams=hparams,
-            num_steps=FLAGS.eval_num_steps)
+            num_steps=FLAGS.eval_num_steps,
+            note_based=FLAGS.note_based)
     else:
         raise ValueError('Unknown/unsupported mode: %s' % FLAGS.mode)
 

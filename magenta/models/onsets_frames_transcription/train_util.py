@@ -33,7 +33,8 @@ import numpy as np
 
 # Should not be called from within the graph to avoid redundant summaries.
 from magenta.models.onsets_frames_transcription import audio_label_data_utils, constants
-from magenta.models.onsets_frames_transcription.callback import EvaluationMetrics
+from magenta.models.onsets_frames_transcription.callback import EvaluationMetrics, \
+    MidiPredictionMetrics
 from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
 from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
 from magenta.models.onsets_frames_transcription.metrics import f1_score
@@ -243,7 +244,8 @@ def evaluate(data_fn,
              preprocess_examples,
              hparams,
              name,
-             num_steps=None):
+             num_steps=None,
+             note_based=False):
     """Evaluation loop."""
     hparams.batch_size = 1
     hparams.slakh_batch_size = 1
@@ -256,7 +258,7 @@ def evaluate(data_fn,
     if True or num_steps is None:
         transcription_data = functools.partial(
             transcription_data_base,
-            shuffle_examples=True, skip_n_initial_records=0)
+            shuffle_examples=False, skip_n_initial_records=0)
     else:
         # If num_steps is specified, we will evaluate only a subset of the data.
         #
@@ -286,7 +288,7 @@ def evaluate(data_fn,
         iterator = iter(transcription_data_base(
             params=record_check_params,
             shuffle_examples=False,
-            skip_n_initial_records=0,
+            skip_n_initial_records=1000,
         ))
         next_record = next(iterator)
         with tf.Session() as sess:
@@ -338,6 +340,13 @@ def evaluate(data_fn,
         model_wrapper.build_model(compile=False, timbre_model=timbre_model.get_model())
         model_wrapper.load_newest(hparams.load_id)
         model_wrapper = timbre_model
+        # model_wrapper.load_newest(hparams.load_id)
+    elif model_type is ModelType.MIDI:
+        midi_model = ModelWrapper(model_dir, ModelType.MIDI, hparams=hparams, batch_size=1)
+        midi_model.build_model(compile=False)
+        model_wrapper.build_model(compile=False, midi_model=midi_model.get_model())
+        midi_model.load_newest(hparams.load_id)
+        model_wrapper = midi_model
     else:
         model_wrapper.build_model(compile=False)
         model_wrapper.load_newest(hparams.load_id)
@@ -345,50 +354,102 @@ def evaluate(data_fn,
     generator = DataGenerator(transcription_data(params=hparams), hparams.batch_size, 1,
                               use_numpy=False,
                               coagulate_mini_batches=False)
-    save_dir = f'{model_dir}/FULL/{model_wrapper.id}_eval'
+    save_dir = f'{model_dir}/{model_type.name}/{model_wrapper.id}_eval'
 
-    metrics = EvaluationMetrics(generator=generator, hparams=hparams, save_dir=save_dir, is_full=model_type is ModelType.FULL)
-    for i in range(num_steps):
-        print(f'evaluating step: {i}')
-        metrics.on_epoch_end(i, model=model_wrapper.get_model())
+    if model_type is ModelType.MIDI:
+        metrics = MidiPredictionMetrics(generator=generator, note_based=note_based, hparams=hparams, save_dir=save_dir)
+    else:
+        metrics = EvaluationMetrics(generator=generator, hparams=hparams, save_dir=save_dir, is_full=model_type is ModelType.FULL)
+    try:
+        for i in range(num_steps):
+            print(f'evaluating step: {i}')
+            metrics.on_epoch_end(i, model=model_wrapper.get_model())
+    except:
+        pass
 
     metric_names = ['true_positives', 'false_positives', 'false_negatives']
-    instrument_true_positives, instrument_false_positives, instrument_false_negatives = [
-        functools.reduce(
-            lambda a, b: a + b,
-            map(lambda x: np.array(
-                [x[constants.FAMILY_IDX_STRINGS[i]][n] for i in range(len(x.keys()))]),
-                metrics.metrics_history)) for n in metric_names
-    ]
 
-    instrument_precision = instrument_true_positives \
-                           / (instrument_true_positives + instrument_false_positives + 1e-9)
-    instrument_recall = instrument_true_positives \
-                        / (instrument_true_positives + instrument_false_negatives + 1e-9)
+    if model_type is not ModelType.MIDI:
+        # instrument specific metrics
+        instrument_true_positives, instrument_false_positives, instrument_false_negatives = [
+            functools.reduce(
+                lambda a, b: a + b,
+                map(lambda x: np.array(
+                    [x[constants.FAMILY_IDX_STRINGS[i]][n] for i in range(len(x.keys()))]),
+                    metrics.metrics_history)) for n in metric_names
+        ]
 
-    instrument_f1_score = 2 * ((instrument_precision * instrument_recall)
-                               / (instrument_precision + instrument_recall + 1e-9))
+        instrument_precision = instrument_true_positives \
+                               / (instrument_true_positives + instrument_false_positives + 1e-9)
+        instrument_recall = instrument_true_positives \
+                            / (instrument_true_positives + instrument_false_negatives + 1e-9)
 
-    overall_precision = np.sum(instrument_true_positives[:-1]) \
-                        / np.sum(instrument_true_positives[:-1]
-                                 + instrument_false_positives[:-1] + 1e-9)
-    overall_recall = np.sum(instrument_true_positives[:-1]) \
-                     / np.sum(instrument_true_positives[:-1]
-                              + instrument_false_negatives[:-1] + 1e-9)
+        instrument_f1_score = 2 * ((instrument_precision * instrument_recall)
+                                   / (instrument_precision + instrument_recall + 1e-9))
 
-    overall_f1_score = 2 * ((overall_precision * overall_recall)
-                            / (overall_precision + overall_recall + 1e-9))
+        overall_precision = np.sum(instrument_true_positives[:-1]) \
+                            / np.sum(instrument_true_positives[:-1]
+                                     + instrument_false_positives[:-1] + 1e-9)
+        overall_recall = np.sum(instrument_true_positives[:-1]) \
+                         / np.sum(instrument_true_positives[:-1]
+                                  + instrument_false_negatives[:-1] + 1e-9)
 
-    for i in range(hparams.timbre_num_classes + (1 if model_type is ModelType.FULL else 0)):
-        instrument = constants.FAMILY_IDX_STRINGS[i]
-        print(f'{instrument}: '
-              f'P: {instrument_precision[i]}, '
-              f'R: {instrument_recall[i]}, '
-              f'F1: {instrument_f1_score[i]}, '
-              f'N: {instrument_true_positives[i] + instrument_false_negatives[i]}')
+        overall_f1_score = 2 * ((overall_precision * overall_recall)
+                                / (overall_precision + overall_recall + 1e-9))
 
-    print(f'overall: '
-          f'P: {overall_precision}, '
-          f'R: {overall_recall}, '
-          f'F1: {overall_f1_score}, '
-              f'N: {K.sum(instrument_true_positives) + K.sum(instrument_false_negatives)}')
+        for i in range(hparams.timbre_num_classes + (1 if model_type is ModelType.FULL else 0)):
+            instrument = constants.FAMILY_IDX_STRINGS[i]
+            print(f'{instrument}: '
+                  f'P: {instrument_precision[i]}, '
+                  f'R: {instrument_recall[i]}, '
+                  f'F1: {instrument_f1_score[i]}, '
+                  f'N: {instrument_true_positives[i] + instrument_false_negatives[i]}')
+        total_support = K.sum(instrument_true_positives) + K.sum(instrument_false_negatives)
+        print(f'overall: '
+              f'P: {overall_precision}, '
+              f'R: {overall_recall}, '
+              f'F1: {overall_f1_score}, '
+              f'N: {total_support}')
+    elif note_based:
+        macro_names = ['note_precision', 'note_recall', 'note_f1_score', 'frame_precision',
+                       'frame_recall', 'frame_f1_score']
+        note_precision, note_recall, note_f1, frame_precision, frame_recall, frame_f1 = [
+            functools.reduce(
+                lambda a, b: a + b,
+                map(lambda x: [x[n]],
+                    metrics.metrics_history)) for n in macro_names
+        ]
+        print(f'nP: {np.mean(note_precision)}, '
+              f'nR: {np.mean(note_recall)}, '
+              f'nF: {np.mean(note_f1)}, '
+              f'fP: {np.mean(frame_precision)}, '
+              f'fR: {np.mean(frame_recall)}, '
+              f'fF: {np.mean(frame_f1)}, ')
+    else:
+        stacks = ['frames', 'onsets', 'offsets']
+        # instrument-agnostic metrics
+
+        true_positives, false_positives, false_negatives = [
+            functools.reduce(
+                lambda a, b: a + b,
+                map(lambda x: np.array(
+                    [x[stacks[i]][n] for i in range(len(x.keys()))]),
+                    metrics.metrics_history)) for n in metric_names
+        ]
+        precision = true_positives / (true_positives + false_positives + 1e-9)
+        recall = true_positives / (true_positives + false_negatives + 1e-9)
+
+        f1_score = 2 * precision * recall / (precision + recall + 1e-9)
+        support = true_positives + false_negatives
+        for i in range(len(stacks)):
+            stack = stacks[i]
+            print(f'{stack}: '
+                  f'P: {precision[i]}, '
+                  f'R: {recall[i]}, '
+                  f'F1: {f1_score[i]}, '
+                  f'N: {support[i]}')
+
+
+
+
+

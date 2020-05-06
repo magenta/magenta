@@ -21,7 +21,7 @@ if FLAGS.using_plaidml:
     from keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
     MaxPooling2D, TimeDistributed, \
     GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D, Add
-    from keras.regularizers import l2
+    from keras.regularNoteizers import l2
     from keras.initializers import he_normal
 
 else:

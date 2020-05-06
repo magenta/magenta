@@ -405,4 +405,4 @@ def provide_batch(examples,
                                    ),
                     LabelTensors(instrument_families=0)),
                 drop_remainder=True)
-    return dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
+    return dataset.prefetch(buffer_size=1)

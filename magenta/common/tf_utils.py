@@ -74,9 +74,11 @@ def log_loss(labels, predictions, epsilon=1e-7, scope=None, weights=None, recall
         # weigh towards precision if negative
         labels = 1 - labels
         recall_weighing = -recall_weighing
-        losses = tf.multiply(losses, (labels + 1 / recall_weighing) / (1 / recall_weighing))
+        losses = tf.multiply(losses, (labels + 1 / recall_weighing) / (1 + 1 / recall_weighing))
 
       else:
         losses = tf.multiply(losses, (labels + 1 / recall_weighing) / (1 + 1 / recall_weighing))
 
     return losses
+
+

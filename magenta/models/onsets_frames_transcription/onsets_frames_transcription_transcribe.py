@@ -63,6 +63,9 @@ tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+tf.app.flags.DEFINE_boolean(
+    'load_full', False,
+    'Whether to use use the weights saved from full training')
 
 from magenta.models.onsets_frames_transcription import configs, model_util
 from magenta.models.onsets_frames_transcription import data
@@ -89,31 +92,38 @@ def run(argv, config_map, data_fn):
 
     if model_type is model_util.ModelType.FULL:
 
-        # midi_model = ModelWrapper('E:/models', ModelType.MIDI, hparams=hparams)
-        # midi_model.build_model(compile=False)
-        # midi_model.load_newest()
-        # timbre_model = ModelWrapper('E:/models', ModelType.TIMBRE, hparams=hparams)
-        # timbre_model.build_model(compile=False)
-        # timbre_model.load_newest()
+        midi_model = ModelWrapper('E:/models', ModelType.MIDI, hparams=hparams)
+        midi_model.build_model(compile=False)
+        midi_model.load_newest()
+        timbre_model = ModelWrapper('E:/models', ModelType.TIMBRE, hparams=hparams)
+        timbre_model.build_model(compile=False)
+        timbre_model.load_newest()
 
-        model.build_model(midi_model=None,
-                          timbre_model=None,
+        model.build_model(midi_model=midi_model.get_model(),
+                          timbre_model=timbre_model.get_model(),
                           compile=False)
+        model.load_newest()
+        midi_model.load_newest()
+
 
     else:
         model.build_model(compile=False)
     try:
-        model.load_newest()
+        if FLAGS.load_full:
+            full = ModelWrapper('E:/models', ModelType.FULL,
+                                hparams=hparams)
+            full.build_model(compile=False,
+                             midi_model=model.get_model()
+                             if model_type is model_util.ModelType.MIDI
+                             else None,
+                             timbre_model=model.get_model()
+                             if model_type is model_util.ModelType.TIMBRE
+                             else None)
+            full.load_newest()
+        else:
+            model.load_newest()
     except:
         pass
-
-    # plt.plot([x[0]['recall'] for x in model.metrics.metrics_history[-37:]], 'r',
-    #          [x[0]['precision'] for x in model.metrics.metrics_history[-37:]], 'g',
-    #          [x[0]['f1_score'] for x in model.metrics.metrics_history[-37:]], 'b')
-    #
-    # plt.show()
-    # for metric in model.metrics.metrics_history:
-    #     print(metric)
 
     try:
         argv[1].index('*')
@@ -128,7 +138,7 @@ def run(argv, config_map, data_fn):
         samples, sr = librosa.load(filename, hparams.sample_rate)
 
         if model_type is model_util.ModelType.MIDI:
-            #spec = wav_to_spec_op(wav_data, hparams=hparams)
+            # spec = wav_to_spec_op(wav_data, hparams=hparams)
             spec = samples_to_cqt(samples, hparams=hparams)
             if hparams.spec_log_amplitude:
                 spec = librosa.power_to_db(spec)
@@ -170,9 +180,9 @@ def run(argv, config_map, data_fn):
                                                                timbre_spec=timbre_spec,
                                                                present_instruments=present_instruments,
                                                                qpm=FLAGS.qpm)
-        #assert len(prediction_list) == 1
+        # assert len(prediction_list) == 1
 
-        #sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)
+        # sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)
 
         midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)

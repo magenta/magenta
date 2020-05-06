@@ -19,7 +19,8 @@ if FLAGS.using_plaidml:
 else:
     from tensorflow.keras.callbacks import Callback
 
-from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics
+from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics, \
+    calculate_metrics
 
 MidiPredictionOutputMetrics = collections.namedtuple('MidiPredictionOutputMetrics',
                                                      ('frames', 'onsets', 'offsets'))
@@ -28,7 +29,12 @@ TimbrePredictionOutputMetrics = collections.namedtuple('TimbrePredictionOutputMe
 
 
 class MetricsCallback(Callback):
-    def __init__(self, generator=None, hparams=None, metrics_history=None, save_dir='./out'):
+    def __init__(self,
+                 generator=None,
+                 hparams=None,
+                 metrics_history=None,
+                 save_dir='./out',
+                 note_based=False):
         super(MetricsCallback, self).__init__()
         if metrics_history is None:
             metrics_history = []
@@ -36,6 +42,7 @@ class MetricsCallback(Callback):
         self.hparams = hparams
         self.metrics_history = metrics_history
         self.save_dir = save_dir
+        self.note_based = note_based
 
     def save_midi(self, y_probs, y_true, epoch):
         frame_predictions = y_probs[0][0] > self.hparams.predict_frame_threshold
@@ -108,17 +115,26 @@ class MetricsCallback(Callback):
         if model:
             self.model = model
         x, y = self.generator.get()
-        metrics = self.predict(x, y, epoch=epoch)
+        try:
+            metrics = self.predict(x, y, epoch=epoch)
+        except Exception as e:
+            print(e)
+            return
         if type(metrics) is dict:
             metrics_dict = metrics
         else:
             metrics_dict = metrics._asdict()
-        self.metrics_history.append(metrics)
-        for name, value in metrics_dict.items():
-            print('{} metrics:'.format(name))
-            print('Precision: {}, Recall: {}, F1: {}\n'.format(value['precision'].numpy() * 100,
-                                                               value['recall'].numpy() * 100,
-                                                               value['f1_score'].numpy() * 100))
+        self.metrics_history.append(metrics_dict)
+        try:
+            for name, value in metrics_dict.items():
+                print('{} metrics:'.format(name))
+                print('Precision: {}, Recall: {}, F1: {}\n'.format(value['precision'].numpy() * 100,
+                                                                   value['recall'].numpy() * 100,
+                                                                   value['f1_score'].numpy() * 100))
+        except:
+            print('Precision: {}, Recall: {}, F1: {}\n'.format(metrics_dict['note_precision'].numpy() * 100,
+                                                               metrics_dict['note_recall'].numpy() * 100,
+                                                               metrics_dict['note_f1_score'].numpy() * 100))
         gc.collect()
 
 
@@ -132,15 +148,28 @@ class MidiPredictionMetrics(MetricsCallback):
         # 'onsets': boolean_accuracy_wrapper(hparams.predict_onset_threshold),
         # 'offsets': boolean_accuracy_wrapper(hparams.predict_offset_threshold)
         y_probs = self.model.predict_on_batch(X)
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
+        self.save_midi(y_probs, y, epoch)
+        self.save_stack_midi(y_probs, y, epoch)
+        if self.note_based:
+            sequence_label = infer_util.predict_sequence(y[0][0], None, None, None, constants.MIN_MIDI_PITCH, self.hparams)
+            return calculate_metrics(frame_predictions=y_probs[0][0] > self.hparams.predict_frame_threshold,
+                                     onset_predictions=y_probs[1][0] > self.hparams.predict_onset_threshold,
+                                     offset_predictions=y_probs[2][0] > self.hparams.predict_offset_threshold,
+                                     velocity_values=y_probs[0][0] > self.hparams.predict_frame_threshold, # ignored
+                                     sequence_label=tf.convert_to_tensor(sequence_label.SerializeToString()),
+                                     frame_labels=y[0][0],
+                                     sequence_id=K.constant('', tf.string),
+                                     hparams=self.hparams,
+                                     min_pitch=constants.MIN_MIDI_PITCH,
+                                     max_pitch=constants.MAX_MIDI_PITCH)
         frame_metrics = calculate_frame_metrics(y[0],
                                                 y_probs[0] > self.hparams.predict_frame_threshold)
         onset_metrics = calculate_frame_metrics(y[1],
                                                 y_probs[1] > self.hparams.predict_onset_threshold)
         offset_metrics = calculate_frame_metrics(y[2],
                                                  y_probs[2] > self.hparams.predict_offset_threshold)
-
-        self.save_midi(y_probs, y, epoch)
-        self.save_stack_midi(y_probs, y, epoch)
 
         return MidiPredictionOutputMetrics(frame_metrics, onset_metrics, offset_metrics)
 
@@ -202,24 +231,24 @@ class EvaluationMetrics(MetricsCallback):
         y_probs = self.model.call(X, training=False)
 
         if self.is_full:
-            permuted_predictions = []
-            for i in range(2):
-                agnostic_predictions = get_last_channel(y_probs[i]) > self.hparams.predict_frame_threshold
-                multi_stack_predictions = convert_multi_instrument_probs_to_predictions(
-                    y_probs[i], #* tf.convert_to_tensor([0.9,0,0,0.8,1.00,0,0,0,0,0,0.85,0,1]),
-                    self.hparams.predict_frame_threshold,
-                    self.hparams.multiple_instruments_threshold)[0]
-                permuted_stack_predictions = K.permute_dimensions(multi_stack_predictions,
-                                                                  (tf.rank(multi_stack_predictions) - 1,
-                                                                   *K.arange(tf.rank(
-                                                                       multi_stack_predictions) - 1)))
-                permuted_stack_predictions = K.concatenate(
-                    [permuted_stack_predictions, agnostic_predictions], axis=0)
-                permuted_predictions.append(permuted_stack_predictions)
-            permuted_predictions = K.max(K.cast_to_floatx(K.concatenate(permuted_predictions, axis=0)), axis=0)
+            # permuted_predictions = []
+            # for i in range(1):
+            agnostic_predictions = get_last_channel(y_probs[0]) > self.hparams.predict_frame_threshold
+            multi_stack_predictions = convert_multi_instrument_probs_to_predictions(
+                y_probs[0] * tf.convert_to_tensor([0.9,0,0,0.8,1.00,0,0,0,0,0,0.85,0,1]),
+                self.hparams.predict_frame_threshold,
+                self.hparams.multiple_instruments_threshold)[0]
+            permuted_stack_predictions = K.permute_dimensions(multi_stack_predictions,
+                                                              (tf.rank(multi_stack_predictions) - 1,
+                                                               *K.arange(tf.rank(
+                                                                   multi_stack_predictions) - 1)))
+            permuted_predictions = K.concatenate(
+                [permuted_stack_predictions, agnostic_predictions], axis=0)
+            #     permuted_predictions.append(permuted_stack_predictions)
+            # permuted_predictions = K.max(K.cast_to_floatx(K.concatenate(permuted_predictions, axis=0)), axis=0)
 
         else:
-            timbre_probs = y_probs[0] # * tf.convert_to_tensor([0.9,0,0,0.8,1.00,0,0,0,0,0,0.85,0])
+            timbre_probs = y_probs[0] * tf.convert_to_tensor([0.9,0,0,0.8,1.00,0,0,0,0,0,0.85,0])
             top_probs = K.cast(tf.one_hot(
                 K.argmax(timbre_probs),
                 K.int_shape(timbre_probs)[-1]), 'bool')

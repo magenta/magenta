@@ -67,7 +67,6 @@ def multi_track_loss_wrapper(hparams, recall_weighing=0, epsilon=1e-9):
         permuted_y_probs = K.permute_dimensions(y_probs, (3, 0, 1, 2))
 
         loss_list = []
-        total_mean = K.mean(K.max(y_true, -1))
 
         for instrument_idx in range(hparams.timbre_num_classes):
             # 50/50 for something not in melody prediction
@@ -291,6 +290,7 @@ def f1_wrapper(threshold):
 def flatten_f1_wrapper(hparams, threshold=0.5):
     def flatten_f1_fn(y_true, y_probs):
         # y_predictions = tf.one_hot(K.flatten(tf.nn.top_k(y_probs).indices), y_probs.shape[-1])
+        print([f'{i}:{x}' for i, x in enumerate(K.max(K.reshape(y_probs, (-1, K.int_shape(y_probs)[-1])), 0))])
         y_predictions = K.cast_to_floatx(y_probs > threshold)
         y_predictions = K.reshape(y_predictions, (-1, K.int_shape(y_predictions)[-1]))
 
@@ -366,6 +366,7 @@ class WeightedCrossentropy(LossFunctionWrapper):
 
     def __init__(
             self,
+            hparams,
             weights,
             from_logits=False,
             label_smoothing=0,
@@ -374,12 +375,13 @@ class WeightedCrossentropy(LossFunctionWrapper):
             recall_weighing=2,  # increase recall
     ):
         super().__init__(reduction, name=f"weighted_{name}")
+        self.hparams = hparams
         self.loss_fn = get_loss_function(name)
         self.from_logits = from_logits
         self.weights = weights
         self.recall_weighing = recall_weighing
 
-    def call(self, y_true_unshaped, y_pred_unshaped):
+    def callx(self, y_true_unshaped, y_pred_unshaped):
         y_pred = K.reshape(y_pred_unshaped, (-1, y_pred_unshaped.shape[-1]))
         # using y_pred on purpose because keras thinks y_true shape is (None, None, None)
         # 0.25 for samples with that family somewhere within it
@@ -389,9 +391,11 @@ class WeightedCrossentropy(LossFunctionWrapper):
 
         # remove any predictions from padded values
         y_pred = y_pred * K.expand_dims(K.cast_to_floatx(K.sum(y_true, -1) > 0)) + 1e-9
+        # remove predictions from non-present instruments
+        y_pred = y_pred * K.expand_dims(K.cast_to_floatx(K.sum(y_true, -1) > 0)) + 1e-9
 
         weights = self.weights
-        support_inv_exp = 1.2
+        support_inv_exp = 1.0
         total_support = tf.math.pow(K.expand_dims(K.sum(y_true, 0) + 10, 0),
                                     1 / (1.0 + support_inv_exp))
         # weigh those with less support more
@@ -416,5 +420,35 @@ class WeightedCrossentropy(LossFunctionWrapper):
                          -1) * final_mask
         if self.recall_weighing == 0:
             return self.loss_fn.call(y_true, y_pred) * final_mask
+
         return K.mean(tf_utils.log_loss(y_true, y_pred, recall_weighing=self.recall_weighing),
-                      -1) * final_mask
+                      -1) #* final_mask
+
+    def call(self, y_true, y_probs, epsilon=1e-9):
+        permuted_y_true = K.transpose(
+            K.reshape(K.cast_to_floatx(y_true), (-1, y_true.shape[-1])))
+        permuted_y_probs = K.transpose(
+            K.reshape(y_probs, (-1, y_probs.shape[-1])))
+        permuted_y_probs = permuted_y_probs \
+                           * K.expand_dims(K.cast_to_floatx(K.sum(permuted_y_true, 0) > 0), 0) \
+                           + epsilon
+        loss_list = []
+
+        for instrument_idx in range(self.hparams.timbre_num_classes):
+            # 50/50 for something not in melody prediction
+            instrument_loss = tf.reduce_mean(
+                tf_utils.log_loss(permuted_y_true[instrument_idx],
+                                  permuted_y_probs[instrument_idx] + epsilon,
+                                  epsilon=epsilon,
+                                  recall_weighing=self.recall_weighing
+                                                  * 4
+                                                  * self.hparams.family_recall_weight[instrument_idx]))
+
+            # instrument_loss *= hparams.inv_frequency_weight[instrument_idx]
+            if K.sum(permuted_y_true[instrument_idx]) == 0:
+                # Still learn a little from samples without the instrument present
+                # Don't mess up under-represented instruments much
+                instrument_loss *= 1e-2
+
+            loss_list.append(instrument_loss)
+        return tf.reduce_mean(loss_list)

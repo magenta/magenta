@@ -297,10 +297,12 @@ def timbre_prediction_model(hparams=None):
     if hparams.timbre_final_activation == 'softmax':
         # this seems to work better than with logits
         losses = {'family_probs': WeightedCrossentropy(
+            hparams=hparams,
             weights=weights)}
 
     elif hparams.timbre_final_activation == 'sigmoid':
         losses = {'family_probs': WeightedCrossentropy(
+            hparams=hparams,
             weights=weights,
             name='binary_crossentropy')}
 
@@ -308,6 +310,7 @@ def timbre_prediction_model(hparams=None):
         # losses = {'family_probs': flatten_weighted_logit_loss(.4)}
         # this seems to decrease predicted support when you have bad precision, which is the goal?
         losses = {'family_probs': WeightedCrossentropy(
+            hparams=hparams,
             weights=weights, from_logits=True, recall_weighing=2.)}
     accuracies = {'family_probs': [flatten_accuracy_wrapper(hparams),
                                    lambda *x: flatten_f1_wrapper(hparams)(*x)['f1_score']]}

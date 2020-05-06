@@ -36,11 +36,11 @@ DEFAULT_HPARAMS = {
         'using_plaidml': False,
         'eval_batch_size': 1,
         'predict_batch_size': 1,
-        'shuffle_buffer_size': 256,
+        'shuffle_buffer_size': 64,
         'nsynth_shuffle_buffer_size': 256,
         'timbre_coagulate_mini_batches': False,
         'nsynth_batch_size': 2,
-        'slakh_batch_size': 5,
+        'slakh_batch_size': 2,
         'use_drums': False,
         'timbre_training_max_instruments': 64,
         'timbre_max_start_offset': 160000, #320000 goes to 800 when cropping
