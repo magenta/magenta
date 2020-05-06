@@ -1,4 +1,5 @@
 # Copyright 2020 The Magenta Authors.
+# Modifications Copyright 2020 Jack Spencer Smith.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +22,6 @@ from __future__ import print_function
 import collections
 import librosa
 
-from magenta.common import tf_utils
 from magenta.models.polyamp import audio_transform, melodic_model, timbre_model, \
     constants, full_model
 

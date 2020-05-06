@@ -1,4 +1,5 @@
 # Copyright 2020 The Magenta Authors.
+# Modifications Copyright 2020 Jack Spencer Smith.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,35 +22,24 @@ Glossary (definitions may not hold outside of this particular file):
   example: An individual training example. The number of frames in an example
       is determined by the sequence length.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
 
 import collections
 import copy
 import functools
 import re
 import wave
-import zlib
-from enum import Enum
 
 import librosa
-from magenta.models.polyamp import audio_transform, instrument_family_mappings
-from magenta.models.polyamp import constants
-from magenta.music import audio_io
-from magenta.music import melspec_input
-from magenta.music import sequences_lib
-from magenta.music.protobuf import music_pb2
 import numpy as np
 import six
-import tensorflow.compat.v2 as tf
+import tensorflow as tf
 import tensorflow.keras.backend as K
-from tensorflow_core import TensorSpec, TensorShape
+from tensorflow_core import TensorShape
 
-
-class DatasetSource(Enum):
-    MAESTRO = 'MAESTRO'
-    NSYNTH = 'NSYNTH'
+from magenta.models.polyamp import audio_transform, constants, instrument_family_mappings
+from magenta.music import audio_io, sequences_lib
+from magenta.music.protobuf import music_pb2
 
 
 def hparams_frame_size(hparams):
@@ -142,62 +132,13 @@ def wav_to_spec(wav_audio, hparams):
 
 def wav_to_spec_op(wav_audio, hparams):
     """Return an op for converting wav audio to a spectrogram."""
-    if hparams.spec_type == 'tflite_compat_mel':
-        assert hparams.spec_log_amplitude
-        spec = tflite_compat_mel(wav_audio, hparams=hparams)
-    else:
-        spec = tf.py_function(
-            functools.partial(wav_to_spec, hparams=hparams),
-            [wav_audio],
-            tf.float32,
-            name='wav_to_spec')
-        spec.set_shape([None, hparams_frame_size(hparams)])
+    spec = tf.py_function(
+        functools.partial(wav_to_spec, hparams=hparams),
+        [wav_audio],
+        tf.float32,
+        name='wav_to_spec')
+    spec.set_shape([None, hparams_frame_size(hparams)])
     return spec
-
-
-def tflite_compat_mel(wav_audio, hparams):
-    """EXPERIMENTAL: Log mel spec with ops that can be made TFLite compatible."""
-    samples, decoded_sample_rate = tf.audio.decode_wav(
-        wav_audio, desired_channels=1)
-    samples = tf.squeeze(samples, axis=1)
-    # Ensure that we decoded the samples at the expected sample rate.
-    with tf.control_dependencies(
-            [tf.assert_equal(decoded_sample_rate, hparams.sample_rate)]):
-        return tflite_compat_mel_from_samples(samples, hparams)
-
-
-def tflite_compat_mel_from_samples(samples, hparams):
-    """EXPERIMENTAL: Log mel spec with ops that can be made TFLite compatible."""
-    features = melspec_input.build_mel_calculation_graph(
-        samples, hparams.sample_rate,
-        window_length_seconds=2048 / hparams.sample_rate,
-        hop_length_seconds=(
-                hparams.spec_hop_length / hparams.sample_rate),
-        num_mel_bins=hparams.spec_n_bins,
-        lower_edge_hz=hparams.spec_fmin,
-        upper_edge_hz=hparams.sample_rate / 2.0,
-        frame_width=1,
-        frame_hop=1,
-        tflite_compatible=False)  # False here, but would be True on device.
-    return tf.squeeze(features, 1)
-
-
-def get_spectrogram_hash_op(spectrogram):
-    """Calculate hash of the spectrogram."""
-
-    def get_spectrogram_hash(spectrogram):
-        # Compute a hash of the spectrogram, save it as an int64.
-        # Uses adler because it's fast and will fit into an int (md5 is too large).
-        spectrogram_serialized = six.BytesIO()
-        np.save(spectrogram_serialized, spectrogram)
-        spectrogram_hash = np.int64(zlib.adler32(spectrogram_serialized.getvalue()))
-        spectrogram_serialized.close()
-        return spectrogram_hash
-
-    spectrogram_hash = tf.py_function(get_spectrogram_hash, [spectrogram], tf.int64,
-                                      name='get_spectrogram_hash')
-    spectrogram_hash.set_shape([])
-    return spectrogram_hash
 
 
 def wav_to_num_frames(wav_audio, frames_per_second):
@@ -236,67 +177,63 @@ def transform_wav_data_op(wav_data_tensor, hparams, jitter_amount_sec):
         name='transform_wav_data_op')
 
 
+def _sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor,
+                              hparams, instrument_family=None):
+    """Converts sequence to pianorolls."""
+    if instrument_family is not None and instrument_family < 0:
+        instrument_family = None
+    velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor.numpy())
+    sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
+    sequence = sequences_lib.apply_sustain_control_changes(sequence)
+    roll = sequences_lib.sequence_to_pianoroll(
+        sequence,
+        frames_per_second=hparams_frames_per_second(hparams),
+        min_pitch=constants.MIN_MIDI_PITCH,
+        max_pitch=constants.MAX_MIDI_PITCH,
+        min_frame_occupancy_for_label=hparams.min_frame_occupancy_for_label,
+        onset_mode=hparams.onset_mode,
+        onset_length_ms=hparams.onset_length,
+        offset_length_ms=hparams.offset_length,
+        onset_delay_ms=hparams.onset_delay,
+        min_velocity=velocity_range.min,
+        max_velocity=velocity_range.max,
+        instrument_family=instrument_family,
+        use_drums=hparams.use_drums,
+        timbre_num_classes=hparams.timbre_num_classes)
+    return (roll.active, roll.weights, roll.onsets, roll.onset_velocities,
+            roll.offsets)
+
+
 def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
     """Transforms a serialized NoteSequence to a pianoroll."""
+    to_pianoroll_fn = functools.partial(_sequence_to_pianoroll_fn, hparams=hparams)
+    res, weighted_res, onsets, velocities, offsets = tf.py_function(
+        to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
+        [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
+        name='sequence_to_pianoroll_op')
+    res.set_shape([None, constants.MIDI_PITCHES])
+    weighted_res.set_shape([None, constants.MIDI_PITCHES])
+    onsets.set_shape([None, constants.MIDI_PITCHES])
+    offsets.set_shape([None, constants.MIDI_PITCHES])
+    velocities.set_shape([None, constants.MIDI_PITCHES])
 
-    def sequence_to_pianoroll_fn(sequence_tensor, velocity_range_tensor, instrument_family=None):
-        """Converts sequence to pianorolls."""
-        if instrument_family is not None and instrument_family < 0:
-            instrument_family = None
-        velocity_range = music_pb2.VelocityRange.FromString(velocity_range_tensor.numpy())
-        sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
-        sequence = sequences_lib.apply_sustain_control_changes(sequence)
-        roll = sequences_lib.sequence_to_pianoroll(
-            sequence,
-            frames_per_second=hparams_frames_per_second(hparams),
-            min_pitch=constants.MIN_MIDI_PITCH,
-            max_pitch=constants.MAX_MIDI_PITCH,
-            min_frame_occupancy_for_label=hparams.min_frame_occupancy_for_label,
-            onset_mode=hparams.onset_mode,
-            onset_length_ms=hparams.onset_length,
-            offset_length_ms=hparams.offset_length,
-            onset_delay_ms=hparams.onset_delay,
-            min_velocity=velocity_range.min,
-            max_velocity=velocity_range.max,
-            instrument_family=instrument_family,
-            use_drums=hparams.use_drums,
-            timbre_num_classes=hparams.timbre_num_classes)
-        return (roll.active, roll.weights, roll.onsets, roll.onset_velocities,
-                roll.offsets)
+    return res, weighted_res, onsets, offsets, velocities
 
-    if hparams.split_pianoroll:
-        res_list = []
-        weighted_res_list = []
-        onsets_list = []
-        velocities_list = []
-        offsets_list = []
-        for i in range(hparams.timbre_num_classes + 1):
-            # put instrument-agnostic in the last channel
-            if i == hparams.timbre_num_classes:
-                i = -1
-            res, weighted_res, onsets, velocities, offsets = tf.py_function(
-                sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor, i],
-                [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
-                name='sequence_to_pianoroll_op')
-            res.set_shape([None, constants.MIDI_PITCHES])
-            weighted_res.set_shape([None, constants.MIDI_PITCHES])
-            onsets.set_shape([None, constants.MIDI_PITCHES])
-            offsets.set_shape([None, constants.MIDI_PITCHES])
-            velocities.set_shape([None, constants.MIDI_PITCHES])
-            res_list.append(K.expand_dims(res))
-            weighted_res_list.append(K.expand_dims(weighted_res))
-            onsets_list.append(K.expand_dims(onsets))
-            velocities_list.append(K.expand_dims(velocities))
-            offsets_list.append(K.expand_dims(offsets))
-        return K.concatenate(res_list), \
-               K.concatenate(weighted_res_list), \
-               K.concatenate(onsets_list), \
-               K.concatenate(offsets_list), \
-               K.concatenate(velocities_list)
 
-    else:
+def sequence_to_multi_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
+    """Transforms a serialized NoteSequence to a multi-instrument pianoroll."""
+    to_pianoroll_fn = functools.partial(_sequence_to_pianoroll_fn, hparams=hparams)
+    res_list = []
+    weighted_res_list = []
+    onsets_list = []
+    velocities_list = []
+    offsets_list = []
+    for i in range(hparams.timbre_num_classes + 1):
+        # Put instrument-agnostic labels in the last channel.
+        if i == hparams.timbre_num_classes:
+            i = -1
         res, weighted_res, onsets, velocities, offsets = tf.py_function(
-            sequence_to_pianoroll_fn, [sequence_tensor, velocity_range_tensor],
+            to_pianoroll_fn, [sequence_tensor, velocity_range_tensor, i],
             [tf.float32, tf.float32, tf.float32, tf.float32, tf.float32],
             name='sequence_to_pianoroll_op')
         res.set_shape([None, constants.MIDI_PITCHES])
@@ -304,8 +241,16 @@ def sequence_to_pianoroll_op(sequence_tensor, velocity_range_tensor, hparams):
         onsets.set_shape([None, constants.MIDI_PITCHES])
         offsets.set_shape([None, constants.MIDI_PITCHES])
         velocities.set_shape([None, constants.MIDI_PITCHES])
-
-        return res, weighted_res, onsets, offsets, velocities
+        res_list.append(K.expand_dims(res))
+        weighted_res_list.append(K.expand_dims(weighted_res))
+        onsets_list.append(K.expand_dims(onsets))
+        velocities_list.append(K.expand_dims(velocities))
+        offsets_list.append(K.expand_dims(offsets))
+    return K.concatenate(res_list), \
+           K.concatenate(weighted_res_list), \
+           K.concatenate(onsets_list), \
+           K.concatenate(offsets_list), \
+           K.concatenate(velocities_list)
 
 
 def jitter_label_op(sequence_tensor, jitter_amount_sec):
@@ -343,8 +288,10 @@ def truncate_note_sequence(sequence, truncate_secs):
 
 
 def get_present_instruments_op(sequence_tensor, hparams=None):
-    def get_present_instruments_fn(sequence_tensor):
-        sequence = music_pb2.NoteSequence.FromString(sequence_tensor.numpy())
+    """Get a list of instruments present in this NoteSequence"""
+
+    def get_present_instruments_fn(sequence_tensor_):
+        sequence = music_pb2.NoteSequence.FromString(sequence_tensor_.numpy())
         present_list = np.zeros(hparams.timbre_num_classes, dtype=np.bool)
         for note in sequence.notes:
             note_family = instrument_family_mappings.midi_instrument_to_family[note.program]
@@ -354,6 +301,7 @@ def get_present_instruments_op(sequence_tensor, hparams=None):
         return present_list
 
     if hparams.use_all_instruments:
+        # Ignore what's there; allow raw predictions.
         return np.ones(hparams.timbre_num_classes)
     res = tf.py_function(
         get_present_instruments_fn,
@@ -380,15 +328,15 @@ def truncate_note_sequence_op(sequence_tensor, truncated_length_frames,
     return res
 
 
-InputTensors = collections.namedtuple(
-    'InputTensors', ('spec', 'spectrogram_hash', 'labels', 'label_weights',
-                     'length', 'onsets', 'offsets', 'velocities', 'sequence_id',
-                     'note_sequence'))
+InputTensors = collections.namedtuple('InputTensors',
+                                      ('spec', 'labels',
+                                       'length', 'onsets',
+                                       'offsets', 'velocities',
+                                       'note_sequence'))
 
 
 def parse_example(example_proto):
     features = {
-        'id': tf.io.FixedLenFeature(shape=(), dtype=tf.string),
         'sequence': tf.io.FixedLenFeature(shape=(), dtype=tf.string),
         'audio': tf.io.FixedLenFeature(shape=(), dtype=tf.string),
         'velocity_range': tf.io.FixedLenFeature(shape=(), dtype=tf.string),
@@ -412,12 +360,9 @@ def preprocess_example(example_proto, hparams, is_training, parse_proto=True):
       ValueError: If hparams is contains an invalid spec_type.
     """
     record = parse_example(example_proto) if parse_proto else example_proto
-    sequence_id = record['id']
-    # tf.print(sequence_id)
     sequence = record['sequence']
     audio = record['audio']
     velocity_range = record['velocity_range']
-    # tf.print(velocity_range)
 
     wav_jitter_amount_ms = label_jitter_amount_ms = 0.
     # if there is combined jitter, we must generate it once here
@@ -440,7 +385,6 @@ def preprocess_example(example_proto, hparams, is_training, parse_proto=True):
             jitter_amount_sec=wav_jitter_amount_ms / 1000.)
 
     spec = wav_to_spec_op(audio, hparams=hparams)
-    spectrogram_hash = get_spectrogram_hash_op(spec)
 
     if hparams.split_pianoroll:
         # make a second spec that will be used for timbre prediction
@@ -462,19 +406,16 @@ def preprocess_example(example_proto, hparams, is_training, parse_proto=True):
     asserts = []
     if hparams.max_expected_train_example_len and is_training:
         asserts.append(
-            tf.assert_less_equal(length, hparams.max_expected_train_example_len))
+            tf.debugging.assert_less_equal(length, hparams.max_expected_train_example_len))
 
     with tf.control_dependencies(asserts):
         return InputTensors(
             spec=spec,
-            spectrogram_hash=spectrogram_hash,
             labels=labels,
-            label_weights=label_weights,
             length=length,
             onsets=onsets,
             offsets=offsets,
             velocities=velocities,
-            sequence_id=sequence_id,
             note_sequence=sequence)
 
 
@@ -485,12 +426,8 @@ def input_tensors_to_example(inputs, hparams):
     feature = {
         'spec': tf.train.Feature(
             float_list=tf.train.FloatList(value=inputs.spec.flatten())),
-        'spectrogram_hash': tf.train.Feature(
-            int64_list=tf.train.Int64List(value=[inputs.spectrogram_hash])),
         'labels': tf.train.Feature(
             float_list=tf.train.FloatList(value=inputs.labels.flatten())),
-        'label_weights': tf.train.Feature(
-            float_list=tf.train.FloatList(value=inputs.label_weights.flatten())),
         'length': tf.train.Feature(
             int64_list=tf.train.Int64List(value=[inputs.length])),
         'onsets': tf.train.Feature(
@@ -499,8 +436,6 @@ def input_tensors_to_example(inputs, hparams):
             float_list=tf.train.FloatList(value=inputs.offsets.flatten())),
         'velocities': tf.train.Feature(
             float_list=tf.train.FloatList(value=inputs.velocities.flatten())),
-        'sequence_id': tf.train.Feature(
-            bytes_list=tf.train.BytesList(value=[inputs.sequence_id])),
         'note_sequence': tf.train.Feature(
             bytes_list=tf.train.BytesList(value=[inputs.note_sequence])),
     }
@@ -508,17 +443,16 @@ def input_tensors_to_example(inputs, hparams):
     return tf.train.Example(features=tf.train.Features(feature=feature))
 
 
-FeatureTensors = collections.namedtuple(
-    # 'FeatureTensors', ('spec', 'label_weights'))
-    'FeatureTensors', ('spec',))  # 'label_weights', 'length', 'sequence_id'))
+FeatureTensors = collections.namedtuple('FeatureTensors',
+                                        ('spec',))
 MultiFeatureTensors = collections.namedtuple('MultiFeatureTensors',
                                              ('spec_512', 'spec_256', 'present_instruments'))
-LabelTensors = collections.namedtuple(
-    'LabelTensors', ('labels', 'onsets', 'offsets'))  # , 'note_sequence'))
+LabelTensors = collections.namedtuple('LabelTensors',
+                                      ('labels', 'onsets', 'offsets'))
 
 
-def input_tensors_to_model_input(
-        input_tensors, hparams, is_training, num_classes=constants.MIDI_PITCHES):
+def input_tensors_to_model_input(input_tensors, hparams, is_training,
+                                 num_classes=constants.MIDI_PITCHES):
     """Processes an InputTensor into FeatureTensors and LabelTensors."""
     length = tf.cast(input_tensors.length, tf.int32)
     labels = input_tensors.labels
@@ -537,12 +471,6 @@ def input_tensors_to_model_input(
     else:
         truncated_length = length
 
-    # if is_training:
-    #     truncated_note_sequence = tf.constant(0)
-    # else:
-    #     truncated_note_sequence = truncate_note_sequence_op(
-    #         input_tensors.note_sequence, truncated_length, hparams)
-
     # If max_expected_train_example_len is set, ensure that all examples are
     # padded to this length. This results in a fixed shape that can work on TPUs.
     if hparams.max_expected_train_example_len and is_training:
@@ -555,19 +483,9 @@ def input_tensors_to_model_input(
         else:
             final_length = hparams.max_expected_train_example_len
     else:
-        # In this case, it is min(hparams.truncated_length, length)
+        # In this case, it is min(hparams.truncated_length, length).
         final_length = truncated_length
 
-    if hparams.split_pianoroll:
-        spec_256 = spec[1]
-        spec = spec[0]
-        spec_256_length = int(final_length * hparams.spec_hop_length / hparams.timbre_hop_length)
-        spec_256_delta = tf.shape(spec_256)[0] - spec_256_length
-        spec_256 = tf.case(
-            [(spec_256_delta < 0,
-              lambda: tf.pad(spec_256, tf.stack([(0, -spec_256_delta), (0, 0)]))),
-             (spec_256_delta > 0, lambda: spec_256[0:-spec_256_delta])],
-            default=lambda: spec_256)
     spec_delta = tf.shape(spec)[0] - final_length
     spec = tf.case(
         [(spec_delta < 0,
@@ -604,39 +522,36 @@ def input_tensors_to_model_input(
         default=lambda: velocities)
 
     if hparams.split_pianoroll:
-
+        spec_256 = spec[1]
+        spec = spec[0]
+        spec_256_length = int(
+            final_length * hparams.spec_hop_length / hparams.timbre_hop_length)
+        spec_256_delta = tf.shape(spec_256)[0] - spec_256_length
+        spec_256 = tf.case(
+            [(spec_256_delta < 0,
+              lambda: tf.pad(spec_256, tf.stack([(0, -spec_256_delta), (0, 0)]))),
+             (spec_256_delta > 0, lambda: spec_256[0:-spec_256_delta])],
+            default=lambda: spec_256)
         features = MultiFeatureTensors(
             spec_512=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
             spec_256=tf.reshape(spec_256, (spec_256_length, hparams_frame_size(hparams), 1)),
             present_instruments=get_present_instruments_op(input_tensors.note_sequence,
                                                            hparams=hparams)
-            # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
-            # length=truncated_length,
-            # sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
         )
         labels = LabelTensors(
             labels=tf.reshape(labels, (final_length, num_classes, hparams.timbre_num_classes + 1)),
-            # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
             onsets=tf.reshape(onsets, (final_length, num_classes, hparams.timbre_num_classes + 1)),
             offsets=tf.reshape(offsets,
                                (final_length, num_classes, hparams.timbre_num_classes + 1)),
-            # velocities=tf.reshape(velocities, (final_length, num_classes)),
-            # note_sequence=truncated_note_sequence
         )
     else:
         features = FeatureTensors(
             spec=tf.reshape(spec, (final_length, hparams_frame_size(hparams), 1)),
-            # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
-            # length=truncated_length,
-            # sequence_id=tf.constant(0) if is_training else input_tensors.sequence_id
         )
         labels = LabelTensors(
             labels=tf.reshape(labels, (final_length, num_classes)),
-            # label_weights=tf.reshape(label_weights, (final_length, num_classes)),
             onsets=tf.reshape(onsets, (final_length, num_classes)),
             offsets=tf.reshape(offsets, (final_length, num_classes)),
-            # velocities=tf.reshape(velocities, (final_length, num_classes)),
-            # note_sequence=truncated_note_sequence
         )
 
     return features, labels
@@ -700,15 +615,10 @@ def read_examples(examples, is_training, shuffle_examples,
             input_dataset = tf.data.TFRecordDataset(filenames)
     else:
         input_dataset = tf.data.Dataset.from_tensor_slices(examples)
-    print(f'count: {input_dataset.reduce(0, lambda x, _: x + 1).numpy()}')
+    print(f'Examples count: {input_dataset.reduce(0, lambda x, _: x + 1).numpy()}')
     if shuffle_examples:
         input_dataset = input_dataset.shuffle(hparams.shuffle_buffer_size)
     if is_training:
-        # names = dict()
-        # for i in next(iter(input_dataset)):
-        #     name = hash(i.numpy())
-        #     names[name] = names.get(name, 0) + 1
-        # print(len(names))
         input_dataset = input_dataset.repeat()
     if skip_n_initial_records:
         input_dataset = input_dataset.skip(skip_n_initial_records)
@@ -719,28 +629,22 @@ def read_examples(examples, is_training, shuffle_examples,
 def parse_preprocessed_example(example_proto):
     """Process an already preprocessed Example proto into input tensors."""
     features = {
-        'spec': tf.VarLenFeature(dtype=tf.float32),
-        'spectrogram_hash': tf.FixedLenFeature(shape=(), dtype=tf.int64),
-        'labels': tf.VarLenFeature(dtype=tf.float32),
-        'label_weights': tf.VarLenFeature(dtype=tf.float32),
-        'length': tf.FixedLenFeature(shape=(), dtype=tf.int64),
-        'onsets': tf.VarLenFeature(dtype=tf.float32),
-        'offsets': tf.VarLenFeature(dtype=tf.float32),
-        'velocities': tf.VarLenFeature(dtype=tf.float32),
-        'sequence_id': tf.FixedLenFeature(shape=(), dtype=tf.string),
-        'note_sequence': tf.FixedLenFeature(shape=(), dtype=tf.string),
+        'spec': tf.io.VarLenFeature(dtype=tf.float32),
+        'labels': tf.io.VarLenFeature(dtype=tf.float32),
+        'length': tf.io.FixedLenFeature(shape=(), dtype=tf.int64),
+        'onsets': tf.io.VarLenFeature(dtype=tf.float32),
+        'offsets': tf.io.VarLenFeature(dtype=tf.float32),
+        'velocities': tf.io.VarLenFeature(dtype=tf.float32),
+        'note_sequence': tf.io.FixedLenFeature(shape=(), dtype=tf.string),
     }
-    record = tf.parse_single_example(example_proto, features)
+    record = tf.io.parse_single_example(example_proto, features)
     input_tensors = InputTensors(
         spec=tf.sparse.to_dense(record['spec']),
-        spectrogram_hash=record['spectrogram_hash'],
         labels=tf.sparse.to_dense(record['labels']),
-        label_weights=tf.sparse.to_dense(record['label_weights']),
         length=record['length'],
         onsets=tf.sparse.to_dense(record['onsets']),
         offsets=tf.sparse.to_dense(record['offsets']),
         velocities=tf.sparse.to_dense(record['velocities']),
-        sequence_id=record['sequence_id'],
         note_sequence=record['note_sequence'])
     return input_tensors
 
@@ -754,63 +658,44 @@ def create_batch(dataset, hparams, is_training, batch_size=None):
     elif hparams.split_pianoroll:
         dataset = dataset.padded_batch(
             batch_size,
-            # padded_shapes=(TensorShape(3), TensorShape(6)),
-            # padded_shapes=dataset.element_spec,
             padded_shapes=(
-                MultiFeatureTensors(TensorShape([None, 229, 1]),
-                                    TensorShape([None, 229, 1]),
-                                    TensorShape([hparams.timbre_num_classes])),
-                # , TensorShape([None, 88]),
-                # TensorShape([]), TensorShape([])),
-                LabelTensors(TensorShape([None, 88, hparams.timbre_num_classes + 1]),
-                             TensorShape([None, 88, hparams.timbre_num_classes + 1]),
-                             TensorShape([None, 88, hparams.timbre_num_classes + 1]),
-                             # TensorShape([None, 88]), TensorShape([None, 88]),
-                             # TensorShape([])
-                             )),
+                MultiFeatureTensors(
+                    TensorShape([None, 229, 1]),
+                    TensorShape([None, 229, 1]),
+                    TensorShape([hparams.timbre_num_classes])),
+                LabelTensors(
+                    TensorShape([None, 88, hparams.timbre_num_classes + 1]),
+                    TensorShape([None, 88, hparams.timbre_num_classes + 1]),
+                    TensorShape([None, 88, hparams.timbre_num_classes + 1]),
+                )),
             drop_remainder=True)
     else:
         dataset = dataset.padded_batch(
             batch_size,
-            # padded_shapes=(TensorShape(3), TensorShape(6)),
-            # padded_shapes=dataset.element_spec,
             padded_shapes=(
-                FeatureTensors(TensorShape([None, 229, 1])),  # , TensorShape([None, 88]),
-                # TensorShape([]), TensorShape([])),
-                LabelTensors(TensorShape([None, 88]), TensorShape([None, 88]),
-                             TensorShape([None, 88]),
-                             # TensorShape([None, 88]), TensorShape([None, 88]),
-                             # TensorShape([])
-                             )),
+                FeatureTensors(TensorShape([None, 229, 1])),
+                LabelTensors(
+                    TensorShape([None, 88]),
+                    TensorShape([None, 88]),
+                    TensorShape([None, 88]),
+                )),
             drop_remainder=True)
     return dataset
 
 
-def provide_batch(examples,
-                  preprocess_examples,
-                  params,
-                  is_training,
-                  shuffle_examples,
-                  skip_n_initial_records,
-                  preprocess_nsynth=False,
-                  **kwargs):
+def provide_batch(examples, preprocess_examples, hparams, is_training, shuffle_examples,
+                  skip_n_initial_records, **kwargs):
     """Returns batches of tensors read from TFRecord files.
-
-    Args:
-      examples: A string path to a TFRecord file of examples, a python list of
-        serialized examples, or a Tensor placeholder for serialized examples.
-      preprocess_examples: Whether to preprocess examples. If False, assume they
-        have already been preprocessed.
-      params: HParams object specifying hyperparameters. Called 'params' here
-        because that is the interface that TPUEstimator expects.
-      is_training: Whether this is a training run.
-      shuffle_examples: Whether examples should be shuffled.
-      skip_n_initial_records: Skip this many records at first.
-
-    Returns:
-      Batched tensors in a TranscriptionData NamedTuple.
+    Reads from maestro-like datasets.
+    :param examples: TFRecord filenames.
+    :param hparams: Hyperparameters.
+    :param is_training: Is this a training dataset.
+    :param shuffle_examples: Randomly shuffle the examples.
+    :param skip_n_initial_records: Skip n records in the dataset.
+    :param kwargs: Unused.
+    :return: TensorFlow batched dataset.
     """
-    hparams = params
+    hparams = hparams
 
     input_dataset = read_examples(
         examples, is_training, shuffle_examples, skip_n_initial_records, hparams)
@@ -833,13 +718,23 @@ def provide_batch(examples,
     model_input = model_input.filter(lambda f, l: K.sum(K.cast_to_floatx(l[0][-1])) > 0)
     dataset = create_batch(model_input, hparams=hparams, is_training=is_training)
 
-
-    return dataset.prefetch(buffer_size=1)  # tf.data.experimental.AUTOTUNE)
+    # Use `buffer_size=tf.data.experimental.AUTOTUNE` if possible.
+    return dataset.prefetch(buffer_size=1)
 
 
 def merge_data_functions(data_fn_list):
+    """Merge 2 or more ready-to-use datasets.
+    :param data_fn_list: Dataset function partials with
+    only `examples` defined
+    :return: Function that chooses between the dataset functions
+    provided as input.
+    """
+
     def concat(**kwargs):
         return tf.data.experimental.choose_from_datasets(
             [f(**kwargs) for f in data_fn_list],
-            tf.data.Dataset.range(2).map(lambda x: tf.cast(x / 1, tf.int64)).repeat())
+            tf.data.Dataset.range(len(data_fn_list)).map(
+                lambda x: tf.cast(x, tf.int64)
+            ).repeat())
+
     return concat

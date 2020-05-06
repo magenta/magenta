@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from dotmap import DotMap
 
-from magenta.models.polyamp.data import wav_to_spec_op, samples_to_cqt
+from magenta.models.polyamp.dataset_reader import wav_to_spec_op, samples_to_cqt
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -68,7 +68,7 @@ tf.app.flags.DEFINE_boolean(
     'Whether to use use the weights saved from full training')
 
 from magenta.models.polyamp import configs, model_util
-from magenta.models.polyamp import data
+from magenta.models.polyamp import dataset_reader
 from magenta.models.polyamp.model_util import ModelWrapper, ModelType
 from magenta.music import midi_io
 
@@ -191,7 +191,7 @@ def run(argv, config_map, data_fn):
 
 
 def main(argv):
-    run(argv, config_map=configs.CONFIG_MAP, data_fn=data.provide_batch)
+    run(argv, config_map=configs.CONFIG_MAP, data_fn=dataset_reader.provide_batch)
 
 
 def console_entry_point():

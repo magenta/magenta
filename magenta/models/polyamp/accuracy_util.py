@@ -93,7 +93,7 @@ def single_track_present_accuracy_wrapper(threshold=0.5):
     :param hparams: Hyperparameters.
     :return: Single-track binary accuracy.
     """
-    def _single_present_acc(y_true, y_probs):
+    def single_present_acc_fn(y_true, y_probs):
         reshaped_y_true = K.reshape(y_true, (-1, y_true.shape[-1]))
         reshaped_y_probs = K.reshape(y_probs, (-1, y_probs.shape[-1]))
 
@@ -106,7 +106,7 @@ def single_track_present_accuracy_wrapper(threshold=0.5):
         return calculate_frame_metrics(single_y_true, single_y_predictions)[
             'accuracy_without_true_negatives']
 
-    return _single_present_acc
+    return single_present_acc_fn
 
 
 def multi_track_present_accuracy_wrapper(threshold=0.5,
@@ -120,7 +120,7 @@ def multi_track_present_accuracy_wrapper(threshold=0.5,
     :param hparams: Hyperparameters.
     :return: Multi-track binary accuracy.
     """
-    def _present_acc(y_true, y_probs):
+    def present_acc_fn(y_true, y_probs):
         flat_y_true, flat_y_predictions = (
             _convert_to_multi_instrument_predictions(y_true,
                                                      y_probs,
@@ -144,7 +144,7 @@ def multi_track_present_accuracy_wrapper(threshold=0.5,
                             tf.not_equal(flat_y_true, flat_y_predictions)
                         ))))
 
-    return _present_acc
+    return present_acc_fn
 
 
 def multi_track_prf_wrapper(threshold=0.5, multiple_instruments_threshold=0.6,
@@ -159,7 +159,7 @@ def multi_track_prf_wrapper(threshold=0.5, multiple_instruments_threshold=0.6,
     :param hparams: Hyperparameters.
     :return: Either the PRF or the F1-Score.
     """
-    def _multi_track_prf(y_true, y_probs):
+    def multi_track_prf_fn(y_true, y_probs):
         flat_y_true, flat_y_predictions = (
             _convert_to_multi_instrument_predictions(y_true,
                                                      y_probs,
@@ -205,11 +205,11 @@ def multi_track_prf_wrapper(threshold=0.5, multiple_instruments_threshold=0.6,
         return scores
 
     def _f1(t, p):
-        return _multi_track_prf(t, p)['f1_score']
+        return multi_track_prf_fn(t, p)['f1_score']
 
     if only_f1:
         return _f1
-    return _multi_track_prf
+    return multi_track_prf_fn
 
 
 def binary_accuracy_wrapper(threshold=0.5):
@@ -218,12 +218,12 @@ def binary_accuracy_wrapper(threshold=0.5):
     :param threshold: Threshold for Melodic probabilities.
     :return: The accuracy without true negatives.
     """
-    def _acc(labels, probs):
+    def binary_accuracy_fn(labels, probs):
         return calculate_frame_metrics(labels, probs > threshold)[
             'accuracy_without_true_negatives'
         ]
 
-    return _acc
+    return binary_accuracy_fn
 
 
 def f1_wrapper(threshold=0.5):

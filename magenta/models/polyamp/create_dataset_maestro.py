@@ -26,7 +26,7 @@ from apache_beam.metrics import Metrics
 
 from magenta.models.polyamp import audio_label_data_utils
 from magenta.models.polyamp import create_dataset_lib
-from magenta.models.polyamp import data
+from magenta.models.polyamp import dataset_reader
 from magenta.music import audio_io
 from magenta.music.protobuf import music_pb2
 
@@ -225,7 +225,7 @@ def pipeline(config_map, dataset_config_map, preprocess_example_fn,
                 'If path is not a list, num_mixes must not be None: {}'.format(
                     dataset))
           stem_p = p | 'tfrecord_list_%s_%d' % (dataset.name, source_id) >> (
-              beam.Create(data.generate_sharded_filenames(stem_path)))
+              beam.Create(dataset_reader.generate_sharded_filenames(stem_path)))
 
           # Note that we do not specify a coder when reading here.
           # This is so that the hashing in key_example below can work directly
@@ -301,7 +301,7 @@ def pipeline(config_map, dataset_config_map, preprocess_example_fn,
               'If path is not a list, num_mixes must be None: {}'.format(
                   dataset))
         split_p = p | 'tfrecord_list_%s' % dataset.name >> beam.Create(
-            data.generate_sharded_filenames(dataset.path))
+            dataset_reader.generate_sharded_filenames(dataset.path))
         split_p |= 'read_tfrecord_%s' % dataset.name >> (
             beam.io.tfrecordio.ReadAllFromTFRecord(
                 coder=beam.coders.ProtoCoder(tf.train.Example)))

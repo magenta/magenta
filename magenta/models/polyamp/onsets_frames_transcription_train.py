@@ -22,7 +22,7 @@ import functools
 import os
 
 from magenta.models.polyamp import configs
-from magenta.models.polyamp import data
+from magenta.models.polyamp import dataset_reader
 from magenta.models.polyamp import train_util
 
 import tensorflow.compat.v1 as tf
@@ -109,7 +109,7 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
   del argv
   tf.app.flags.mark_flags_as_required(['examples_path'])
-  data_fn = functools.partial(data.provide_batch, examples=FLAGS.examples_path)
+  data_fn = functools.partial(dataset_reader.provide_batch, examples=FLAGS.examples_path)
   additional_trial_info = {'examples_path': FLAGS.examples_path}
   run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
       additional_trial_info=additional_trial_info)

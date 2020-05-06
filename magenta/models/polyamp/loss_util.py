@@ -1,3 +1,17 @@
+# Copyright 2020 Jack Spencer Smith.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import tensorflow as tf
 
 import tensorflow.compat.v1 as tf
@@ -64,12 +78,12 @@ def melodic_loss_wrapper(recall_weighing=0):
     :param recall_weighing: Scalar to prefer recall over precision.
     :return: Melodic Model loss.
     """
-    def _melodic_loss(label_true, label_predicted):
+    def melodic_loss_fn(label_true, label_predicted):
         return tf.reduce_mean(_recall_weighing_loss(label_true,
                                                     label_predicted,
                                                     recall_weighing=recall_weighing))
 
-    return _melodic_loss
+    return melodic_loss_fn
 
 
 def full_model_loss_wrapper(hparams, recall_weighing=0):
@@ -80,7 +94,7 @@ def full_model_loss_wrapper(hparams, recall_weighing=0):
     :return: Full Model Loss.
     """
 
-    def _full_model_loss(y_true, y_probs):
+    def full_model_loss_fn(y_true, y_probs):
         # Permute to: num_instruments, batch, time, pitch.
         permuted_y_true = K.permute_dimensions(y_true, (3, 0, 1, 2))
         permuted_y_probs = K.permute_dimensions(y_probs, (3, 0, 1, 2))
@@ -111,7 +125,7 @@ def full_model_loss_wrapper(hparams, recall_weighing=0):
                                   permuted_y_probs[-1],
                                   recall_weighing=recall_weighing))
 
-    return _full_model_loss
+    return full_model_loss_fn
 
 
 def timbre_loss_wrapper(hparams,
@@ -123,7 +137,7 @@ def timbre_loss_wrapper(hparams,
     :return: Timbre Model loss.
     """
 
-    def _timbre_loss(y_true, y_probs):
+    def timbre_loss_fn(y_true, y_probs):
         # Permute to: num_instruments, batch.
         permuted_y_true = K.transpose(
             K.reshape(K.cast_to_floatx(y_true), (-1, y_true.shape[-1])))
@@ -144,4 +158,4 @@ def timbre_loss_wrapper(hparams,
 
         return tf.reduce_mean(loss_list)
 
-    return _timbre_loss
+    return timbre_loss_fn

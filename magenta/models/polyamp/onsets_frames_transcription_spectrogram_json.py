@@ -24,7 +24,7 @@ from __future__ import print_function
 import json
 
 from magenta.models.polyamp import configs
-from magenta.models.polyamp import data
+from magenta.models.polyamp import dataset_reader
 import tensorflow as tf
 
 FLAGS = tf.app.flags.FLAGS
@@ -44,7 +44,7 @@ tf.app.flags.DEFINE_string(
 def create_spec(filename, hparams):
   """Processes an audio file into a spectrogram."""
   wav_data = tf.gfile.Open(filename).read()
-  spec = data.wav_to_spec(wav_data, hparams)
+  spec = dataset_reader.wav_to_spec(wav_data, hparams)
   return spec
 
 

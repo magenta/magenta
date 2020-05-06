@@ -20,7 +20,7 @@ import functools
 import json
 import os
 
-from magenta.models.polyamp.data import merge_data_functions
+from magenta.models.polyamp.dataset_reader import merge_data_functions
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -106,9 +106,9 @@ if FLAGS.using_plaidml:
 
     plaidml.keras.install_backend()
 
-from magenta.models.polyamp import data, train_util, configs, \
+from magenta.models.polyamp import dataset_reader, train_util, configs, \
     timbre_dataset_reader, \
-    model_util
+    model_util, nsynth_dataset_reader, slakh_dataset_reader
 
 
 def run(config_map, data_fn, additional_trial_info):
@@ -166,19 +166,24 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    provide_batch_fn = timbre_dataset_reader.provide_batch \
-        if model_util.ModelType[FLAGS.model_type] == model_util.ModelType.TIMBRE \
-        else data.provide_batch
-    data_fn = functools.partial(provide_batch_fn,
-                                examples=FLAGS.examples_path,
-                                dataset_name=FLAGS.dataset_name) \
-        if FLAGS.examples_path else None
-    if FLAGS.nsynth_examples_path \
-            and model_util.ModelType[FLAGS.model_type] == model_util.ModelType.FULL:
-        nsynth_fn = functools.partial(timbre_dataset_reader.provide_batch,
+    if model_util.ModelType[FLAGS.model_type] is model_util.ModelType.TIMBRE:
+        provide_batch_fn = (nsynth_dataset_reader.provide_batch
+                            if FLAGS.dataset_name == 'nsynth'
+                            else slakh_dataset_reader.provide_batch)
+    else:
+        provide_batch_fn = dataset_reader.provide_batch
+
+    data_fn = None
+    if FLAGS.examples_path:
+        data_fn = functools.partial(provide_batch_fn,
+                                    examples=FLAGS.examples_path)
+    if (FLAGS.nsynth_examples_path
+            and model_util.ModelType[FLAGS.model_type] is model_util.ModelType.FULL):
+        nsynth_fn = functools.partial(nsynth_dataset_reader.provide_batch,
                                       examples=FLAGS.nsynth_examples_path,
                                       for_full_model=True)
-        data_fn = merge_data_functions([nsynth_fn, data_fn])
+        data_fn = (merge_data_functions([nsynth_fn, data_fn])
+                   if data_fn is not None else nsynth_fn)
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)

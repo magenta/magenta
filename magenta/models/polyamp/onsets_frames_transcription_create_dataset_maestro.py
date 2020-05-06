@@ -20,7 +20,7 @@ from __future__ import print_function
 
 from magenta.models.polyamp import configs
 from magenta.models.polyamp import create_dataset_maestro
-from magenta.models.polyamp import data
+from magenta.models.polyamp import dataset_reader
 import tensorflow.compat.v1 as tf
 
 
@@ -28,8 +28,8 @@ def main(argv):
   del argv
 
   create_dataset_maestro.pipeline(
-      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, data.preprocess_example,
-      data.input_tensors_to_example)
+      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, dataset_reader.preprocess_example,
+      dataset_reader.input_tensors_to_example)
 
 
 def console_entry_point():

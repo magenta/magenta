@@ -35,7 +35,7 @@ import numpy as np
 from magenta.models.polyamp import audio_label_data_utils, constants
 from magenta.models.polyamp.callback import EvaluationMetrics, \
     MidiPredictionMetrics
-from magenta.models.polyamp.data import wav_to_spec_op
+from magenta.models.polyamp.dataset_reader import wav_to_spec_op
 from magenta.models.polyamp.data_generator import DataGenerator
 from magenta.models.polyamp.metrics import f1_score
 from magenta.models.polyamp.model_util import ModelWrapper, ModelType

@@ -24,7 +24,7 @@ import time
 
 from magenta.models.polyamp import configs
 from magenta.models.polyamp import constants
-from magenta.models.polyamp import data
+from magenta.models.polyamp import dataset_reader
 
 from magenta.music import audio_io
 from magenta.music import sequences_lib
@@ -98,18 +98,18 @@ class DataTest(tf.test.TestCase):
         ex.features.feature['sequence'].bytes_list.value[0])
     wav_data = ex.features.feature['audio'].bytes_list.value[0]
 
-    spec = data.wav_to_spec(wav_data, hparams=hparams)
+    spec = dataset_reader.wav_to_spec(wav_data, hparams=hparams)
     roll = sequences_lib.sequence_to_pianoroll(
         sequence,
-        frames_per_second=data.hparams_frames_per_second(hparams),
+        frames_per_second=dataset_reader.hparams_frames_per_second(hparams),
         min_pitch=constants.MIN_MIDI_PITCH,
         max_pitch=constants.MAX_MIDI_PITCH,
         min_frame_occupancy_for_label=0.0,
         onset_mode='length_ms',
         onset_length_ms=32.,
         onset_delay_ms=0.)
-    length = data.wav_to_num_frames(
-        wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
+    length = dataset_reader.wav_to_num_frames(
+        wav_data, frames_per_second=dataset_reader.hparams_frames_per_second(hparams))
 
     return self._DataToInputs(spec, roll.active, roll.weights, length, filename,
                               truncated_length)
@@ -124,16 +124,12 @@ class DataTest(tf.test.TestCase):
     hparams = copy.deepcopy(configs.DEFAULT_HPARAMS)
     hparams.batch_size = batch_size
     hparams.truncated_length_secs = (
-        truncated_length / data.hparams_frames_per_second(hparams))
+            truncated_length / dataset_reader.hparams_frames_per_second(hparams))
 
     with self.test_session() as sess:
-      dataset = data.provide_batch(
-          examples=examples,
-          preprocess_examples=True,
-          params=hparams,
-          is_training=False,
-          shuffle_examples=False,
-          skip_n_initial_records=0)
+      dataset = dataset_reader.provide_batch(examples=examples, preprocess_examples=True,
+                                             hparams=hparams, is_training=False,
+                                             shuffle_examples=False, skip_n_initial_records=0)
       iterator = dataset.make_initializable_iterator()
       next_record = iterator.get_next()
       sess.run([
@@ -181,15 +177,15 @@ class DataTest(tf.test.TestCase):
 
     for i, length in enumerate(lengths):
       wav_samples = np.zeros(
-          (np.int((length / data.hparams_frames_per_second(hparams)) *
+          (np.int((length / dataset_reader.hparams_frames_per_second(hparams)) *
                   hparams.sample_rate), 1), np.float32)
       wav_data = audio_io.samples_to_wav_data(wav_samples, hparams.sample_rate)
 
-      num_frames = data.wav_to_num_frames(
-          wav_data, frames_per_second=data.hparams_frames_per_second(hparams))
+      num_frames = dataset_reader.wav_to_num_frames(
+          wav_data, frames_per_second=dataset_reader.hparams_frames_per_second(hparams))
 
       seq = self._SyntheticSequence(
-          num_frames / data.hparams_frames_per_second(hparams),
+          num_frames / dataset_reader.hparams_frames_per_second(hparams),
           i + constants.MIN_MIDI_PITCH)
 
       examples.append(self._FillExample(seq, wav_data, 'ex%d' % i))
@@ -285,7 +281,7 @@ class DataTest(tf.test.TestCase):
         expected_num_inputs=6)
 
   def testGeneratedShardedFilenamesCommaWithShard(self):
-    filenames = data.generate_sharded_filenames('/foo/bar@3,/baz/qux@2')
+    filenames = dataset_reader.generate_sharded_filenames('/foo/bar@3,/baz/qux@2')
     self.assertEqual(
         [
             '/foo/bar-00000-of-00003',
@@ -297,7 +293,7 @@ class DataTest(tf.test.TestCase):
         filenames)
 
   def testGeneratedShardedFilenamesCommaWithoutShard(self):
-    filenames = data.generate_sharded_filenames('/foo/bar,/baz/qux')
+    filenames = dataset_reader.generate_sharded_filenames('/foo/bar,/baz/qux')
     self.assertEqual(
         [
             '/foo/bar',

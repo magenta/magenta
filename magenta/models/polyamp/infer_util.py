@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import collections
 
-from magenta.models.polyamp import data, instrument_family_mappings
+from magenta.models.polyamp import dataset_reader, instrument_family_mappings
 from magenta.music import sequences_lib, constants
 import numpy as np
 import tensorflow.keras.backend as K
@@ -104,7 +104,7 @@ def predict_sequence(frame_predictions,
           'Cannot do onset only prediction if onsets are not defined.')
     sequence_prediction = sequences_lib.pianoroll_onsets_to_note_sequence(
         onsets=onset_predictions,
-        frames_per_second=data.hparams_frames_per_second(hparams),
+        frames_per_second=dataset_reader.hparams_frames_per_second(hparams),
         note_duration_seconds=0.05,
         min_midi_pitch=min_pitch,
         velocity_values=velocity_values,
@@ -114,7 +114,7 @@ def predict_sequence(frame_predictions,
   else:
     sequence_prediction = sequences_lib.pianoroll_to_note_sequence(
         frames=frame_predictions,
-        frames_per_second=data.hparams_frames_per_second(hparams),
+        frames_per_second=dataset_reader.hparams_frames_per_second(hparams),
         min_duration_ms=0,
         min_midi_pitch=min_pitch,
         onset_predictions=onset_predictions,

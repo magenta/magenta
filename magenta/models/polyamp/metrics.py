@@ -22,7 +22,7 @@ import collections
 import functools
 
 from magenta.models.polyamp import constants
-from magenta.models.polyamp import data
+from magenta.models.polyamp import dataset_reader
 from magenta.models.polyamp import infer_util
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
@@ -186,7 +186,7 @@ def _calculate_metrics_py(frame_predictions,
 
   processed_frame_predictions = sequences_lib.sequence_to_pianoroll(
       sequence_prediction,
-      frames_per_second=data.hparams_frames_per_second(hparams),
+      frames_per_second=dataset_reader.hparams_frames_per_second(hparams),
       min_pitch=min_pitch,
       max_pitch=max_pitch).active
 
