@@ -1,10 +1,24 @@
+# Copyright 2020 Jack Spencer Smith.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 import tensorflow as tf
 import tensorflow.keras.backend as K
 
 from tensorflow.keras.metrics import categorical_accuracy
 from sklearn.metrics import precision_recall_fscore_support, classification_report
 
-from magenta.models.polyamp.metrics import calculate_frame_metrics
+from magenta.models.polyamp.metrics import f1_score, accuracy_without_true_negatives
 
 
 def _convert_to_multi_instrument_predictions(y_true, y_probs,
@@ -93,6 +107,7 @@ def single_track_present_accuracy_wrapper(threshold=0.5):
     :param hparams: Hyperparameters.
     :return: Single-track binary accuracy.
     """
+
     def single_present_acc_fn(y_true, y_probs):
         reshaped_y_true = K.reshape(y_true, (-1, y_true.shape[-1]))
         reshaped_y_probs = K.reshape(y_probs, (-1, y_probs.shape[-1]))
@@ -120,6 +135,7 @@ def multi_track_present_accuracy_wrapper(threshold=0.5,
     :param hparams: Hyperparameters.
     :return: Multi-track binary accuracy.
     """
+
     def present_acc_fn(y_true, y_probs):
         flat_y_true, flat_y_predictions = (
             _convert_to_multi_instrument_predictions(y_true,
@@ -159,6 +175,7 @@ def multi_track_prf_wrapper(threshold=0.5, multiple_instruments_threshold=0.6,
     :param hparams: Hyperparameters.
     :return: Either the PRF or the F1-Score.
     """
+
     def multi_track_prf_fn(y_true, y_probs):
         flat_y_true, flat_y_predictions = (
             _convert_to_multi_instrument_predictions(y_true,
@@ -218,6 +235,7 @@ def binary_accuracy_wrapper(threshold=0.5):
     :param threshold: Threshold for Melodic probabilities.
     :return: The accuracy without true negatives.
     """
+
     def binary_accuracy_fn(labels, probs):
         return calculate_frame_metrics(labels, probs > threshold)[
             'accuracy_without_true_negatives'
@@ -232,6 +250,7 @@ def f1_wrapper(threshold=0.5):
     :param threshold: Threshold for Melodic probabilities.
     :return: F1-Score
     """
+
     def _f1(labels, probs):
         return calculate_frame_metrics(labels, probs > threshold)[
             'f1_score'
@@ -246,6 +265,7 @@ def flatten_f1_wrapper(threshold=0.5):
     :param threshold: Threshold for Timbre probabilities.
     :return: Precision, Recall, and F1-Score
     """
+
     def flatten_f1_fn(y_true, y_probs):
         print([f'{i}:{x}' for i, x in
                enumerate(K.max(K.reshape(y_probs, (-1, K.int_shape(y_probs)[-1])), 0))])
@@ -294,3 +314,47 @@ def flatten_accuracy_wrapper():
     return flatten_accuracy_fn
 
 
+def calculate_frame_metrics(frame_labels, frame_predictions):
+    # Copyright 2020 The Magenta Authors.
+    # Modifications by Jack Spencer Smith
+    """Calculate frame-based metrics."""
+    frame_labels_bool = tf.cast(frame_labels, tf.bool)
+    frame_predictions_bool = tf.cast(frame_predictions, tf.bool)
+
+    frame_true_positives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
+        K.equal(frame_labels_bool, True),
+        K.equal(frame_predictions_bool, True))))
+    frame_false_positives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
+        K.equal(frame_labels_bool, False),
+        K.equal(frame_predictions_bool, True))))
+    frame_false_negatives = tf.reduce_sum(K.cast_to_floatx(tf.logical_and(
+        K.equal(frame_labels_bool, True),
+        K.equal(frame_predictions_bool, False))))
+    frame_accuracy = (
+            tf.reduce_sum(
+                K.cast_to_floatx(tf.equal(frame_labels_bool, frame_predictions_bool))) /
+            K.cast_to_floatx(tf.size(frame_labels))
+    )
+
+    frame_precision = tf.where(frame_true_positives + frame_false_positives > 0,
+                               frame_true_positives
+                               / (frame_true_positives + frame_false_positives),
+                               0)
+    frame_recall = tf.where(frame_true_positives + frame_false_negatives > 0,
+                            frame_true_positives
+                            / (frame_true_positives + frame_false_negatives),
+                            0)
+    frame_f1_score = f1_score(frame_precision, frame_recall)
+    frame_accuracy_without_true_negatives = accuracy_without_true_negatives(
+        frame_true_positives, frame_false_positives, frame_false_negatives)
+
+    return {
+        'true_positives': frame_true_positives,
+        'false_positives': frame_false_positives,
+        'false_negatives': frame_false_negatives,
+        'accuracy': frame_accuracy,
+        'accuracy_without_true_negatives': frame_accuracy_without_true_negatives,
+        'precision': frame_precision,
+        'recall': frame_recall,
+        'f1_score': frame_f1_score,
+    }

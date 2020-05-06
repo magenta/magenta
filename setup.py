@@ -68,6 +68,7 @@ REQUIRED_PACKAGES = [
     'pydot',
     'graphviz',
     'dotmap',
+    'scikit-learn',
 ]
 
 EXTRAS_REQUIRE = {

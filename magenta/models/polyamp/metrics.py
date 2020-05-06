@@ -24,6 +24,7 @@ import functools
 from magenta.models.polyamp import constants
 from magenta.models.polyamp import dataset_reader
 from magenta.models.polyamp import infer_util
+from magenta.models.polyamp.accuracy_util import calculate_frame_metrics
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
 
@@ -94,51 +95,6 @@ def accuracy_without_true_negatives(true_positives, false_positives,
   return tf.where(
       tf.greater(true_positives + false_positives + false_negatives, 0),
       true_positives / (true_positives + false_positives + false_negatives), 0)
-
-
-def calculate_frame_metrics(frame_labels, frame_predictions):
-  """Calculate frame-based metrics."""
-  frame_labels_bool = tf.cast(frame_labels, tf.bool)
-  frame_predictions_bool = tf.cast(frame_predictions, tf.bool)
-
-  frame_true_positives = tf.reduce_sum(tf.to_float(tf.logical_and(
-      tf.equal(frame_labels_bool, True),
-      tf.equal(frame_predictions_bool, True))))
-  frame_false_positives = tf.reduce_sum(tf.to_float(tf.logical_and(
-      tf.equal(frame_labels_bool, False),
-      tf.equal(frame_predictions_bool, True))))
-  frame_false_negatives = tf.reduce_sum(tf.to_float(tf.logical_and(
-      tf.equal(frame_labels_bool, True),
-      tf.equal(frame_predictions_bool, False))))
-  frame_accuracy = (
-      tf.reduce_sum(
-          tf.to_float(tf.equal(frame_labels_bool, frame_predictions_bool))) /
-      tf.cast(tf.size(frame_labels), tf.float32))
-
-  frame_precision = tf.where(
-      tf.greater(frame_true_positives + frame_false_positives, 0),
-      tf.div(frame_true_positives,
-             frame_true_positives + frame_false_positives),
-      0)
-  frame_recall = tf.where(
-      tf.greater(frame_true_positives + frame_false_negatives, 0),
-      tf.div(frame_true_positives,
-             frame_true_positives + frame_false_negatives),
-      0)
-  frame_f1_score = f1_score(frame_precision, frame_recall)
-  frame_accuracy_without_true_negatives = accuracy_without_true_negatives(
-      frame_true_positives, frame_false_positives, frame_false_negatives)
-
-  return {
-      'true_positives': frame_true_positives,
-      'false_positives': frame_false_positives,
-      'false_negatives': frame_false_negatives,
-      'accuracy': frame_accuracy,
-      'accuracy_without_true_negatives': frame_accuracy_without_true_negatives,
-      'precision': frame_precision,
-      'recall': frame_recall,
-      'f1_score': frame_f1_score,
-  }
 
 
 def _calculate_metrics_py(frame_predictions,

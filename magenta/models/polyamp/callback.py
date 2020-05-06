@@ -10,9 +10,8 @@ from tensorflow.keras.callbacks import Callback
 from magenta.models.polyamp import constants, infer_util
 from magenta.models.polyamp.accuracy_util import \
     convert_multi_instrument_probs_to_predictions, flatten_f1_wrapper, get_last_channel, \
-    multi_track_prf_wrapper
-from magenta.models.polyamp.metrics import calculate_frame_metrics, \
-    calculate_metrics
+    multi_track_prf_wrapper, calculate_frame_metrics
+from magenta.models.polyamp.metrics import calculate_metrics
 from magenta.music import midi_io
 
 MidiPredictionOutputMetrics = (
