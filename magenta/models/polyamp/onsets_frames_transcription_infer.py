@@ -18,9 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import infer
+from magenta.models.polyamp import configs
+from magenta.models.polyamp import data
+from magenta.models.polyamp import infer
 import tensorflow as tf
 
 

@@ -9,8 +9,8 @@ import tensorflow.keras.backend as K
 from tensorflow_core import TensorShape
 from tensorflow_core.python.keras.layers import MaxPool1D
 
-from magenta.models.onsets_frames_transcription import constants, data, instrument_family_mappings
-from magenta.models.onsets_frames_transcription.data import read_examples
+from magenta.models.polyamp import constants, data, instrument_family_mappings
+from magenta.models.polyamp.data import read_examples
 from magenta.music import sequences_lib, audio_io
 from magenta.music.protobuf import music_pb2
 

@@ -21,9 +21,9 @@ from __future__ import print_function
 import collections
 import functools
 
-from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import infer_util
+from magenta.models.polyamp import constants
+from magenta.models.polyamp import data
+from magenta.models.polyamp import infer_util
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
 

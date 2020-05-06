@@ -22,9 +22,9 @@ import copy
 import tempfile
 import time
 
-from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription import data
+from magenta.models.polyamp import configs
+from magenta.models.polyamp import constants
+from magenta.models.polyamp import data
 
 from magenta.music import audio_io
 from magenta.music import sequences_lib

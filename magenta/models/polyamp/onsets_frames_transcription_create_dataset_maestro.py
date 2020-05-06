@@ -18,9 +18,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import create_dataset_maestro
-from magenta.models.onsets_frames_transcription import data
+from magenta.models.polyamp import configs
+from magenta.models.polyamp import create_dataset_maestro
+from magenta.models.polyamp import data
 import tensorflow.compat.v1 as tf
 
 

@@ -27,8 +27,8 @@ from absl import flags
 import attr
 from colorama import Fore
 from colorama import Style
-from magenta.models.onsets_frames_transcription.realtime import audio_recorder
-from magenta.models.onsets_frames_transcription.realtime import tflite_model
+from magenta.models.polyamp.realtime import audio_recorder
+from magenta.models.polyamp.realtime import tflite_model
 from magenta.music import audio_io
 import numpy as np
 import tensorflow.compat.v1 as tf

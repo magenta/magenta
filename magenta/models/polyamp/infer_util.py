@@ -20,7 +20,7 @@ from __future__ import print_function
 
 import collections
 
-from magenta.models.onsets_frames_transcription import data, instrument_family_mappings
+from magenta.models.polyamp import data, instrument_family_mappings
 from magenta.music import sequences_lib, constants
 import numpy as np
 import tensorflow.keras.backend as K

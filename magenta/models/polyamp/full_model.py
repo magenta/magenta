@@ -7,18 +7,18 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.layers import *
 from tensorflow.keras.models import Model
 
-from magenta.models.onsets_frames_transcription import constants, data, infer_util
-from magenta.models.onsets_frames_transcription.accuracy_util import flatten_accuracy_wrapper, \
+from magenta.models.polyamp import constants, data, infer_util
+from magenta.models.polyamp.accuracy_util import flatten_accuracy_wrapper, \
     multi_track_prf_wrapper, flatten_loss_wrapper, multi_track_loss_wrapper, \
     multi_track_present_accuracy_wrapper, single_track_present_accuracy_wrapper
-from magenta.models.onsets_frames_transcription.instrument_family_mappings import \
+from magenta.models.polyamp.instrument_family_mappings import \
     family_to_midi_instrument
-from magenta.models.onsets_frames_transcription.layer_util import NoteCroppingsToPianorolls
-from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper
-from magenta.models.onsets_frames_transcription.timbre_dataset_reader import NoteCropping
+from magenta.models.polyamp.layer_util import NoteCroppingsToPianorolls
+from magenta.models.polyamp.loss_util import log_loss_wrapper
+from magenta.models.polyamp.timbre_dataset_reader import NoteCropping
 
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
-from magenta.models.onsets_frames_transcription.timbre_model import get_timbre_output_layer
+from magenta.models.polyamp.timbre_model import get_timbre_output_layer
 from magenta.music import midi_io
 
 

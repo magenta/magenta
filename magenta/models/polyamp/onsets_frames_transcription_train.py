@@ -21,9 +21,9 @@ from __future__ import print_function
 import functools
 import os
 
-from magenta.models.onsets_frames_transcription import configs
-from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription import train_util
+from magenta.models.polyamp import configs
+from magenta.models.polyamp import data
+from magenta.models.polyamp import train_util
 
 import tensorflow.compat.v1 as tf
 

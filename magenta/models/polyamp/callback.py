@@ -6,8 +6,8 @@ from abc import abstractmethod
 import tensorflow.compat.v1 as tf
 import tensorflow.keras.backend as K
 
-from magenta.models.onsets_frames_transcription import constants, infer_util
-from magenta.models.onsets_frames_transcription.accuracy_util import \
+from magenta.models.polyamp import constants, infer_util
+from magenta.models.polyamp.accuracy_util import \
     convert_multi_instrument_probs_to_predictions, flatten_f1_wrapper, get_last_channel, \
     multi_track_prf_wrapper
 from magenta.music import midi_io
@@ -19,7 +19,7 @@ if FLAGS.using_plaidml:
 else:
     from tensorflow.keras.callbacks import Callback
 
-from magenta.models.onsets_frames_transcription.metrics import calculate_frame_metrics, \
+from magenta.models.polyamp.metrics import calculate_frame_metrics, \
     calculate_metrics
 
 MidiPredictionOutputMetrics = collections.namedtuple('MidiPredictionOutputMetrics',

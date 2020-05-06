@@ -8,11 +8,11 @@ import math
 import tensorflow as tf
 from dotmap import DotMap
 
-from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription.accuracy_util import \
+from magenta.models.polyamp import constants
+from magenta.models.polyamp.accuracy_util import \
     WeightedCrossentropy, flatten_accuracy_wrapper, flatten_weighted_logit_loss, \
     flatten_f1_wrapper
-from magenta.models.onsets_frames_transcription.layer_util import conv_bn_elu_layer, \
+from magenta.models.polyamp.layer_util import conv_bn_elu_layer, \
     get_all_croppings, time_distributed_wrapper
 
 FLAGS = tf.compat.v1.app.flags.FLAGS

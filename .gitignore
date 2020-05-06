@@ -11,5 +11,5 @@ build/
 .idea/
 *.npy
 *.hdf5
-magenta/models/onsets_frames_transcription/models/*
-magenta/models/onsets_frames_transcription/out/*
+magenta/models/polyamp/models/*
+magenta/models/polyamp/out/*

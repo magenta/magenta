@@ -24,9 +24,9 @@ import os
 import apache_beam as beam
 from apache_beam.metrics import Metrics
 
-from magenta.models.onsets_frames_transcription import audio_label_data_utils
-from magenta.models.onsets_frames_transcription import create_dataset_lib
-from magenta.models.onsets_frames_transcription import data
+from magenta.models.polyamp import audio_label_data_utils
+from magenta.models.polyamp import create_dataset_lib
+from magenta.models.polyamp import data
 from magenta.music import audio_io
 from magenta.music.protobuf import music_pb2
 

@@ -28,8 +28,8 @@ import functools
 import os
 import time
 
-from magenta.models.onsets_frames_transcription import infer_util
-from magenta.models.onsets_frames_transcription import train_util
+from magenta.models.polyamp import infer_util
+from magenta.models.polyamp import train_util
 from magenta.music import midi_io
 from magenta.music.protobuf import music_pb2
 

@@ -25,7 +25,7 @@ import math
 import operator
 import random
 
-from magenta.models.onsets_frames_transcription import instrument_family_mappings
+from magenta.models.polyamp import instrument_family_mappings
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music.protobuf import music_pb2

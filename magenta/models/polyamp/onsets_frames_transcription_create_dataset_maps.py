@@ -39,7 +39,7 @@ import glob
 import os
 import re
 
-from magenta.models.onsets_frames_transcription import audio_label_data_utils
+from magenta.models.polyamp import audio_label_data_utils
 
 from magenta.music import audio_io
 from magenta.music import midi_io

@@ -10,14 +10,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from magenta.models.onsets_frames_transcription import constants, infer_util, \
+from magenta.models.polyamp import constants, infer_util, \
     instrument_family_mappings
-from magenta.models.onsets_frames_transcription.callback import FullPredictionMetrics, \
+from magenta.models.polyamp.callback import FullPredictionMetrics, \
     MidiPredictionMetrics, TimbrePredictionMetrics
-from magenta.models.onsets_frames_transcription.full_model import FullModel
-from magenta.models.onsets_frames_transcription.layer_util import get_croppings_for_single_image
-from magenta.models.onsets_frames_transcription.timbre_dataset_reader import NoteCropping
-from magenta.models.onsets_frames_transcription.timbre_model import timbre_prediction_model
+from magenta.models.polyamp.full_model import FullModel
+from magenta.models.polyamp.layer_util import get_croppings_for_single_image
+from magenta.models.polyamp.timbre_dataset_reader import NoteCropping
+from magenta.models.polyamp.timbre_model import timbre_prediction_model
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -37,11 +37,11 @@ else:
     from tensorflow.keras import Model
     import tensorflow.keras.backend as K
 
-from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
+from magenta.models.polyamp.data_generator import DataGenerator
 
-from magenta.models.onsets_frames_transcription.accuracy_util import AccuracyMetric, \
+from magenta.models.polyamp.accuracy_util import AccuracyMetric, \
     convert_multi_instrument_probs_to_predictions, multi_track_prf_wrapper
-from magenta.models.onsets_frames_transcription.midi_model import midi_prediction_model
+from magenta.models.polyamp.midi_model import midi_prediction_model
 
 
 class ModelType(Enum):

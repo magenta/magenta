@@ -10,9 +10,9 @@ from dotmap import DotMap
 import tensorflow.compat.v1 as tf
 
 from magenta.common import tf_utils
-from magenta.models.onsets_frames_transcription.accuracy_util import binary_accuracy_wrapper, \
+from magenta.models.polyamp.accuracy_util import binary_accuracy_wrapper, \
     f1_wrapper, true_positive_wrapper
-from magenta.models.onsets_frames_transcription.loss_util import log_loss_wrapper, \
+from magenta.models.polyamp.loss_util import log_loss_wrapper, \
     log_loss_flattener
 from sklearn.metrics import f1_score
 
@@ -40,7 +40,7 @@ else:
         Input, LSTM, MaxPooling2D, Reshape, concatenate, ELU, Lambda
     from tensorflow.keras.models import Model
 
-from magenta.models.onsets_frames_transcription import constants
+from magenta.models.polyamp import constants
 
 
 def get_default_hparams():

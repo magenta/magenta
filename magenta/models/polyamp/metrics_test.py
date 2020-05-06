@@ -18,7 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from magenta.models.onsets_frames_transcription import metrics
+from magenta.models.polyamp import metrics
 from magenta.music.protobuf import music_pb2
 
 import numpy as np

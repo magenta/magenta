@@ -32,14 +32,14 @@ import tensorflow.keras.backend as K
 import numpy as np
 
 # Should not be called from within the graph to avoid redundant summaries.
-from magenta.models.onsets_frames_transcription import audio_label_data_utils, constants
-from magenta.models.onsets_frames_transcription.callback import EvaluationMetrics, \
+from magenta.models.polyamp import audio_label_data_utils, constants
+from magenta.models.polyamp.callback import EvaluationMetrics, \
     MidiPredictionMetrics
-from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
-from magenta.models.onsets_frames_transcription.data_generator import DataGenerator
-from magenta.models.onsets_frames_transcription.metrics import f1_score
-from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
-from magenta.models.onsets_frames_transcription.timbre_dataset_reader import create_spectrogram
+from magenta.models.polyamp.data import wav_to_spec_op
+from magenta.models.polyamp.data_generator import DataGenerator
+from magenta.models.polyamp.metrics import f1_score
+from magenta.models.polyamp.model_util import ModelWrapper, ModelType
+from magenta.models.polyamp.timbre_dataset_reader import create_spectrogram
 from magenta.music import midi_io, audio_io
 from magenta.music.protobuf import music_pb2
 

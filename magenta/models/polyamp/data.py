@@ -34,8 +34,8 @@ import zlib
 from enum import Enum
 
 import librosa
-from magenta.models.onsets_frames_transcription import audio_transform, instrument_family_mappings
-from magenta.models.onsets_frames_transcription import constants
+from magenta.models.polyamp import audio_transform, instrument_family_mappings
+from magenta.models.polyamp import constants
 from magenta.music import audio_io
 from magenta.music import melspec_input
 from magenta.music import sequences_lib

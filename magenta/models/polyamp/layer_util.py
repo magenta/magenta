@@ -7,8 +7,8 @@ from tensorflow.keras import layers
 import numpy as np
 from intervaltree.node import l2
 
-from magenta.models.onsets_frames_transcription import constants, infer_util
-from magenta.models.onsets_frames_transcription.timbre_dataset_reader import get_cqt_index, \
+from magenta.models.polyamp import constants, infer_util
+from magenta.models.polyamp.timbre_dataset_reader import get_cqt_index, \
     get_mel_index, NoteCropping
 from magenta.music import midi_io
 

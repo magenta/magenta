@@ -27,7 +27,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from dotmap import DotMap
 
-from magenta.models.onsets_frames_transcription.data import wav_to_spec_op, samples_to_cqt
+from magenta.models.polyamp.data import wav_to_spec_op, samples_to_cqt
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -67,9 +67,9 @@ tf.app.flags.DEFINE_boolean(
     'load_full', False,
     'Whether to use use the weights saved from full training')
 
-from magenta.models.onsets_frames_transcription import configs, model_util
-from magenta.models.onsets_frames_transcription import data
-from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
+from magenta.models.polyamp import configs, model_util
+from magenta.models.polyamp import data
+from magenta.models.polyamp.model_util import ModelWrapper, ModelType
 from magenta.music import midi_io
 
 

@@ -20,7 +20,7 @@ import functools
 import json
 import os
 
-from magenta.models.onsets_frames_transcription.data import merge_data_functions
+from magenta.models.polyamp.data import merge_data_functions
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -106,7 +106,7 @@ if FLAGS.using_plaidml:
 
     plaidml.keras.install_backend()
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs, \
+from magenta.models.polyamp import data, train_util, configs, \
     timbre_dataset_reader, \
     model_util
 

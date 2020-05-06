@@ -22,9 +22,9 @@ import functools
 
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import tf_utils
-from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription import infer_util
-from magenta.models.onsets_frames_transcription import metrics
+from magenta.models.polyamp import constants
+from magenta.models.polyamp import infer_util
+from magenta.models.polyamp import metrics
 
 import tensorflow as tf
 
