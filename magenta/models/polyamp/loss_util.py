@@ -13,15 +13,7 @@
 # limitations under the License.
 
 import tensorflow as tf
-
-import tensorflow.compat.v1 as tf
-
-FLAGS = tf.app.flags.FLAGS
-
-if FLAGS.using_plaidml:
-    import keras.backend as K
-else:
-    import tensorflow.keras.backend as K
+import tensorflow.keras.backend as K
 
 
 def _recall_weighing_loss(labels, predictions, epsilon=1e-9, recall_weighing=0):
@@ -78,6 +70,7 @@ def melodic_loss_wrapper(recall_weighing=0):
     :param recall_weighing: Scalar to prefer recall over precision.
     :return: Melodic Model loss.
     """
+
     def melodic_loss_fn(label_true, label_predicted):
         return tf.reduce_mean(_recall_weighing_loss(label_true,
                                                     label_predicted,

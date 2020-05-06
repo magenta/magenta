@@ -1,36 +1,15 @@
 import functools
 import math
-import operator
 
-import tensorflow as tf
-from tensorflow.keras import layers
 import numpy as np
-from intervaltree.node import l2
+import tensorflow as tf
+from tensorflow.keras import backend as K, layers
+from tensorflow.keras.layers import Conv2D, ELU, GlobalAveragePooling1D, GlobalMaxPooling1D, \
+    MaxPooling2D, Multiply, TimeDistributed
 
 from magenta.models.polyamp import constants, infer_util
-from magenta.models.polyamp.timbre_dataset_reader import get_cqt_index, \
-    get_mel_index, NoteCropping
+from magenta.models.polyamp.timbre_dataset_reader import NoteCropping, get_cqt_index, get_mel_index
 from magenta.music import midi_io
-
-FLAGS = tf.compat.v1.app.flags.FLAGS
-if FLAGS.using_plaidml:
-    import plaidml.keras
-
-    plaidml.keras.install_backend()
-    from keras import backend as K
-    from keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
-    MaxPooling2D, TimeDistributed, \
-    GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D, Add
-    from keras.regularNoteizers import l2
-    from keras.initializers import he_normal
-
-else:
-    from tensorflow.keras import backend as K
-    from tensorflow.keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
-        MaxPooling2D, TimeDistributed, \
-        GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D, Add
-    from tensorflow.keras.regularizers import l2
-    from tensorflow.keras.initializers import he_normal
 
 
 # if we aren't coagulating the cropped mini-batches, then we use TimeDistributed

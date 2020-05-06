@@ -1,4 +1,18 @@
-# load and save models
+# Copyright 2020 Jack Spencer Smith.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Run, Load, and save models."""
 import glob
 import os
 import time
@@ -9,45 +23,28 @@ import librosa.display
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tensorflow.keras.backend as K
+from tensorflow.keras import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.utils import plot_model
 
-from magenta.models.polyamp import constants, infer_util, \
-    instrument_family_mappings
+from magenta.models.polyamp import constants, infer_util
+from magenta.models.polyamp.accuracy_util import convert_multi_instrument_probs_to_predictions, \
+    multi_track_prf_wrapper
 from magenta.models.polyamp.callback import FullPredictionMetrics, \
     MidiPredictionMetrics, TimbrePredictionMetrics
+from magenta.models.polyamp.data_generator import DataGenerator
 from magenta.models.polyamp.full_model import FullModel
 from magenta.models.polyamp.layer_util import get_croppings_for_single_image
+from magenta.models.polyamp.melodic_model import get_melodic_model
 from magenta.models.polyamp.timbre_dataset_reader import NoteCropping
 from magenta.models.polyamp.timbre_model import timbre_prediction_model
 
-FLAGS = tf.app.flags.FLAGS
-
-if FLAGS.using_plaidml:
-    # os.environ["KERAS_BACKEND"] = "plaidml.keras.backend"
-
-    import plaidml.keras
-
-    plaidml.keras.install_backend()
-    from keras.optimizers import Adam
-    from keras.utils import plot_model
-    import keras.backend as K
-else:
-    from tensorflow.keras import optimizers
-    from tensorflow.keras.optimizers import Adam
-    from tensorflow.keras.utils import plot_model
-    from tensorflow.keras import Model
-    import tensorflow.keras.backend as K
-
-from magenta.models.polyamp.data_generator import DataGenerator
-
-from magenta.models.polyamp.accuracy_util import AccuracyMetric, \
-    convert_multi_instrument_probs_to_predictions, multi_track_prf_wrapper
-from magenta.models.polyamp.melodic_model import midi_prediction_model
-
 
 class ModelType(Enum):
-    MIDI = 'Midi',
-    TIMBRE = 'Timbre',
-    FULL = 'Full',
+    MELODIC = 'melodic'
+    TIMBRE = 'timbre'
+    FULL = 'full'
 
 
 def to_lists(x, y):
@@ -55,26 +52,23 @@ def to_lists(x, y):
 
 
 class ModelWrapper:
-    def __init__(self, model_dir, type, id=None, batch_size=8, steps_per_epoch=100,
-                 dataset=None,
-                 accuracy_metric=AccuracyMetric('acc', 'accuracy'),
-                 model=None, hist=None, hparams=None):
+    def __init__(self, model_dir, type_, id_=None, batch_size=8, steps_per_epoch=100,
+                 dataset=None, model=None, hist=None, hparams=None):
         self.model_dir = model_dir
-        self.type = type
+        self.type = type_
 
         self.model_save_format = '{}/{}/{}/Training Model Weights {:.2f} {:.2f} {}.hdf5' \
-            if type is not ModelType.TIMBRE \
+            if type_ is not ModelType.TIMBRE \
             else '{}/{}/{}/Training Model Weights {:.2f} {}.hdf5'
         self.history_save_format = '{}/{}/{}/Training History {:.2f} {:.2f} {}' \
-            if type is not ModelType.TIMBRE \
+            if type_ is not ModelType.TIMBRE \
             else '{}/{}/{}/Training History {:.2f} {}.hdf5'
-        if id is None:
+        if id_ is None:
             self.id = uuid.uuid4().hex
         else:
-            self.id = id
+            self.id = id_
         self.batch_size = batch_size
         self.steps_per_epoch = steps_per_epoch
-        self.accuracy_metric = accuracy_metric
         self.model: Model = model
         self.hist = hist
         self.hparams = hparams
@@ -85,8 +79,8 @@ class ModelWrapper:
         else:
             self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
                                            use_numpy=False)
-        save_dir = f'{model_dir}/{type.name}/{self.id}'
-        if self.type is ModelType.MIDI:
+        save_dir = f'{self.model_dir}/{self.type.name}/{self.id}'
+        if self.type is ModelType.MELODIC:
             self.metrics = MidiPredictionMetrics(self.generator, self.hparams, save_dir=save_dir)
         elif self.type is ModelType.TIMBRE:
             self.metrics = TimbrePredictionMetrics(self.generator, self.hparams)
@@ -97,7 +91,7 @@ class ModelWrapper:
         return self.model
 
     def save_model_with_metrics(self, epoch_num):
-        if self.type == ModelType.MIDI or self.type == ModelType.FULL:
+        if self.type == ModelType.MELODIC or self.type == ModelType.FULL:
             id_tup = (self.model_dir, self.type.name, self.id,
                       self.metrics.metrics_history[-1].frames['f1_score'].numpy() * 100,
                       self.metrics.metrics_history[-1].onsets['f1_score'].numpy() * 100,
@@ -114,7 +108,6 @@ class ModelWrapper:
         np.save(self.history_save_format.format(*id_tup), [self.metrics.metrics_history])
         print('Model weights saved at: ' + self.model_save_format.format(*id_tup))
 
-    # @profile
     def train_and_save(self, epochs=1, epoch_num=0):
         if self.model is None:
             self.build_model()
@@ -245,9 +238,11 @@ class ModelWrapper:
         edge_spacing = 16
         for i in range(0, K.int_shape(midi_spec)[1] * self.hparams.spec_hop_length, samples_length):
             m_start = int(i / self.hparams.spec_hop_length)
-            m_end = min(midi_spec_len, int(edge_spacing * 2 + (i + samples_length) / self.hparams.spec_hop_length))
+            m_end = min(midi_spec_len,
+                        int(edge_spacing * 2 + (i + samples_length) / self.hparams.spec_hop_length))
             t_start = int(i / self.hparams.timbre_hop_length)
-            t_end = min(timbre_spec_len, int(edge_spacing * 4 + (i + samples_length) / self.hparams.timbre_hop_length))
+            t_end = min(timbre_spec_len, int(
+                edge_spacing * 4 + (i + samples_length) / self.hparams.timbre_hop_length))
             split_pred = self.model.call([
                 K.expand_dims(midi_spec[0, m_start:m_end], 0),
                 K.expand_dims(timbre_spec[0, t_start:t_end], 0),
@@ -259,9 +254,12 @@ class ModelWrapper:
                 offsets = split_pred[2][0][:-edge_spacing]
             else:
                 # ignore the edge temoral info
-                frames = np.concatenate([frames, split_pred[0][0][edge_spacing:-edge_spacing]], axis=0)
-                onsets = np.concatenate([onsets, split_pred[1][0][edge_spacing:-edge_spacing]], axis=0)
-                offsets = np.concatenate([offsets, split_pred[2][0][edge_spacing:-edge_spacing]], axis=0)
+                frames = np.concatenate([frames, split_pred[0][0][edge_spacing:-edge_spacing]],
+                                        axis=0)
+                onsets = np.concatenate([onsets, split_pred[1][0][edge_spacing:-edge_spacing]],
+                                        axis=0)
+                offsets = np.concatenate([offsets, split_pred[2][0][edge_spacing:-edge_spacing]],
+                                         axis=0)
         return [np.expand_dims(frames, 0),
                 np.expand_dims(onsets, 0),
                 np.expand_dims(offsets, 0)]
@@ -323,7 +321,7 @@ class ModelWrapper:
     def predict_from_spec(self, spec=None, num_croppings=None, additional_spec=None, num_notes=None,
                           qpm=None,
                           *args):
-        if self.type == ModelType.MIDI:
+        if self.type == ModelType.MELODIC:
             return self._predict_sequence(spec, qpm=qpm)
         elif self.type == ModelType.TIMBRE:
             return self._predict_timbre(spec, num_croppings)
@@ -357,7 +355,7 @@ class ModelWrapper:
         if not id:
             id = self.id
         self.build_model()
-        if self.type == ModelType.MIDI:
+        if self.type == ModelType.MELODIC:
             id_tup = (self.model_dir, self.type.name, id, frames_f1, onsets_f1, epoch_num)
         else:
             id_tup = (self.model_dir, self.type.name, id, frames_f1, epoch_num)
@@ -377,10 +375,10 @@ class ModelWrapper:
                   .format(self.model_save_format.format(*id_tup)))
 
     def build_model(self, midi_model=None, timbre_model=None, compile=True):
-        if self.type == ModelType.MIDI or self.type == ModelType.FULL and midi_model is None:
-            midi_model, losses, accuracies = midi_prediction_model(self.hparams)
+        if self.type == ModelType.MELODIC or self.type == ModelType.FULL and midi_model is None:
+            midi_model, losses, accuracies = get_melodic_model(self.hparams)
 
-            if self.type == ModelType.MIDI:
+            if self.type == ModelType.MELODIC:
                 if compile:
                     midi_model.compile(Adam(self.hparams.learning_rate,
                                             decay=self.hparams.decay_rate,

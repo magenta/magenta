@@ -1,4 +1,5 @@
 # Copyright 2020 The Magenta Authors.
+# Modifications Copyright 2020 Jack Spencer Smith.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,27 +15,23 @@
 
 r"""Beam job for creating transcription dataset from MAESTRO."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from magenta.models.polyamp import configs
 from magenta.models.polyamp import create_dataset_maestro
 from magenta.models.polyamp import dataset_reader
-import tensorflow.compat.v1 as tf
+from absl import app
 
 
 def main(argv):
-  del argv
+    del argv
 
-  create_dataset_maestro.pipeline(
-      configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, dataset_reader.preprocess_example,
-      dataset_reader.input_tensors_to_example)
+    create_dataset_maestro.pipeline(
+        configs.CONFIG_MAP, configs.DATASET_CONFIG_MAP, dataset_reader.preprocess_example,
+        dataset_reader.input_tensors_to_example)
 
 
 def console_entry_point():
-  tf.app.run(main)
+    app.run(main)
 
 
 if __name__ == '__main__':
-  console_entry_point()
+    console_entry_point()

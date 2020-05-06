@@ -1,22 +1,13 @@
-import sys
-
-import numpy as np
-
 import threading
 
-import tensorflow.compat.v1 as tf
+import numpy as np
+import tensorflow.keras as keras
 import tensorflow.keras.backend as K
-
-FLAGS = tf.app.flags.FLAGS
-
-if FLAGS.using_plaidml:
-    import keras
-else:
-    import tensorflow.keras as keras
 
 
 class DataGenerator(keras.utils.Sequence):
     'Generates data for Keras'
+
     def __init__(self, dataset, batch_size, steps_per_epoch, shuffle=False, use_numpy=True,
                  coagulate_mini_batches=False):
         'Initialization'
@@ -53,10 +44,12 @@ class DataGenerator(keras.utils.Sequence):
         if self.shuffle:
             np.random.shuffle(np.arange(self.steps_per_epoch * self.batch_size))
 
+
 class threadsafe_iter:
     """Takes an iterator/generator and makes it thread-safe by
     serializing call to the `next` method of given iterator/generator.
     """
+
     def __init__(self, it):
         self.it = it
         self.lock = threading.Lock()
@@ -68,12 +61,16 @@ class threadsafe_iter:
         with self.lock:
             return self.it.__next__()
 
+
 def threadsafe_generator(f):
     """A decorator that takes a generator function and makes it thread-safe.
     """
+
     def g(*a, **kw):
         return threadsafe_iter(f(*a, **kw))
+
     return g
+
 
 class PythonDataGenerator(DataGenerator):
     def __init__(self, dataset, batch_size, steps_per_epoch, shuffle=False, use_numpy=True,

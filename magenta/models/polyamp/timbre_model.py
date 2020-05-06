@@ -5,47 +5,22 @@ from __future__ import absolute_import, division, print_function
 import functools
 import math
 
-import tensorflow as tf
 from dotmap import DotMap
+from tensorflow.keras import backend as K
+from tensorflow.keras.layers import Bidirectional, Conv1D, Conv2D, ConvLSTM2D, Dense, Dropout, ELU, \
+    Flatten, GlobalMaxPooling1D, Input, LSTM, Lambda, MaxPooling1D, Reshape, SpatialDropout2D, \
+    TimeDistributed, concatenate
+from tensorflow.keras.models import Model
+from tensorflow.keras.regularizers import l2
 
 from magenta.models.polyamp import constants
 from magenta.models.polyamp.accuracy_util import flatten_accuracy_wrapper, flatten_f1_wrapper
 from magenta.models.polyamp.layer_util import conv_bn_elu_layer, \
     get_all_croppings, time_distributed_wrapper
-
-FLAGS = tf.compat.v1.app.flags.FLAGS
-if FLAGS.using_plaidml:
-    import plaidml.keras
-
-    plaidml.keras.install_backend()
-
-    from keras import backend as K
-    from keras.initializers import he_normal, VarianceScaling, he_uniform, glorot_uniform
-    from keras.activations import tanh
-    from keras.layers import Conv2D, \
-        Dense, Dropout, \
-        Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, \
-        TimeDistributed, \
-        Conv1D, Permute, ConvLSTM2D, SpatialDropout2D, SpatialDropout1D, MaxPooling1D, Activation
-    from keras.models import Model
-    from keras.regularizers import l2
-else:
-    from tensorflow.keras import backend as K
-    from tensorflow.keras.initializers import he_normal, VarianceScaling, he_uniform, glorot_uniform
-    from tensorflow.keras.activations import tanh
-    from tensorflow.keras.layers import Conv2D, \
-        Dense, Dropout, \
-        Input, concatenate, Lambda, Reshape, LSTM, \
-        Flatten, ELU, GlobalMaxPooling2D, Bidirectional, Multiply, LocallyConnected1D, \
-        TimeDistributed, GlobalMaxPooling1D, GlobalAveragePooling1D, \
-        Conv1D, Permute, ConvLSTM2D, SpatialDropout2D, SpatialDropout1D, MaxPooling1D, Activation
-    from tensorflow.keras.models import Model
-    from tensorflow.keras.regularizers import l2
-    from tensorflow.keras.losses import BinaryCrossentropy
-
-
 # \[0\.[2-7][0-9\.,\ ]+\]$\n.+$\n\[0\.[2-7]
+from magenta.models.polyamp.loss_util import timbre_loss_wrapper
+
+
 def get_default_hparams():
     return {
         'timbre_learning_rate': 4e-4,
@@ -275,41 +250,20 @@ def timbre_prediction_model(hparams=None):
     note_croppings = Input(shape=(None, 3),
                            name='note_croppings', dtype='int64')
 
-    # num_notes = Input(shape=(1,), name='num_notes', dtype='int64')
-
     instrument_family_probs = get_timbre_output_layer(hparams)([spec, note_croppings])
 
-    if hparams.timbre_weighted_loss:
-        weights = tf.repeat(K.expand_dims(hparams.timbre_class_weights_list, -1),
-                            len(hparams.timbre_class_weights_list), axis=-1)
-    else:
-        weights = tf.ones(shape=(hparams.timbre_num_classes, hparams.timbre_num_classes))
+    if hparams.timbre_final_activation == 'sigmoid':
+        # This is the only supported option.
+        losses = {'family_probs': timbre_loss_wrapper(hparams=hparams, recall_weighing=4.)}
 
-    # decrease loss for correct predictions TODO does this make any sense?
-    weights = weights * (1 + tf.linalg.diag(
-        tf.repeat(
-            hparams.weight_correct_multiplier - 1,
-            hparams.timbre_num_classes
-        )
-    ))
-    if hparams.timbre_final_activation == 'softmax':
-        # this seems to work better than with logits
-        losses = {'family_probs': WeightedCrossentropy(
-            hparams=hparams,
-            weights=weights)}
-
-    elif hparams.timbre_final_activation == 'sigmoid':
-        losses = {'family_probs': WeightedCrossentropy(
-            hparams=hparams,
-            weights=weights,
-            name='binary_crossentropy')}
+    elif hparams.timbre_final_activation == 'softmax':
+        # TODO use multi-class labelling loss function.
+        losses = {'family_probs': timbre_loss_wrapper(hparams=hparams, recall_weighing=4.)}
 
     else:
-        # losses = {'family_probs': flatten_weighted_logit_loss(.4)}
-        # this seems to decrease predicted support when you have bad precision, which is the goal?
-        losses = {'family_probs': WeightedCrossentropy(
-            hparams=hparams,
-            weights=weights, from_logits=True, recall_weighing=2.)}
+        # TODO use logit loss function.
+        losses = {'family_probs': timbre_loss_wrapper(hparams=hparams, recall_weighing=4.)}
+
     accuracies = {'family_probs': [flatten_accuracy_wrapper(),
                                    lambda *x: flatten_f1_wrapper()(*x)['f1_score']]}
 
@@ -363,7 +317,9 @@ def get_timbre_output_layer(hparams):
             output_shape=output_shape)(
             [reshaped_outputs, note_croppings])
 
-        # We now need to use TimeDistributed because we have 5 dimensions, and want to operate on the
+        # We now need to use TimeDistributed because we have 5 dimensions,
+        # and want to operate on thelast 3 independently:
+        # (time, frequency, and number of channels/filters).
         pooled_outputs = time_distributed_wrapper(
             MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
                          padding='same'),
@@ -372,7 +328,6 @@ def get_timbre_output_layer(hparams):
 
         if hparams.timbre_local_conv_num_filters:
             pooled_outputs = local_conv_layer(hparams)(pooled_outputs)
-        # last 3 independently (time, frequency, and number of channels/filters)
         # flatten while preserving batch and time dimensions
         flattened_outputs = time_distributed_wrapper(Flatten(), hparams=hparams, name='flatten')(
             pooled_outputs)
