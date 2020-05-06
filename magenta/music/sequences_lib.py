@@ -1840,7 +1840,7 @@ def sequence_to_pianoroll(
       continue
 
     if not note.is_drum and \
-            instrument_family_mappings.midi_instrument_to_family[note.program] >= timbre_num_classes or \
+            instrument_family_mappings.midi_instrument_to_family[note.program].value >= timbre_num_classes or \
             instrument_family is not None \
             and instrument_family_mappings.midi_instrument_to_family[note.program].value != instrument_family:
       continue
@@ -1949,7 +1949,8 @@ def pianoroll_to_note_sequence(frames,
                                min_midi_pitch=constants.MIN_MIDI_PITCH,
                                onset_predictions=None,
                                offset_predictions=None,
-                               velocity_values=None):
+                               velocity_values=None,
+                               active_onsets=None):
   """Convert frames to a NoteSequence."""
   frame_length_seconds = 1 / frames_per_second
 
@@ -1967,11 +1968,13 @@ def pianoroll_to_note_sequence(frames,
   if velocity_values is None:
     velocity_values = velocity * np.ones_like(frames, dtype=np.int32)
 
-  if onset_predictions is not None:
+  if active_onsets is not None:
+    active_onsets = np.append(active_onsets,
+                                  [np.zeros(active_onsets[0].shape)], 0)
     onset_predictions = np.append(onset_predictions,
-                                  [np.zeros(onset_predictions[0].shape)], 0)
+                              [np.zeros(onset_predictions[0].shape)], 0)
     # Ensure that any frame with an onset prediction is considered active.
-    frames = np.logical_or(frames, onset_predictions)
+    frames = np.logical_or(frames, active_onsets)
 
   if offset_predictions is not None:
     offset_predictions = np.append(offset_predictions,
@@ -2001,7 +2004,7 @@ def pianoroll_to_note_sequence(frames,
       if onset_predictions is not None:
         # If onset predictions were supplied, only allow a new note to start
         # if we've predicted an onset.
-        if onset_predictions[i, pitch]:
+        if onset_predictions[i, pitch] or active_onsets[i, pitch]:
           pitch_start_step[pitch] = i
           onset_velocities[pitch] = _unscale_velocity(velocity_values[i, pitch])
         else:
@@ -2014,8 +2017,8 @@ def pianoroll_to_note_sequence(frames,
       if onset_predictions is not None:
         # pitch is already active, but if this is a new onset, we should end
         # the note and start a new one.
-        if (onset_predictions[i, pitch] and
-            not onset_predictions[i - 1, pitch]):
+        if (active_onsets[i, pitch] and
+            not (active_onsets[i - 1, pitch] or onset_predictions[i - 1, pitch])):
           end_pitch(pitch, i)
           pitch_start_step[pitch] = i
           onset_velocities[pitch] = _unscale_velocity(velocity_values[i, pitch])

@@ -105,7 +105,7 @@ midi_instrument_to_family.update({
     82: Family.SYNTH_LEAD,
     83: Family.SYNTH_LEAD,
     84: Family.SYNTH_LEAD,
-    85: Family.SYNTH_LEAD,
+    85: Family.VOCAL,
     86: Family.SYNTH_LEAD,
     87: Family.SYNTH_LEAD,
     105: Family.GUITAR,
@@ -122,16 +122,16 @@ midi_instrument_to_family.update({
 
 family_to_midi_instrument = {
     0: 33,  # Acoustic Bass
-    1: 62,  # Brass Section
+    1: 57,  # Trumpet
     2: 74,  # Flute
     3: 25,  # Acoustic Nylon Guitar
     4: 1,  # keyboard / Acoustic Grand Piano
     5: 9,  # mallet / Celesta
     6: 17,  # organ / Drawbar Organ
-    7: 72,  # reed / Clarinet
+    7: 66,  # reed / Alto Sax
     8: 49,  # string / String Ensemble
-    9: 82,  # synth lead / Sawtooth
-    10: 55,  # vocal / Synth Voice
+    9: 83,  # synth lead / Square
+    10: 54,  # vocal / Voice Oohs
     11: 118,
     12: 119, # TODO actual percussion
 }

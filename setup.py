@@ -58,14 +58,15 @@ REQUIRED_PACKAGES = [
     'tensorflow >= 2.0.0',  # Magenta is not yet TF2 compatible.
 
     'tensorflow-datasets >= 1.0.2',
-    'tensorflow-probability == 0.7.0',
+    'tensorflow-probability >= 0.7.0',
     'tensor2tensor >= 1.13.4',
     'wheel',
     'futures;python_version=="2.7"',
     'apache-beam[gcp] >= 2.14.0',
     'Keras',
     'pydot',
-    'graphviz'
+    'graphviz',
+    'dotmap'
 ]
 
 EXTRAS_REQUIRE = {

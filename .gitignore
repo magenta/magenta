@@ -12,3 +12,4 @@ build/
 *.npy
 *.hdf5
 magenta/models/onsets_frames_transcription/models/*
+magenta/models/onsets_frames_transcription/out/*

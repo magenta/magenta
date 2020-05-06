@@ -268,20 +268,3 @@ def transform_wav_audio(wav_audio, hparams, pipeline=None):
     finally:
         os.close(temp_input_with_noise_fd)
         os.remove(temp_input_with_noise_name)
-
-    '''
-    with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input_with_noise:
-        with tempfile.NamedTemporaryFile(suffix='.wav') as temp_input:
-            temp_input.write(wav_audio)
-            temp_input.flush()
-
-            # Add noise before all other pipeline steps.
-            noise_vol = random.uniform(hparams.audio_transform_min_noise_vol,
-                                       hparams.audio_transform_max_noise_vol)
-            add_noise(temp_input.name, temp_input_with_noise.name, noise_vol,
-                      hparams.audio_transform_noise_type)
-
-        with tempfile.NamedTemporaryFile(suffix='.wav') as temp_output:
-            run_pipeline(pipeline, temp_input_with_noise.name, temp_output.name)
-            return temp_output.read()
-    '''

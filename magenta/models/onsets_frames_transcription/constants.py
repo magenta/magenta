@@ -40,14 +40,16 @@ FAMILY_IDX_STRINGS = {
     7: 'reed',
     8: 'string',
     9: 'synth_lead',
-    10: 'vocal'
+    10: 'vocal',
+    11: 'other',
+    12: 'agnostic'
 }
 
 
 SPEC_BANDS = 229
 TIMBRE_SPEC_BANDS = 229
 
-# is 25
+# is 28
 BINS_PER_OCTAVE = math.ceil(TIMBRE_SPEC_BANDS / (TIMBRE_PITCHES / 12))
 
 NUM_INSTRUMENT_FAMILIES = 11

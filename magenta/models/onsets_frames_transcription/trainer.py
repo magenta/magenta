@@ -20,6 +20,8 @@ import functools
 import json
 import os
 
+from magenta.models.onsets_frames_transcription.data import merge_data_functions
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 from dotmap import DotMap
@@ -45,6 +47,10 @@ tf.app.flags.DEFINE_string('config', 'onsets_frames',
 tf.app.flags.DEFINE_string(
     'examples_path', None,
     'Path to a TFRecord file of train/eval examples.')
+tf.app.flags.DEFINE_string(
+    'nsynth_examples_path', None,
+    'Optional path to a TFRecord for full model training on nsynth-style data.'
+)
 tf.app.flags.DEFINE_boolean(
     'preprocess_examples', True,
     'Whether to preprocess examples or assume they have already been '
@@ -59,6 +65,8 @@ tf.app.flags.DEFINE_integer('num_steps', 1000000,
 tf.app.flags.DEFINE_integer(
     'eval_num_steps', None,
     'Number of eval steps or `None` to go through all examples.')
+tf.app.flags.DEFINE_boolean('note_based', False,
+                            'Whether eval metrics are note-based for Melodic model.')
 tf.app.flags.DEFINE_integer(
     'keep_checkpoint_max', 100,
     'Maximum number of checkpoints to keep in `train` mode or 0 for infinite.')
@@ -98,7 +106,8 @@ if FLAGS.using_plaidml:
 
     plaidml.keras.install_backend()
 
-from magenta.models.onsets_frames_transcription import data, train_util, configs, timbre_dataset_reader, \
+from magenta.models.onsets_frames_transcription import data, train_util, configs, \
+    timbre_dataset_reader, \
     model_util
 
 
@@ -143,12 +152,13 @@ def run(config_map, data_fn, additional_trial_info):
             # model_fn=config.model_fn,
             data_fn=data_fn,
             additional_trial_info=additional_trial_info,
-            master=FLAGS.master,
             model_dir=model_dir,
+            model_type=model_util.ModelType[FLAGS.model_type],
             name=FLAGS.eval_name,
             preprocess_examples=FLAGS.preprocess_examples,
             hparams=hparams,
-            num_steps=FLAGS.eval_num_steps)
+            num_steps=FLAGS.eval_num_steps,
+            note_based=FLAGS.note_based)
     else:
         raise ValueError('Unknown/unsupported mode: %s' % FLAGS.mode)
 
@@ -156,13 +166,19 @@ def run(config_map, data_fn, additional_trial_info):
 def main(argv):
     del argv
     tf.app.flags.mark_flags_as_required(['examples_path'])
-    provide_batch_fn = timbre_dataset_reader.provide_batch if model_util.ModelType[
-                                                 FLAGS.model_type] == model_util.ModelType.TIMBRE \
+    provide_batch_fn = timbre_dataset_reader.provide_batch \
+        if model_util.ModelType[FLAGS.model_type] == model_util.ModelType.TIMBRE \
         else data.provide_batch
     data_fn = functools.partial(provide_batch_fn,
                                 examples=FLAGS.examples_path,
                                 dataset_name=FLAGS.dataset_name) \
         if FLAGS.examples_path else None
+    if FLAGS.nsynth_examples_path \
+            and model_util.ModelType[FLAGS.model_type] == model_util.ModelType.FULL:
+        nsynth_fn = functools.partial(timbre_dataset_reader.provide_batch,
+                                      examples=FLAGS.nsynth_examples_path,
+                                      for_full_model=True)
+        data_fn = merge_data_functions([nsynth_fn, data_fn])
     additional_trial_info = {'examples_path': FLAGS.examples_path}
     run(config_map=configs.CONFIG_MAP, data_fn=data_fn,
         additional_trial_info=additional_trial_info)

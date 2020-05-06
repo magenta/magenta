@@ -17,12 +17,17 @@
 from __future__ import absolute_import, division, print_function
 
 import copy
+import glob
 import json
 
+import librosa
 import tensorflow.compat.v1 as tf
+import tensorflow.keras.backend as K
+import matplotlib.pyplot as plt
 import numpy as np
 from dotmap import DotMap
-from magenta.models.onsets_frames_transcription.data import wav_to_spec_op
+
+from magenta.models.onsets_frames_transcription.data import wav_to_spec_op, samples_to_cqt
 
 FLAGS = tf.app.flags.FLAGS
 
@@ -48,6 +53,9 @@ tf.app.flags.DEFINE_boolean(
 tf.app.flags.DEFINE_string(
     'transcribed_file_suffix', 'predicted',
     'Optional suffix to add to transcribed files.')
+tf.app.flags.DEFINE_integer(
+    'qpm', None,
+    'Number of quarters (or beats) per minute. Default: 120')
 
 tf.app.flags.DEFINE_enum('model_type', 'MIDI', ['MIDI', 'FULL'],
                          'type of model to transcribe')
@@ -55,12 +63,14 @@ tf.app.flags.DEFINE_string(
     'log', 'INFO',
     'The threshold for what messages will be logged: '
     'DEBUG, INFO, WARN, ERROR, or FATAL.')
+tf.app.flags.DEFINE_boolean(
+    'load_full', False,
+    'Whether to use use the weights saved from full training')
 
-from magenta.models.onsets_frames_transcription import configs, model_util, constants
+from magenta.models.onsets_frames_transcription import configs, model_util
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription.model_util import ModelWrapper, ModelType
 from magenta.music import midi_io
-from magenta.music.protobuf import music_pb2
 
 
 def run(argv, config_map, data_fn):
@@ -78,50 +88,101 @@ def run(argv, config_map, data_fn):
     hparams.truncated_length_secs = 0
 
     model_type = model_util.ModelType[FLAGS.model_type]
-    model = ModelWrapper('./models', type=model_type, id=hparams.model_id, hparams=hparams)
+    model = ModelWrapper('E:/models', type=model_type, id=hparams.model_id, hparams=hparams)
 
-    midi_model = ModelWrapper('./models', ModelType.MIDI, hparams=hparams)
-    midi_model.build_model(compile=False)
-    midi_model.load_newest()
-    timbre_model = ModelWrapper('./models', ModelType.TIMBRE, hparams=hparams)
-    timbre_model.build_model(compile=False)
-    timbre_model.load_newest()
+    if model_type is model_util.ModelType.FULL:
 
-    model.build_model(midi_model=midi_model.get_model(), timbre_model=timbre_model.get_model())
+        midi_model = ModelWrapper('E:/models', ModelType.MIDI, hparams=hparams)
+        midi_model.build_model(compile=False)
+        midi_model.load_newest()
+        timbre_model = ModelWrapper('E:/models', ModelType.TIMBRE, hparams=hparams)
+        timbre_model.build_model(compile=False)
+        timbre_model.load_newest()
 
-    # model.build_model()
-    # model.load_newest()
+        model.build_model(midi_model=midi_model.get_model(),
+                          timbre_model=timbre_model.get_model(),
+                          compile=False)
+        model.load_newest()
+        midi_model.load_newest()
 
-    for filename in argv[1:]:
+
+    else:
+        model.build_model(compile=False)
+    try:
+        if FLAGS.load_full:
+            full = ModelWrapper('E:/models', ModelType.FULL,
+                                hparams=hparams)
+            full.build_model(compile=False,
+                             midi_model=model.get_model()
+                             if model_type is model_util.ModelType.MIDI
+                             else None,
+                             timbre_model=model.get_model()
+                             if model_type is model_util.ModelType.TIMBRE
+                             else None)
+            full.load_newest()
+        else:
+            model.load_newest()
+    except:
+        pass
+
+    try:
+        argv[1].index('*')
+        files = glob.glob(argv[1])
+    except ValueError:
+        files = argv[1:]
+
+    for filename in files:
         tf.compat.v1.logging.info('Starting transcription for %s...', filename)
 
-        wav_data = tf.gfile.Open(filename, 'rb').read()
+        # wav_data = tf.gfile.Open(filename, 'rb').read()
+        samples, sr = librosa.load(filename, hparams.sample_rate)
 
         if model_type is model_util.ModelType.MIDI:
-            spec = wav_to_spec_op(wav_data, hparams=hparams)
+            # spec = wav_to_spec_op(wav_data, hparams=hparams)
+            spec = samples_to_cqt(samples, hparams=hparams)
+            if hparams.spec_log_amplitude:
+                spec = librosa.power_to_db(spec)
 
             # add "batch" and channel dims
             spec = tf.reshape(spec, (1, *spec.shape, 1))
 
             tf.compat.v1.logging.info('Running inference...')
-            sequence_prediction = model.predict_from_spec(spec)
+            sequence_prediction = model.predict_from_spec(spec, qpm=FLAGS.qpm)
         else:
-            midi_spec = wav_to_spec_op(wav_data, hparams=hparams)
+            # midi_spec = wav_to_spec_op(wav_data, hparams=hparams)
+            midi_spec = samples_to_cqt(samples, hparams=hparams)
+            if hparams.spec_log_amplitude:
+                midi_spec = librosa.power_to_db(midi_spec)
+
             temp_hparams = copy.deepcopy(hparams)
             temp_hparams.spec_hop_length = hparams.timbre_hop_length
             temp_hparams.spec_type = hparams.timbre_spec_type
             temp_hparams.spec_log_amplitude = hparams.timbre_spec_log_amplitude
-            timbre_spec = wav_to_spec_op(wav_data, hparams=temp_hparams)
+            # timbre_spec = wav_to_spec_op(wav_data, hparams=temp_hparams)
+            timbre_spec = samples_to_cqt(samples, hparams=temp_hparams)
+            if hparams.timbre_spec_log_amplitude:
+                timbre_spec = librosa.power_to_db(timbre_spec)
+                timbre_spec = timbre_spec - librosa.power_to_db(np.array([1e-9]))[0]
+                timbre_spec /= K.max(timbre_spec)
+
             # add "batch" and channel dims
             midi_spec = tf.reshape(midi_spec, (1, *midi_spec.shape, 1))
             timbre_spec = tf.reshape(timbre_spec, (1, *timbre_spec.shape, 1))
 
             tf.compat.v1.logging.info('Running inference...')
-            sequence_prediction = model.predict_multi_sequence(midi_spec=midi_spec,
-                                                               timbre_spec=timbre_spec)
-        #assert len(prediction_list) == 1
 
-        #sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)
+            if hparams.present_instruments:
+                present_instruments = K.expand_dims(hparams.present_instruments, 0)
+            else:
+                present_instruments = None
+
+            sequence_prediction = model.predict_multi_sequence(midi_spec=midi_spec,
+                                                               timbre_spec=timbre_spec,
+                                                               present_instruments=present_instruments,
+                                                               qpm=FLAGS.qpm)
+        # assert len(prediction_list) == 1
+
+        # sequence_prediction = music_pb2.NoteSequence.FromString(sequence_prediction)
 
         midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)

@@ -33,6 +33,7 @@ import copy
 import csv
 import os
 
+import librosa
 from absl import app
 from absl import flags
 from absl import logging
@@ -40,7 +41,7 @@ from absl import logging
 import apache_beam as beam
 from apache_beam.metrics import Metrics
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
-from magenta.music import midi_io
+from magenta.music import midi_io, audio_io
 from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
@@ -53,10 +54,14 @@ flags.DEFINE_string('midi_dir', None, 'Directory for midi files.')
 flags.DEFINE_integer('num_shards', 0, 'number of output shards')
 flags.DEFINE_string('expected_splits', 'train,validation,test',
                     'Comma separated list of expected splits.')
-tf.app.flags.DEFINE_integer('min_length', 5, 'minimum length for a segment')
-tf.app.flags.DEFINE_integer('max_length', 20, 'maximum length for a segment')
-tf.app.flags.DEFINE_integer('sample_rate', 16000,
+flags.DEFINE_integer('min_length', 5, 'minimum length for a segment')
+flags.DEFINE_integer('max_length', 20, 'maximum length for a segment')
+flags.DEFINE_integer('sample_rate', 16000,
                             'sample_rate of the output files')
+
+# There seems to be inconsistency between all_src.mid and the stems in the slakh dataset.
+# The individual stems are what is actually being played in the wav file
+flags.DEFINE_boolean('use_midi_stems', True, 'If true, use midi stems instead of the single midi file')
 flags.DEFINE_boolean(
     'add_wav_glob', False,
     'If true, will add * to end of wav paths and use all matching files.')
@@ -64,6 +69,33 @@ flags.DEFINE_list(
     'pipeline_options', '--runner=DirectRunner',
     'A comma-separated list of command line arguments to be used as options '
     'for the Beam Pipeline.')
+flags.DEFINE_boolean(
+    'convert_flac', True,
+    'Convert flac to wav'
+)
+
+def note_sequence_from_directory(dir):
+    midis = tf.io.gfile.glob(f'{dir}/MIDI/*.mid')
+    multi_sequence = None
+    for i, midi in enumerate(midis):
+        sequence = midi_io.midi_file_to_note_sequence(midi)
+        if multi_sequence is None:
+            multi_sequence = sequence
+        else:
+            for note in sequence.notes:
+                note.instrument = i
+            for pitch_bend in sequence.pitch_bends:
+                pitch_bend.instrument = i
+            for control_change in sequence.control_changes:
+                control_change.instrument = i
+            for instrument_info in sequence.instrument_infos:
+                instrument_info.instrument = i
+            multi_sequence.notes.extend(sequence.notes)
+            multi_sequence.pitch_bends.extend(sequence.pitch_bends)
+            multi_sequence.control_changes.extend(sequence.control_changes)
+            multi_sequence.instrument_infos.extend(sequence.instrument_infos)
+            multi_sequence.total_time = max(multi_sequence.total_time, sequence.total_time)
+    return multi_sequence
 
 
 class CreateExampleDoFn(beam.DoFn):
@@ -79,13 +111,20 @@ class CreateExampleDoFn(beam.DoFn):
         wav_path, midi_path = paths
 
         if midi_path:
-            base_ns = midi_io.midi_file_to_note_sequence(midi_path)
+            if FLAGS.use_midi_stems:
+                base_ns = note_sequence_from_directory(os.path.dirname(midi_path))
+            else:
+                base_ns = midi_io.midi_file_to_note_sequence(midi_path)
             base_ns.filename = midi_path
         else:
             base_ns = music_pb2.NoteSequence()
 
         logging.info('Creating Example %s:%s', midi_path, wav_path)
-        wav_data = tf.io.gfile.GFile(wav_path, 'rb').read()
+        if FLAGS.convert_flac:
+            samples, sr = librosa.load(wav_path, FLAGS.sample_rate)
+            wav_data = audio_io.samples_to_wav_data(samples, sr)
+        else:
+            wav_data = tf.io.gfile.GFile(wav_path, 'rb').read()
 
         ns = copy.deepcopy(base_ns)
 
@@ -138,8 +177,10 @@ def main(argv):
     with beam.Pipeline(options=pipeline_options) as p:
         for split in splits:
             split_p = p | 'prepare_split_%s' % split >> beam.Create(splits[split])
+            split_p |= 'shuffle_input_%s' % split >> beam.Reshuffle()
             split_p |= 'create_examples_%s' % split >> beam.ParDo(
                 CreateExampleDoFn(FLAGS.base + split, FLAGS.add_wav_glob))
+            split_p |= 'shuffle_output_%s' % split >> beam.Reshuffle()
             split_p |= 'write_%s' % split >> beam.io.WriteToTFRecord(
                 os.path.join(FLAGS.output_directory, '%s.tfrecord' % split),
                 coder=beam.coders.ProtoCoder(tf.train.Example),

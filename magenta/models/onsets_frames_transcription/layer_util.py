@@ -1,12 +1,16 @@
 import functools
 import math
+import operator
 
 import tensorflow as tf
+from tensorflow.keras import layers
 import numpy as np
 from intervaltree.node import l2
 
-from magenta.models.onsets_frames_transcription import constants
-from magenta.models.onsets_frames_transcription.timbre_dataset_reader import get_cqt_index, get_mel_index
+from magenta.models.onsets_frames_transcription import constants, infer_util
+from magenta.models.onsets_frames_transcription.timbre_dataset_reader import get_cqt_index, \
+    get_mel_index, NoteCropping
+from magenta.music import midi_io
 
 FLAGS = tf.compat.v1.app.flags.FLAGS
 if FLAGS.using_plaidml:
@@ -15,25 +19,25 @@ if FLAGS.using_plaidml:
     plaidml.keras.install_backend()
     from keras import backend as K
     from keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
-        MaxPooling2D, TimeDistributed, \
-        GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D
-    from keras.regularizers import l2
+    MaxPooling2D, TimeDistributed, \
+    GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D, Add
+    from keras.regularNoteizers import l2
     from keras.initializers import he_normal
 
 else:
     from tensorflow.keras import backend as K
     from tensorflow.keras.layers import Multiply, Masking, BatchNormalization, Conv2D, ELU, \
         MaxPooling2D, TimeDistributed, \
-        GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D
+        GlobalMaxPooling1D, GlobalAveragePooling1D, MaxPooling1D, Add
     from tensorflow.keras.regularizers import l2
     from tensorflow.keras.initializers import he_normal
 
 
 # if we aren't coagulating the cropped mini-batches, then we use TimeDistributed
-def time_distributed_wrapper(x, hparams):
+def time_distributed_wrapper(x, hparams, name=None):
     if hparams.timbre_coagulate_mini_batches:
         return x
-    return TimeDistributed(x)
+    return TimeDistributed(x, name=name)
 
 
 # if we are bypassing this, then return a function that returns itself
@@ -45,13 +49,13 @@ def get_time_distributed_wrapper(bypass=False):
 
 
 # batch norm, then elu activation, then maxpool
-def bn_elu_layer(hparams, pool_size, time_distributed_bypass):
+def bn_elu_layer(hparams, pool_size, time_distributed_bypass, activation_fn):
     def bn_elu_fn(x):
         return get_time_distributed_wrapper(bypass=time_distributed_bypass)(
             MaxPooling2D(pool_size=pool_size), hparams=hparams)(
-            ELU(hparams.timbre_leaky_alpha)(
-                get_time_distributed_wrapper(bypass=time_distributed_bypass)(
-                    BatchNormalization(scale=False), hparams=hparams)
+            activation_fn(
+                # get_time_distributed_wrapper(bypass=time_distributed_bypass)(
+                #     BatchNormalization(scale=False), hparams=hparams)
                 (x)))
 
     return bn_elu_fn
@@ -59,17 +63,18 @@ def bn_elu_layer(hparams, pool_size, time_distributed_bypass):
 
 # conv2d, then above
 def conv_bn_elu_layer(num_filters, conv_temporal_size, conv_freq_size, pool_size,
-                      time_distributed_bypass, hparams):
+                      time_distributed_bypass, hparams, activation_fn=ELU()):
     def conv_bn_elu_fn(x):
-        return bn_elu_layer(hparams, pool_size, time_distributed_bypass)(
+        return bn_elu_layer(hparams, pool_size, time_distributed_bypass,
+                            activation_fn=activation_fn)(
             get_time_distributed_wrapper(bypass=time_distributed_bypass)(
                 Conv2D(
                     num_filters,
                     [conv_temporal_size, conv_freq_size],
                     padding='same',
                     use_bias=False,
-                    kernel_regularizer=l2(hparams.timbre_l2_regularizer),
-                    kernel_initializer=he_normal(),
+                    # kernel_regularizer=l2(hparams.timbre_l2_regularizer),
+                    kernel_initializer='he_uniform',
                     # name = 'conv_{}_{}_{}'.format(num_filters, conv_temporal_size, conv_freq_size)
                 ), hparams=hparams)(x))
 
@@ -98,7 +103,7 @@ def normalize_and_weigh(inputs, num_notes, pitches, hparams):
     gradient_pitch_mask = tf.minimum(gradient_pitch_mask ** exp, 1.0)
     # gradient_pitch_mask = K.expand_dims(gradient_pitch_mask, 1)
     gradient_pitch_mask = K.expand_dims(gradient_pitch_mask, -1)
-    gradient_product = Multiply()([inputs, gradient_pitch_mask])
+    gradient_product = inputs * gradient_pitch_mask
     return gradient_product
 
 
@@ -111,24 +116,24 @@ def normalize_and_weigh(inputs, num_notes, pitches, hparams):
 def get_all_croppings(input_list, hparams):
     conv_output_list = input_list[0]
     note_croppings_list = input_list[1]
-    #num_notes_list = tf.reshape(input_list[2], (-1,))
+    # num_notes_list = tf.reshape(input_list[2], (-1,))
 
     all_outputs = []
     # unbatch / do different things for each batch (we kinda create mini-batches)
     for batch_idx in range(K.int_shape(conv_output_list)[0]):
         if K.int_shape(note_croppings_list)[1] == 0:
-            out = K.zeros(shape=(0, *K.int_shape(conv_output_list[batch_idx])[1:]))
+            out = np.zeros(shape=(1, K.int_shape(conv_output_list[batch_idx])[1],
+                                  K.int_shape(conv_output_list[batch_idx])[-1]))
         else:
             out = get_croppings_for_single_image(conv_output_list[batch_idx],
                                                  note_croppings_list[batch_idx],
                                                  hparams=hparams,
-                                                 temporal_scale=max(1, hparams.timbre_pool_size[0][0]
-                                                                    * hparams.timbre_pool_size[1][0]))
+                                                 temporal_scale=max(1,
+                                                                    hparams.timbre_pool_size[0][0]
+                                                                    * hparams.timbre_pool_size[1][
+                                                                        0]))
 
-            if hparams.timbre_sharing_conv:
-                out = MaxPooling1D(pool_size=(hparams.timbre_filters_pool_size[1],),
-                                   padding='same')(out)
-            # out = tf.reshape(out, (-1, *out.shape[2:]))
+        # out = tf.reshape(out, (-1, *out.shape[2:]))
 
         all_outputs.append(out)
 
@@ -152,11 +157,11 @@ def get_croppings_for_single_image(conv_output, note_croppings,
                        * K.int_shape(conv_output)[1] \
                        / constants.TIMBRE_SPEC_BANDS
     pitch_mask = K.expand_dims(
-        K.cast(tf.math.logical_not(tf.sequence_mask(
+        K.cast(tf.where(tf.sequence_mask(
             K.cast(
                 gathered_pitches, dtype='int32'
             ), K.int_shape(conv_output)[1]
-        )), tf.float32), -1)
+        ), 2e-3, 1), tf.float32), -1)
 
     trimmed_list = []
     start_idx = K.cast(
@@ -173,19 +178,33 @@ def get_croppings_for_single_image(conv_output, note_croppings,
         if end_idx[i] < 0:
             # is a padded value note
             trimmed_list.append(
-                np.zeros(shape=(1, K.int_shape(conv_output)[1:]), dtype=K.floatx()))
+                np.zeros(shape=(1, K.int_shape(conv_output)[1], K.int_shape(conv_output)[2]),
+                         dtype=K.floatx()))
         else:
-            trimmed_spec = conv_output[min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i], start_idx[i] + 1)]
-            if hparams.timbre_global_pool:
-                # GlobalAveragePooling1D supports masking
-                trimmed_spec = GlobalAveragePooling1D()(
-                    K.permute_dimensions(trimmed_spec, (1, 0, 2)))
-            trimmed_list.append(K.expand_dims(trimmed_spec, 0))
+            trimmed_spec = conv_output[
+                           min(start_idx[i], K.int_shape(conv_output)[0] - 1):max(end_idx[i],
+                                                                                  start_idx[i] + 1)]
+            length = K.int_shape(trimmed_spec)[1]
+            # GlobalAveragePooling1D supports masking
+            avg_pool = GlobalAveragePooling1D()(
+                K.permute_dimensions(trimmed_spec, (1, 0, 2)))
+            max_pool = GlobalMaxPooling1D()(
+                K.permute_dimensions(trimmed_spec, (1, 0, 2)))
+            max_pool = K.max(trimmed_spec, 0)
+            # pools = K.concatenate([avg_pool, max_pool], -1)
+            # single_note_data = K.concatenate([pools,
+            #                                   tf.repeat(
+            #                                       K.cast_to_floatx(K.expand_dims([length], 0)),
+            #                                       K.int_shape(pools)[0],
+            #                                       axis=0)],
+            #                                  axis=-1)
+            trimmed_list.append(K.expand_dims(max_pool, 0))
 
     broadcasted_spec = K.concatenate(trimmed_list, axis=0)
 
     # do the masking
-    mask = Multiply()([broadcasted_spec, pitch_mask])
+    # don't lose gradient completely so don't multiply by 0
+    mask = broadcasted_spec * pitch_mask
 
     # mask = K.expand_dims(mask, axis=1)
 
@@ -194,4 +213,98 @@ def get_croppings_for_single_image(conv_output, note_croppings,
     # mask = tf.reshape(mask, (-1, *mask.shape[2:]))
 
     # Tell downstream layers to skip timesteps that are fully masked out
-    return Masking(mask_value=0.0)(mask)
+    return mask  # Masking(mask_value=0.0)(mask)
+
+
+class NoteCroppingsToPianorolls(layers.Layer):
+    def __init__(self, hparams, **kwargs):
+        self.hparams = hparams
+        super(NoteCroppingsToPianorolls, self).__init__(**kwargs)
+
+    def call(self, input_list, **kwargs):
+        """
+        Convert note croppings and their corresponding timbre predictions to a pianoroll that
+        we can multiply by the melodic midi predictions
+        :param input_list: note_croppings, timbre_probs, pianoroll_length
+        :return: a pianoroll with shape (batches, pianoroll_length, 88, timbre_num_classes + 1)
+        """
+        batched_note_croppings, batched_timbre_probs, batched_pianorolls = input_list
+
+        pianoroll_list = []
+        for batch_idx in range(K.int_shape(batched_note_croppings)[0]):
+            note_croppings = batched_note_croppings[batch_idx]
+            timbre_probs = batched_timbre_probs[batch_idx]
+
+            pianorolls = K.zeros(
+                shape=(K.int_shape(batched_pianorolls[batch_idx])[0],
+                       constants.MIDI_PITCHES,
+                       self.hparams.timbre_num_classes))
+            ones = np.ones(
+                shape=(K.int_shape(batched_pianorolls[batch_idx])[0],
+                       constants.MIDI_PITCHES,
+                       self.hparams.timbre_num_classes))
+
+            for i, note_cropping in enumerate(note_croppings):
+                cropping = NoteCropping(*note_cropping)
+                pitch = cropping.pitch - constants.MIN_MIDI_PITCH
+                if cropping.end_idx < 0:
+                    # don't fill padded notes
+                    continue
+                start_idx = K.cast(cropping.start_idx / self.hparams.spec_hop_length, 'int64')
+                end_idx = K.cast(cropping.end_idx / self.hparams.spec_hop_length, 'int64')
+
+                # end_pitch_mask = tf.sequence_mask(pitch, constants.MIDI_PITCHES)
+                #
+                # pitch_mask = K.cast_to_floatx(tf.logical_and(
+                #     end_pitch_mask, tf.math.logical_not(tf.roll(end_pitch_mask, -1, axis=-1))))
+                pitch_mask = K.cast_to_floatx(tf.one_hot(pitch, constants.MIDI_PITCHES))
+                # end_pitch_mask = K.cast(tf.sequence_mask(
+                #     pitch + 1, constants.MIDI_PITCHES
+                # ), tf.float32)
+                # pitch_mask = start_pitch_mask * end_pitch_mask
+                end_time_mask = K.cast(tf.sequence_mask(
+                    end_idx,
+                    maxlen=K.int_shape(batched_pianorolls[batch_idx])[0]
+                ), tf.float32)
+                start_time_mask = K.cast(tf.math.logical_not(tf.sequence_mask(
+                    start_idx,
+                    maxlen=K.int_shape(batched_pianorolls[batch_idx])[0]
+                )), tf.float32)
+                time_mask = start_time_mask * end_time_mask
+                # constant time for the pitch mask
+                pitch_mask = K.expand_dims(K.expand_dims(pitch_mask, 0))
+                # constant pitch for the time mask
+                time_mask = K.expand_dims(K.expand_dims(time_mask, 1))
+                mask = ones * pitch_mask
+                mask = mask * time_mask
+                cropped_probs = mask * (timbre_probs[i])
+                if K.learning_phase() == 1:
+                    # for training
+                    pianorolls = pianorolls + cropped_probs
+                else:
+                    # for testing, this is faster
+                    # pianorolls = pianorolls + cropped_probs
+                    pianorolls.assign_add(cropped_probs)
+
+            frame_predictions = pianorolls > self.hparams.multiple_instruments_threshold
+            sequence = infer_util.predict_multi_sequence(
+                frame_predictions=frame_predictions,
+                min_pitch=constants.MIN_MIDI_PITCH,
+                hparams=self.hparams)
+            midi_filename = f'./out/{batch_idx}-of-{K.int_shape(batched_note_croppings)[0]}.midi'
+            midi_io.sequence_proto_to_midi_file(sequence, midi_filename)
+            # make time the first dimension
+            pianoroll_list.append(pianorolls)
+
+        pianoroll_tensor = tf.convert_to_tensor(pianoroll_list)
+        # use nearby probabilities
+        return pianoroll_tensor
+        # return K.pool2d(pianoroll_tensor,
+        #                 pool_size=(7, 3),
+        #                 strides=(1, 1),
+        #                 padding='same',
+        #                 pool_mode='max')
+
+    def compute_output_shape(self, input_shape):
+
+        return input_shape[2]
