@@ -121,10 +121,6 @@ class FullModel:
                                                                value=-1e+7)
         return tf.convert_to_tensor(padded)
 
-    def separate_batches(self, input_list):
-        # TODO implement
-        raise NotImplementedError
-
     def get_model(self):
         spec_512 = Input(shape=(None, constants.SPEC_BANDS, 1), name='midi_spec')
         spec_256 = Input(shape=(None, constants.SPEC_BANDS, 1), name='timbre_spec')
@@ -153,12 +149,6 @@ class FullModel:
         timbre_probs = self.timbre_model.call([spec_256, note_croppings])
         # timbre_probs = get_timbre_output_layer(self.hparams)([spec_256, note_croppings])
 
-        if self.hparams.timbre_coagulate_mini_batches:
-            # re-separate
-            timbre_probs = Lambda(self.separate_batches,
-                                  dynamic=True,
-                                  output_shape=(None, self.hparams.timbre_num_classes))(
-                [timbre_probs])
         expand_dims = Lambda(lambda x_list: K.expand_dims(x_list[0], axis=x_list[1]))
         float_cast = Lambda(lambda x: K.cast_to_floatx(x))
 

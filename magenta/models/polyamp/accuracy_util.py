@@ -71,7 +71,7 @@ def convert_multi_instrument_probs_to_predictions(y_probs,
         return tf.logical_and(agnostic_predictions, timbre_predictions)
 
     sum_probs = K.sum(y_probs, axis=-1)
-    # Remove any where the original midi prediction
+    # Remove any where the original melodic prediction
     # is below the threshold.
     thresholded_y_probs = y_probs * K.expand_dims(K.cast_to_floatx(sum_probs > threshold))
     # Get the label for the highest probability instrument.

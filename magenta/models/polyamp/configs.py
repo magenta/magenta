@@ -22,7 +22,7 @@ import collections
 import librosa
 
 from magenta.common import tf_utils
-from magenta.models.polyamp import audio_transform, midi_model, timbre_model, \
+from magenta.models.polyamp import audio_transform, melodic_model, timbre_model, \
     constants, full_model
 
 Config = collections.namedtuple('Config', ('hparams',))
@@ -38,12 +38,11 @@ DEFAULT_HPARAMS = {
         'predict_batch_size': 1,
         'shuffle_buffer_size': 64,
         'nsynth_shuffle_buffer_size': 256,
-        'timbre_coagulate_mini_batches': False,
         'nsynth_batch_size': 2,
         'slakh_batch_size': 2,
         'use_drums': False,
         'timbre_training_max_instruments': 64,
-        'timbre_max_start_offset': 160000, #320000 goes to 800 when cropping
+        'timbre_max_start_offset': 160000,  # 10 seconds
         'timbre_min_len': 8000,
         'timbre_max_len': 0,
         'sample_rate': 16000,
@@ -52,11 +51,11 @@ DEFAULT_HPARAMS = {
         'spec_log_amplitude': True,
         'timbre_spec_type': 'cqt',
         'timbre_spec_log_amplitude': True,
-        'spec_hop_length': 512,#512,
+        'spec_hop_length': 512,
         'timbre_hop_length': 256,
         'spec_n_bins': constants.SPEC_BANDS,
-        'spec_fmin': librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),#30.0,  # A0
-        'cqt_bins_per_octave': constants.BINS_PER_OCTAVE,#36,
+        'spec_fmin': librosa.midi_to_hz(constants.MIN_TIMBRE_PITCH),  # 30.0  A0
+        'cqt_bins_per_octave': constants.BINS_PER_OCTAVE,  # 28,
         'truncated_length_secs': 0.0,
         'max_expected_train_example_len': 0,
         'onset_length': 32,
@@ -70,12 +69,19 @@ DEFAULT_HPARAMS = {
     }}
 
 CONFIG_MAP = {}
-
-# TODO do this the right way
-CONFIG_MAP['onsets_frames'] = Config(
-    #model_fn=model.model_fn,
+CONFIG_MAP['melodic'] = Config(
     hparams={**DEFAULT_HPARAMS,
-             **midi_model.get_default_hparams(),
+             **melodic_model.get_default_hparams()},
+)
+
+CONFIG_MAP['timbre'] = Config(
+    hparams={**DEFAULT_HPARAMS,
+             **timbre_model.get_default_hparams()},
+)
+
+CONFIG_MAP['full'] = Config(
+    hparams={**DEFAULT_HPARAMS,
+             **melodic_model.get_default_hparams(),
              **timbre_model.get_default_hparams(),
              **full_model.get_default_hparams()},
 )

@@ -35,8 +35,6 @@ else:
 
 # if we aren't coagulating the cropped mini-batches, then we use TimeDistributed
 def time_distributed_wrapper(x, hparams, name=None):
-    if hparams.timbre_coagulate_mini_batches:
-        return x
     return TimeDistributed(x, name=name)
 
 
@@ -136,9 +134,6 @@ def get_all_croppings(input_list, hparams):
         # out = tf.reshape(out, (-1, *out.shape[2:]))
 
         all_outputs.append(out)
-
-    if hparams.timbre_coagulate_mini_batches:
-        return K.concatenate(all_outputs, axis=0)
 
     return tf.convert_to_tensor(all_outputs)
 

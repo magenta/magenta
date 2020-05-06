@@ -354,12 +354,10 @@ def get_timbre_output_layer(hparams):
         # ouput_shape with coagulation: (batch_size*num_notes, freq_range, num_filters)
         # output_shape without coagulation: (batch_size, num_notes, freq_range, num_filters)
         output_shape = (
+            None,
             math.ceil(K.int_shape(reshaped_outputs)[2]),
-            K.int_shape(reshaped_outputs)[3]) \
-            if hparams.timbre_coagulate_mini_batches \
-            else (
-            None, math.ceil(K.int_shape(reshaped_outputs)[2]),
-            K.int_shape(reshaped_outputs)[3])
+            K.int_shape(reshaped_outputs)[3]
+        )
         pooled_outputs = Lambda(
             functools.partial(get_all_croppings, hparams=hparams), dynamic=True,
             output_shape=output_shape)(

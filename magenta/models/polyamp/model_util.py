@@ -41,7 +41,7 @@ from magenta.models.polyamp.data_generator import DataGenerator
 
 from magenta.models.polyamp.accuracy_util import AccuracyMetric, \
     convert_multi_instrument_probs_to_predictions, multi_track_prf_wrapper
-from magenta.models.polyamp.midi_model import midi_prediction_model
+from magenta.models.polyamp.melodic_model import midi_prediction_model
 
 
 class ModelType(Enum):
@@ -84,8 +84,7 @@ class ModelWrapper:
             self.generator = None
         else:
             self.generator = DataGenerator(self.dataset, self.batch_size, self.steps_per_epoch,
-                                           use_numpy=False,
-                                           coagulate_mini_batches=type is not ModelType.MIDI and hparams.timbre_coagulate_mini_batches)
+                                           use_numpy=False)
         save_dir = f'{model_dir}/{type.name}/{self.id}'
         if self.type is ModelType.MIDI:
             self.metrics = MidiPredictionMetrics(self.generator, self.hparams, save_dir=save_dir)
@@ -127,11 +126,6 @@ class ModelWrapper:
 
         for i in range(steps):
             x, y = self.generator.get()
-            if self.type != ModelType.TIMBRE or not self.hparams.timbre_coagulate_mini_batches:
-                class_weights = None  # class_weight.compute_class_weight('balanced', np.unique(y[0]), y[0])
-            else:
-                class_weights = self.hparams.timbre_class_weights
-            # self.plot_spectrograms(x)
 
             start = time.perf_counter()
             # new_metrics = self.model.predict(x)
