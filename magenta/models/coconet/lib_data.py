@@ -56,7 +56,7 @@ class Dataset(lib_util.Factory):
                              self.basepath, "%s.npz" % self.name)
     print("Loading data from", data_path)
     with tf.gfile.Open(data_path, "rb") as p:
-      self.data = np.load(p, allow_pickle=True, encoding='latin1')[fold]
+      self.data = np.load(p, allow_pickle=True, encoding="latin1")[fold]
 
   @property
   def name(self):
