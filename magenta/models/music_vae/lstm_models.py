@@ -577,6 +577,28 @@ class BidirectionalLstmControlPreprocessingDecoder(base_model.BaseDecoder):
         n, max_length, z, preprocessed_c_input, **kwargs)
 
 
+class BooleanLstmDecoder(BaseLstmDecoder):
+  """LSTM decoder with single Boolean output per time step."""
+
+  def _flat_reconstruction_loss(self, flat_x_target, flat_rnn_output):
+    flat_logits = flat_rnn_output
+    flat_truth = tf.squeeze(flat_x_target, axis=1)
+    flat_predictions = tf.squeeze(flat_logits >= 0, axis=1)
+    r_loss = tf.nn.sigmoid_cross_entropy_with_logits(
+        labels=flat_x_target, logits=flat_logits)
+
+    metric_map = {
+        'metrics/accuracy':
+            tf.metrics.accuracy(flat_truth, flat_predictions),
+    }
+    return r_loss, metric_map
+
+  def _sample(self, rnn_output, temperature=1.0):
+    sampler = tfp.distributions.Bernoulli(
+        logits=rnn_output / temperature, dtype=tf.float32)
+    return sampler.sample()
+
+
 class CategoricalLstmDecoder(BaseLstmDecoder):
   """LSTM decoder with single categorical output."""
 
