@@ -181,7 +181,7 @@ class HierarchicalLstmEncoder(base_model.BaseEncoder):
                     self._total_length,
                     self._level_lengths)
     self._hierarchical_encoders = []
-    num_splits = np.prod(self._level_lengths)
+    num_splits = int(np.prod(self._level_lengths))
     for i, l in enumerate(self._level_lengths):
       num_splits //= l
       tf.logging.info('Level %d splits: %d', i, num_splits)
