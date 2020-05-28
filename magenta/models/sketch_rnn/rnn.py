@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import rnn as contrib_rnn
 
 
 def orthogonal(shape):
@@ -57,7 +56,7 @@ def lstm_ortho_initializer(scale=1.0):
   return _initializer
 
 
-class LSTMCell(contrib_rnn.RNNCell):
+class LSTMCell(tf.nn.rnn_cell.RNNCell):
   """Vanilla LSTM cell.
 
   Uses ortho initializer, and also recurrent dropout without memory loss
@@ -233,7 +232,7 @@ def super_linear(x,
     return tf.matmul(x, w)
 
 
-class LayerNormLSTMCell(contrib_rnn.RNNCell):
+class LayerNormLSTMCell(tf.nn.rnn_cell.RNNCell):
   """Layer-Norm, with Ortho Init. and Recurrent Dropout without Memory Loss.
 
   https://arxiv.org/abs/1607.06450 - Layer Norm
@@ -310,7 +309,7 @@ class LayerNormLSTMCell(contrib_rnn.RNNCell):
     return new_h, tf.concat([new_h, new_c], 1)
 
 
-class HyperLSTMCell(contrib_rnn.RNNCell):
+class HyperLSTMCell(tf.nn.rnn_cell.RNNCell):
   """HyperLSTM with Ortho Init, Layer Norm, Recurrent Dropout, no Memory Loss.
 
   https://arxiv.org/abs/1609.09106

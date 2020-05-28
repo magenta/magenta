@@ -17,18 +17,12 @@
 
 For example of usage see README.md.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
 
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_model as build_model
 from magenta.models.image_stylization import image_utils
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
+import tf_slim as slim
 
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1.0}'
 DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 1e-3, "vgg_16/conv2": 1e-3,'

@@ -13,17 +13,11 @@
 # limitations under the License.
 
 """Trains model using tf.slim."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from magenta.models.nsynth import reader
 from magenta.models.nsynth import utils
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
+import tf_slim as slim
 
-slim = contrib_slim
 FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string("master",

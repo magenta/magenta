@@ -17,17 +17,10 @@
 In this specific implementation, max-pooling operations are replaced with
 average-pooling operations.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
+import tf_slim as slim
 
 flags = tf.app.flags
 flags.DEFINE_string('vgg_checkpoint', None, 'Path to VGG16 checkpoint file.')

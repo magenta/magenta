@@ -21,8 +21,8 @@ from __future__ import print_function
 from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import rnn
-from tensorflow.python.util import nest
+
+LSTMStateTuple = tf.nn.rnn_cell.LSTMStateTuple
 
 
 class LstmUtilsTest(tf.test.TestCase):
@@ -30,16 +30,16 @@ class LstmUtilsTest(tf.test.TestCase):
   def testStateTupleToCudnnLstmState(self):
     with self.test_session():
       h, c = lstm_utils.state_tuples_to_cudnn_lstm_state(
-          (rnn.LSTMStateTuple(h=np.arange(10).reshape(5, 2),
-                              c=np.arange(10, 20).reshape(5, 2)),))
+          (LSTMStateTuple(h=np.arange(10).reshape(5, 2),
+                          c=np.arange(10, 20).reshape(5, 2)),))
       self.assertAllEqual(np.arange(10).reshape(1, 5, 2), h.eval())
       self.assertAllEqual(np.arange(10, 20).reshape(1, 5, 2), c.eval())
 
       h, c = lstm_utils.state_tuples_to_cudnn_lstm_state(
-          (rnn.LSTMStateTuple(h=np.arange(10).reshape(5, 2),
-                              c=np.arange(20, 30).reshape(5, 2)),
-           rnn.LSTMStateTuple(h=np.arange(10, 20).reshape(5, 2),
-                              c=np.arange(30, 40).reshape(5, 2))))
+          (LSTMStateTuple(h=np.arange(10).reshape(5, 2),
+                          c=np.arange(20, 30).reshape(5, 2)),
+           LSTMStateTuple(h=np.arange(10, 20).reshape(5, 2),
+                          c=np.arange(30, 40).reshape(5, 2))))
       self.assertAllEqual(np.arange(20).reshape(2, 5, 2), h.eval())
       self.assertAllEqual(np.arange(20, 40).reshape(2, 5, 2), c.eval())
 
@@ -47,20 +47,20 @@ class LstmUtilsTest(tf.test.TestCase):
     with self.test_session() as sess:
       lstm_state = lstm_utils.cudnn_lstm_state_to_state_tuples(
           (np.arange(10).reshape(1, 5, 2), np.arange(10, 20).reshape(1, 5, 2)))
-      nest.map_structure(
+      tf.nest.map_structure(
           self.assertAllEqual,
-          (rnn.LSTMStateTuple(h=np.arange(10).reshape(5, 2),
-                              c=np.arange(10, 20).reshape(5, 2)),),
+          (LSTMStateTuple(h=np.arange(10).reshape(5, 2),
+                          c=np.arange(10, 20).reshape(5, 2)),),
           sess.run(lstm_state))
 
       lstm_state = lstm_utils.cudnn_lstm_state_to_state_tuples(
           (np.arange(20).reshape(2, 5, 2), np.arange(20, 40).reshape(2, 5, 2)))
-      nest.map_structure(
+      tf.nest.map_structure(
           self.assertAllEqual,
-          (rnn.LSTMStateTuple(h=np.arange(10).reshape(5, 2),
-                              c=np.arange(20, 30).reshape(5, 2)),
-           rnn.LSTMStateTuple(h=np.arange(10, 20).reshape(5, 2),
-                              c=np.arange(30, 40).reshape(5, 2))),
+          (LSTMStateTuple(h=np.arange(10).reshape(5, 2),
+                          c=np.arange(20, 30).reshape(5, 2)),
+           LSTMStateTuple(h=np.arange(10, 20).reshape(5, 2),
+                          c=np.arange(30, 40).reshape(5, 2))),
           sess.run(lstm_state))
 
   def testGetFinal(self):

@@ -21,9 +21,9 @@ import magenta
 from magenta.common import Nade
 from magenta.models.shared import events_rnn_graph
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import metrics as contrib_metrics
+import tf_slim
+
 from tensorflow.contrib import seq2seq as contrib_seq2seq
-from tensorflow.contrib import slim as contrib_slim
 
 _RnnNadeStateTuple = collections.namedtuple(
     'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
@@ -288,7 +288,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
         optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
 
-        train_op = contrib_slim.learning.create_train_op(
+        train_op = tf_slim.learning.create_train_op(
             loss, optimizer, clip_gradient_norm=hparams.clip_norm)
         tf.add_to_collection('train_op', train_op)
 
@@ -300,7 +300,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
             'metrics/recall': recall,
         }
       elif mode == 'eval':
-        vars_to_summarize, update_ops = contrib_metrics.aggregate_metric_map({
+        vars_to_summarize, update_ops = tf_slim.metrics.aggregate_metric_map({
             'loss':
                 tf.metrics.mean(-log_probs),
             'metrics/perplexity':

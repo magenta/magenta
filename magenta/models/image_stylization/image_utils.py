@@ -23,9 +23,6 @@ import numpy as np
 import scipy
 import scipy.misc
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
 
 
 _EVALUATION_IMAGES_GLOB = 'evaluation_images/*.jpg'

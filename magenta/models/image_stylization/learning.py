@@ -13,17 +13,10 @@
 # limitations under the License.
 
 """Learning-related functions for style transfer."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from magenta.models.image_stylization import vgg
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
+import tf_slim as slim
 
 
 def precompute_gram_matrices(image, final_endpoint='fc8'):

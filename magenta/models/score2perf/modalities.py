@@ -20,7 +20,6 @@ from __future__ import print_function
 
 from tensor2tensor.layers import common_layers
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib.eager.python import tfe as contrib_eager
 
 
 def _get_weights(model_hparams, vocab_size, hidden_dim=None):
@@ -42,7 +41,7 @@ def _get_weights(model_hparams, vocab_size, hidden_dim=None):
   else:
     ret = tf.concat(shards, 0)
   # Convert ret to tensor.
-  if not contrib_eager.in_eager_mode():
+  if not tf.executing_eagerly():
     ret = common_layers.convert_gradient_to_tensor(ret)
   return ret
 

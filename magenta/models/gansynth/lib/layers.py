@@ -25,7 +25,6 @@ theano implementation.
 
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import layers as contrib_layers
 
 
 def pixel_norm(images, epsilon=1.0e-8):
@@ -321,7 +320,7 @@ def custom_dense(x,
   Returns:
     A `Tensor` where the last dimension has size `units`.
   """
-  x = contrib_layers.flatten(x)
+  x = tf.layers.flatten(x)
 
   def _apply_kernel(kernel_shape, kernel_initializer):
     return tf.layers.dense(

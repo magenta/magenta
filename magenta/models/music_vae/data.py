@@ -34,7 +34,6 @@ from magenta.pipelines import melody_pipelines
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
-from tensorflow.contrib import data as contrib_data
 
 PIANO_MIN_MIDI_PITCH = 21
 PIANO_MAX_MIDI_PITCH = 108
@@ -1648,7 +1647,6 @@ def convert_to_tensors_op(item_scalar, converter):
 
 def get_dataset(
     config,
-    num_threads=1,
     tf_file_reader=tf.data.TFRecordDataset,
     is_training=False,
     cache_dataset=True):
@@ -1656,7 +1654,6 @@ def get_dataset(
 
   Args:
     config: A Config object containing dataset information.
-    num_threads: The number of threads to use for pre-processing.
     tf_file_reader: The tf.data.Dataset class to use for reading files.
     is_training: Whether or not the dataset is used in training. Determines
       whether dataset is shuffled and repeated, etc.
@@ -1684,9 +1681,7 @@ def get_dataset(
       raise ValueError(
           'No files were found matching examples path: %s' %  examples_path)
     files = tf.data.Dataset.list_files(examples_path)
-    dataset = files.apply(
-        contrib_data.parallel_interleave(
-            tf_file_reader, cycle_length=num_threads, sloppy=is_training))
+    dataset = files.interleave(tf_file_reader, deterministic=not is_training)
   elif config.tfds_name:
     tf.logging.info('Reading examples from TFDS: %s', config.tfds_name)
     dataset = tfds.load(

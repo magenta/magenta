@@ -17,10 +17,6 @@
 
 For example of usage see start_training_locally.sh and start_training_on_borg.sh
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
 import os
 
@@ -28,9 +24,7 @@ from magenta.models.arbitrary_image_stylization import arbitrary_image_stylizati
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import vgg
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
+import tf_slim as slim
 
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1}'
 DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 0.5e-3, "vgg_16/conv2": 0.5e-3,'

@@ -27,6 +27,8 @@ from tensor2tensor.utils import trainer_lib
 import tensorflow.compat.v1 as tf
 from tensorflow.contrib import rnn as contrib_rnn
 
+rnn = tf.nn.rnn_cell
+
 
 @registry.register_model
 class SVGDecoder(t2t_model.T2TModel):
@@ -96,7 +98,7 @@ class SVGDecoder(t2t_model.T2TModel):
         unbottleneck = self.unbottleneck(sampled_bottleneck, unbottleneck_dim,
                                          name_append='_{}'.format(hi))
         dec_initial_state.append(
-            tf.nn.rnn_cell.LSTMStateTuple(
+            rnn.LSTMStateTuple(
                 c=unbottleneck[:, :unbottleneck_dim // 2],
                 h=unbottleneck[:, unbottleneck_dim // 2:]))
 
@@ -135,7 +137,7 @@ class SVGDecoder(t2t_model.T2TModel):
     batch_size = common_layers.shape_list(inputs)[0]
     zero_pad, logits_so_far = self.create_initial_input_for_decode(batch_size)
 
-    layers = contrib_rnn.MultiRNNCell([
+    layers = rnn.MultiRNNCell([
         self.lstm_cell(hparams, train) for _ in range(hparams.num_hidden_layers)
     ])
 
@@ -158,7 +160,7 @@ class SVGDecoder(t2t_model.T2TModel):
     def infer_step(logits_so_far, current_hidden):
       """Inference step of LSTM while loop."""
       # unflatten hidden:
-      current_hidden = tuple(tf.nn.rnn_cell.LSTMStateTuple(c=s[0], h=s[1])
+      current_hidden = tuple(rnn.LSTMStateTuple(c=s[0], h=s[1])
                              for s in current_hidden)
 
       # put logits_so_far through top
@@ -241,7 +243,7 @@ class SVGDecoder(t2t_model.T2TModel):
   def lstm_decoder(self, inputs, sequence_length, hparams, clss, train,
                    initial_state=None, bottleneck=None):
     # NOT IN PREDICT MODE. JUST RUN TEACHER-FORCED RNN:
-    layers = contrib_rnn.MultiRNNCell([
+    layers = rnn.MultiRNNCell([
         self.lstm_cell(hparams, train) for _ in range(hparams.num_hidden_layers)
     ])
 
@@ -287,7 +289,7 @@ class SVGDecoder(t2t_model.T2TModel):
         dropout_keep_prob=keep_prob)
 
     if hparams.ff_dropout:
-      return contrib_rnn.DropoutWrapper(
+      return rnn.DropoutWrapper(
           recurrent_dropout_cell, input_keep_prob=keep_prob)
     return recurrent_dropout_cell
 

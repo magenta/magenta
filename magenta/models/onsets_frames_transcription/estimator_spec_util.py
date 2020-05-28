@@ -23,9 +23,7 @@ from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import metrics
 
 import tensorflow.compat.v1 as tf
-
-from tensorflow.contrib import layers as contrib_layers
-from tensorflow.contrib import tpu as contrib_tpu
+import tf_slim
 
 
 def _drums_only_metric_ops(features, labels, frame_probs, onset_probs,
@@ -218,7 +216,7 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
       metrics_values[loss_label] = loss_collection
 
   if mode == tf.estimator.ModeKeys.TRAIN:
-    train_op = contrib_layers.optimize_loss(
+    train_op = tf_slim.optimize_loss(
         name='training',
         loss=loss,
         global_step=tf.train.get_or_create_global_step(),
@@ -230,10 +228,11 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
             staircase=True),
         clip_gradients=hparams.clip_norm,
         summaries=[],
-        optimizer=lambda lr: contrib_tpu.CrossShardOptimizer(  # pylint:disable=g-long-lambda
-            tf.train.AdamOptimizer(lr)))
+        optimizer=
+        lambda lr: tf.tpu.CrossShardOptimizer(tf.train.AdamOptimizer(lr)))
 
-    return contrib_tpu.TPUEstimatorSpec(mode=mode, loss=loss, train_op=train_op)
+    return tf.tpu.estimator.TPUEstimatorSpec(
+        mode=mode, loss=loss, train_op=train_op)
   elif mode == tf.estimator.ModeKeys.EVAL:
     metric_ops = {k: tf.metrics.mean(v) for k, v in metrics_values.items()}
     return tf.estimator.EstimatorSpec(

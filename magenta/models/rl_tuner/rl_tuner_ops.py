@@ -24,7 +24,6 @@ import random
 import numpy as np
 from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import training as contrib_training
 
 LSTM_STATE_NAME = 'lstm'
@@ -309,10 +308,10 @@ def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
   """
   cells = []
   for num_units in rnn_layer_sizes:
-    cell = contrib_rnn.LSTMCell(num_units, state_is_tuple=state_is_tuple)
+    cell = tf.nn.rnn_cell.LSTMCell(num_units, state_is_tuple=state_is_tuple)
     cells.append(cell)
 
-  cell = contrib_rnn.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
+  cell = tf.nn.rnn_cell.MultiRNNCell(cells, state_is_tuple=state_is_tuple)
 
   return cell
 

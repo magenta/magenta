@@ -29,7 +29,6 @@ from magenta.music.protobuf import music_pb2
 import mock
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import data as contrib_data
 from tensorflow.contrib.training import HParams
 
 NO_EVENT = constants.MELODY_NO_EVENT
@@ -1381,7 +1380,7 @@ class GrooveConverterTest(tf.test.TestCase):
 
 class GetDatasetTest(tf.test.TestCase):
 
-  @mock.patch.object(contrib_data, 'parallel_interleave')
+  @mock.patch.object(tf.data.Dataset, 'interleave')
   @mock.patch.object(tf.data.Dataset, 'list_files')
   @mock.patch.object(tf.gfile, 'Glob')
   def testGetDatasetBasic(self, mock_glob, mock_list, mock_interleave):
@@ -1406,8 +1405,8 @@ class GetDatasetTest(tf.test.TestCase):
     # Setup reader mocks
     mock_glob.return_value = ['some_file']
     mock_list.return_value = tf.data.Dataset.from_tensor_slices(['some_file'])
-    transform_fn = lambda _: tf.data.Dataset.from_tensor_slices([serialized])
-    mock_interleave.return_value = transform_fn
+    mock_interleave.return_value = tf.data.Dataset.from_tensor_slices(
+        [serialized])
 
     # Use a mock data converter to make the test robust
     converter = data.OneHotMelodyConverter(

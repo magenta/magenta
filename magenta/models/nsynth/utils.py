@@ -13,21 +13,13 @@
 # limitations under the License.
 
 """Utility functions for NSynth."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import importlib
 import os
 
 import librosa
 import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
-
-slim = contrib_slim
+import tf_slim as slim
 
 
 def shell_path(path):

@@ -21,9 +21,7 @@ import functools
 import random
 import sys
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import cluster_resolver as contrib_cluster_resolver
-from tensorflow.contrib import tpu as contrib_tpu
-from tensorflow.contrib import training as contrib_training
+import tf_slim
 
 
 # Should not be called from within the graph to avoid redundant summaries.
@@ -80,14 +78,14 @@ def create_estimator(model_fn,
     return model_fn(features, labels, mode, params, config)
 
   if tpu_cluster:
-    tpu_cluster_resolver = contrib_cluster_resolver.TPUClusterResolver(
+    tpu_cluster_resolver = tf.distribute.cluster_resolver.TPUClusterResolver(
         tpu_cluster)
     master = None
   else:
     tpu_cluster_resolver = None
 
-  config = contrib_tpu.RunConfig(
-      tpu_config=contrib_tpu.TPUConfig(
+  config = tf.estimator.tpu.RunConfig(
+      tpu_config=tf.estimator.tpu.TPUConfig(
           iterations_per_loop=save_checkpoint_steps),
       master=master,
       cluster=tpu_cluster_resolver,
@@ -98,7 +96,7 @@ def create_estimator(model_fn,
 
   params = copy.deepcopy(hparams)
   params.del_hparam('batch_size')
-  return contrib_tpu.TPUEstimator(
+  return tf.estimator.tpu.TPUEstimator(
       use_tpu=use_tpu,
       model_fn=wrapped_model_fn,
       model_dir=model_dir,
@@ -244,7 +242,7 @@ def evaluate(master,
 
   checkpoint_path = None
   while True:
-    checkpoint_path = contrib_training.wait_for_new_checkpoint(
+    checkpoint_path = tf_slim.evaluation.wait_for_new_checkpoint(
         model_dir, last_checkpoint=checkpoint_path)
     estimator.evaluate(input_fn=transcription_data, steps=num_steps,
                        checkpoint_path=checkpoint_path, name=name)

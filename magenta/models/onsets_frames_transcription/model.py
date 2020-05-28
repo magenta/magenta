@@ -27,10 +27,9 @@ from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import metrics
 
 import tensorflow.compat.v1 as tf
+import tf_slim as slim
 
-import tensorflow.contrib.slim as slim
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
-from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import training as contrib_training
 
@@ -40,7 +39,7 @@ def conv_net(inputs, hparams):
   with slim.arg_scope(
       [slim.conv2d, slim.fully_connected],
       activation_fn=tf.nn.relu,
-      weights_initializer=contrib_layers.variance_scaling_initializer(
+      weights_initializer=slim.variance_scaling_initializer(
           factor=2.0, mode='FAN_AVG', uniform=True)):
 
     net = inputs
@@ -95,7 +94,7 @@ def cudnn_lstm_layer(inputs,
               num_units=num_units,
               direction='unidirectional',
               dropout=rnn_dropout_drop_amt,
-              kernel_initializer=contrib_layers.variance_scaling_initializer(),
+              kernel_initializer=slim.variance_scaling_initializer(),
               bias_initializer=tf.zeros_initializer(),
           )
 
@@ -114,8 +113,7 @@ def cudnn_lstm_layer(inputs,
                 num_units=num_units,
                 direction='unidirectional',
                 dropout=rnn_dropout_drop_amt,
-                kernel_initializer=contrib_layers.variance_scaling_initializer(
-                ),
+                kernel_initializer=slim.variance_scaling_initializer(),
                 bias_initializer=tf.zeros_initializer(),
             )
 
@@ -144,7 +142,7 @@ def cudnn_lstm_layer(inputs,
         num_units=num_units,
         direction='bidirectional' if bidirectional else 'unidirectional',
         dropout=rnn_dropout_drop_amt,
-        kernel_initializer=contrib_layers.variance_scaling_initializer(),
+        kernel_initializer=slim.variance_scaling_initializer(),
         bias_initializer=tf.zeros_initializer(),
     )
     stack_multiplier = 2 if bidirectional else 1
@@ -497,7 +495,7 @@ def model_fn(features, labels, mode, params, config):
       loss_label = 'losses/' + label
       tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
 
-    train_op = contrib_layers.optimize_loss(
+    train_op = slim.optimize_loss(
         name='training',
         loss=loss,
         global_step=tf.train.get_or_create_global_step(),

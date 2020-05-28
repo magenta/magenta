@@ -23,6 +23,8 @@ from magenta.models.piano_genie import util
 import tensorflow.compat.v1 as tf
 from tensorflow.contrib import rnn as contrib_rnn
 
+rnn = tf.nn.rnn_cell
+
 
 def simple_lstm_encoder(features,
                         seq_lens,
@@ -42,7 +44,7 @@ def simple_lstm_encoder(features,
   else:
     raise NotImplementedError()
 
-  cell = contrib_rnn.MultiRNNCell(
+  cell = rnn.MultiRNNCell(
       [celltype(rnn_nunits) for _ in range(rnn_nlayers)])
 
   with tf.variable_scope("rnn"):
@@ -84,7 +86,7 @@ def simple_lstm_decoder(features,
   else:
     raise NotImplementedError()
 
-  cell = contrib_rnn.MultiRNNCell(
+  cell = rnn.MultiRNNCell(
       [celltype(rnn_nunits) for _ in range(rnn_nlayers)])
 
   with tf.variable_scope("rnn"):

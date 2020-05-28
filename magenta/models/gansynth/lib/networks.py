@@ -23,9 +23,8 @@ theano implementation.
 
 import math
 from magenta.models.gansynth.lib import layers
-import six
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import layers as contrib_layers
+import tf_slim
 
 
 class ResolutionSchedule(object):
@@ -344,13 +343,13 @@ def generator(z,
         activation=to_rgb_activation,
         scope='to_rgb')
 
-  he_init = contrib_layers.variance_scaling_initializer()
+  he_init = tf_slim.variance_scaling_initializer()
 
   end_points = {}
 
   with tf.variable_scope(scope, reuse=reuse):
     with tf.name_scope('input'):
-      x = contrib_layers.flatten(z)
+      x = tf_slim.flatten(z)
       end_points['latent_vector'] = x
 
     with tf.variable_scope(block_name(1)):
@@ -456,7 +455,7 @@ def discriminator(x,
   Returns:
     A `Tensor` of model output and a dictionary of model end points.
   """
-  he_init = contrib_layers.variance_scaling_initializer()
+  he_init = tf_slim.variance_scaling_initializer()
 
   if num_blocks is None:
     num_blocks = resolution_schedule.num_resolutions
@@ -509,7 +508,7 @@ def discriminator(x,
       lods.append((lod, alpha))
 
     lods_iter = iter(lods)
-    x, _ = six.next(lods_iter)
+    x, _ = next(lods_iter)
     for block_id in range(num_blocks, 1, -1):
       with tf.variable_scope(block_name(block_id)):
         if simple_arch:
@@ -526,7 +525,7 @@ def discriminator(x,
           x = _conv2d('conv0', x, kernel_size, num_filters_fn(block_id))
           x = _conv2d('conv1', x, kernel_size, num_filters_fn(block_id - 1))
           x = resolution_schedule.downscale(x, resolution_schedule.scale_base)
-        lod, alpha = six.next(lods_iter)
+        lod, alpha = next(lods_iter)
         x = alpha * lod + (1.0 - alpha) * x
 
     with tf.variable_scope(block_name(1)):

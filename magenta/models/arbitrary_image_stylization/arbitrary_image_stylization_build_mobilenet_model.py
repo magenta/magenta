@@ -13,16 +13,11 @@
 # limitations under the License.
 
 """Methods for building arbitrary image stylization model with MobileNetV2."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_losses as losses
 from magenta.models.arbitrary_image_stylization import nza_model as transformer_model
 from magenta.models.image_stylization import ops
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import slim as contrib_slim
+import tf_slim as slim
 
 try:
   from nets.mobilenet import mobilenet_v2, mobilenet  # pylint:disable=g-import-not-at-top,g-multiple-import
@@ -31,8 +26,6 @@ except ImportError:
         'models library described '
         'in https://github.com/tensorflow/models/tree/master/research/slim')
   raise
-
-slim = contrib_slim
 
 
 def build_mobilenet_model(content_input_,

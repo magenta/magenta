@@ -21,9 +21,8 @@ from __future__ import print_function
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import estimator_spec_util
 import tensorflow.compat.v1 as tf
+import tf_slim as slim
 
-import tensorflow.contrib.slim as slim
-from tensorflow.contrib import layers as contrib_layers
 from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import training as contrib_training
 
@@ -33,7 +32,7 @@ def conv_net(inputs, hparams):
   with slim.arg_scope(
       [slim.conv2d, slim.fully_connected],
       activation_fn=tf.nn.relu,
-      weights_initializer=contrib_layers.variance_scaling_initializer(
+      weights_initializer=slim.variance_scaling_initializer(
           factor=2.0, mode='FAN_AVG', uniform=True)):
 
     net = inputs

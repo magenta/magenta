@@ -23,8 +23,6 @@ from magenta.models.gansynth.lib import spectral_ops
 from magenta.models.gansynth.lib import util
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import data as contrib_data
-from tensorflow.contrib import lookup as contrib_lookup
 
 Counter = collections.Counter
 
@@ -63,10 +61,9 @@ class NSynthTFRecordDataset(BaseDataset):
 
   def _get_dataset_from_path(self):
     dataset = tf.data.Dataset.list_files(self._train_data_path)
-    dataset = dataset.apply(contrib_data.shuffle_and_repeat(buffer_size=1000))
-    dataset = dataset.apply(
-        contrib_data.parallel_interleave(
-            tf.data.TFRecordDataset, cycle_length=20, sloppy=True))
+    dataset = dataset.shuffle(buffer_size=1000)
+    dataset = dataset.repeat()
+    dataset = dataset.interleave(tf.data.TFRecordDataset, deterministic=False)
     return dataset
 
   def provide_one_hot_labels(self, batch_size):
@@ -86,8 +83,13 @@ class NSynthTFRecordDataset(BaseDataset):
 
     pitch_counts = self.get_pitch_counts()
     pitches = sorted(pitch_counts.keys())
-    label_index_table = contrib_lookup.index_table_from_tensor(
-        sorted(pitches), dtype=tf.int64)
+    label_index_table = tf.lookup.StaticVocabularyTable(
+        tf.lookup.KeyValueTensorInitializer(
+            keys=pitches,
+            values=np.arange(len(pitches)),
+            key_dtype=tf.int64,
+            value_dtype=tf.int64),
+        num_oov_buckets=1)
 
     def _parse_nsynth(record):
       """Parsing function for NSynth dataset."""

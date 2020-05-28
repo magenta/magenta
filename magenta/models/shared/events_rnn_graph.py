@@ -13,29 +13,23 @@
 # limitations under the License.
 
 """Provides function to build an event sequence RNN model's graph."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numbers
 
 import magenta
 import numpy as np
-import six
 import tensorflow.compat.v1 as tf
+import tf_slim
+
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
-from tensorflow.contrib import layers as contrib_layers
-from tensorflow.contrib import metrics as contrib_metrics
 from tensorflow.contrib import rnn as contrib_rnn
-from tensorflow.contrib import slim as contrib_slim
-from tensorflow.python.util import nest as tf_nest
+
+rnn = tf.nn.rnn_cell
 
 
 def make_rnn_cell(rnn_layer_sizes,
                   dropout_keep_prob=1.0,
                   attn_length=0,
-                  base_cell=contrib_rnn.BasicLSTMCell,
+                  base_cell=rnn.BasicLSTMCell,
                   residual_connections=False):
   """Makes a RNN cell from the given hyperparameters.
 
@@ -45,12 +39,12 @@ def make_rnn_cell(rnn_layer_sizes,
     dropout_keep_prob: The float probability to keep the output of any given
         sub-cell.
     attn_length: The size of the attention vector.
-    base_cell: The base tf.contrib.rnn.RNNCell to use for sub-cells.
+    base_cell: The base rnn.RNNCell to use for sub-cells.
     residual_connections: Whether or not to use residual connections (via
-        tf.contrib.rnn.ResidualWrapper).
+        rnn.ResidualWrapper).
 
   Returns:
-      A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
+      A rnn.MultiRNNCell based on the given hyperparameters.
   """
   cells = []
   for i in range(len(rnn_layer_sizes)):
@@ -60,13 +54,14 @@ def make_rnn_cell(rnn_layer_sizes,
       cell = contrib_rnn.AttentionCellWrapper(
           cell, attn_length, state_is_tuple=True)
     if residual_connections:
-      cell = contrib_rnn.ResidualWrapper(cell)
+      cell = rnn.ResidualWrapper(cell)
       if i == 0 or rnn_layer_sizes[i] != rnn_layer_sizes[i - 1]:
         cell = contrib_rnn.InputProjectionWrapper(cell, rnn_layer_sizes[i])
-    cell = contrib_rnn.DropoutWrapper(cell, output_keep_prob=dropout_keep_prob)
+    cell = rnn.DropoutWrapper(
+        cell, output_keep_prob=dropout_keep_prob)
     cells.append(cell)
 
-  cell = contrib_rnn.MultiRNNCell(cells)
+  cell = rnn.MultiRNNCell(cells)
 
   return cell
 
@@ -82,7 +77,7 @@ def cudnn_lstm_state_to_state_tuples(cudnn_lstm_state):
   """Convert CudnnLSTM format to LSTMStateTuples."""
   h, c = cudnn_lstm_state
   return tuple(
-      contrib_rnn.LSTMStateTuple(h=h_i, c=c_i)
+      rnn.LSTMStateTuple(h=h_i, c=c_i)
       for h_i, c_i in zip(tf.unstack(h), tf.unstack(c)))
 
 
@@ -113,7 +108,7 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
 
   if len(set(rnn_layer_sizes)) == 1 and not residual_connections:
     initial_state = tuple(
-        contrib_rnn.LSTMStateTuple(
+        rnn.LSTMStateTuple(  # pylint:disable=g-complex-comprehension
             h=tf.zeros([batch_size, num_units], dtype=tf.float32),
             c=tf.zeros([batch_size, num_units], dtype=tf.float32))
         for num_units in rnn_layer_sizes)
@@ -134,7 +129,7 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
 
     else:
       # At generation time we use CudnnCompatibleLSTMCell.
-      cell = contrib_rnn.MultiRNNCell([
+      cell = rnn.MultiRNNCell([
           contrib_cudnn_rnn.CudnnCompatibleLSTMCell(num_units)
           for num_units in rnn_layer_sizes
       ])
@@ -154,9 +149,9 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
       # (projected) input can be added to the output.
       if residual_connections:
         if i == 0 or rnn_layer_sizes[i] != rnn_layer_sizes[i - 1]:
-          cudnn_inputs = contrib_layers.linear(cudnn_inputs, rnn_layer_sizes[i])
+          cudnn_inputs = tf_slim.layers.linear(cudnn_inputs, rnn_layer_sizes[i])
 
-      layer_initial_state = (contrib_rnn.LSTMStateTuple(
+      layer_initial_state = (rnn.LSTMStateTuple(
           h=tf.zeros([batch_size, rnn_layer_sizes[i]], dtype=tf.float32),
           c=tf.zeros([batch_size, rnn_layer_sizes[i]], dtype=tf.float32)),)
 
@@ -175,7 +170,7 @@ def make_cudnn(inputs, rnn_layer_sizes, batch_size, mode,
 
       else:
         # At generation time we use CudnnCompatibleLSTMCell.
-        cell = contrib_rnn.MultiRNNCell(
+        cell = rnn.MultiRNNCell(
             [contrib_cudnn_rnn.CudnnCompatibleLSTMCell(rnn_layer_sizes[i])])
         cudnn_outputs, layer_final_state = tf.nn.dynamic_rnn(
             cell, cudnn_inputs, initial_state=layer_initial_state,
@@ -281,7 +276,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       num_logits = num_classes
     else:
       num_logits = sum(num_classes)
-    logits_flat = contrib_layers.linear(outputs_flat, num_logits)
+    logits_flat = tf_slim.layers.linear(outputs_flat, num_logits)
 
     if mode in ('train', 'eval'):
       labels_flat = magenta.common.flatten_maybe_padded_sequences(
@@ -338,7 +333,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
 
         optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
 
-        train_op = contrib_slim.learning.create_train_op(
+        train_op = tf_slim.learning.create_train_op(
             loss, optimizer, clip_gradient_norm=hparams.clip_norm)
         tf.add_to_collection('train_op', train_op)
 
@@ -352,7 +347,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
             'metrics/perplexity_per_step': perplexity_per_step,
         }
       elif mode == 'eval':
-        vars_to_summarize, update_ops = contrib_metrics.aggregate_metric_map({
+        vars_to_summarize, update_ops = tf_slim.metrics.aggregate_metric_map({
             'loss':
                 tf.metrics.mean(softmax_cross_entropy),
             'metrics/accuracy':
@@ -379,7 +374,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
         vars_to_summarize['metrics/perplexity_per_step'] = tf.exp(
             vars_to_summarize['metrics/loss_per_step'])
 
-      for var_name, var_value in six.iteritems(vars_to_summarize):
+      for var_name, var_value in vars_to_summarize.items():
         tf.summary.scalar(var_name, var_value)
         tf.add_to_collection(var_name, var_value)
 
@@ -405,9 +400,9 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
       tf.add_to_collection('temperature', temperature)
       tf.add_to_collection('softmax', softmax)
       # Flatten state tuples for metagraph compatibility.
-      for state in tf_nest.flatten(initial_state):
+      for state in tf.nest.flatten(initial_state):
         tf.add_to_collection('initial_state', state)
-      for state in tf_nest.flatten(final_state):
+      for state in tf.nest.flatten(final_state):
         tf.add_to_collection('final_state', state)
 
   return build
