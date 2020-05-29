@@ -15,9 +15,9 @@
 """Provides a class, defaults, and utils for Melody RNN model configuration."""
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.melody_rnn import melody_rnn_model
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(

@@ -15,12 +15,12 @@
 """Tests for pianoroll_rnn_nade_create_dataset."""
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import pianoroll_pipeline
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 

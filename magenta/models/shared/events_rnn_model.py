@@ -20,12 +20,11 @@ import functools
 
 from magenta.common import beam_search
 from magenta.common import state_util
+from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_graph
 import magenta.music as mm
 import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
 
 # Model state when generating event sequences, consisting of the next inputs to
 # feed the model, the current RNN state, the current control sequence (if

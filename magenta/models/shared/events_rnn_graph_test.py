@@ -17,10 +17,10 @@
 import tempfile
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_model
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
 
 
 class EventSequenceRNNGraphTest(tf.test.TestCase):

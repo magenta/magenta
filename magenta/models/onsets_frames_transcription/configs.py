@@ -21,10 +21,10 @@ from __future__ import print_function
 import collections
 
 from magenta.common import tf_utils
+from magenta.contrib import training as contrib_training
 from magenta.models.onsets_frames_transcription import audio_transform
 from magenta.models.onsets_frames_transcription import model
 from magenta.models.onsets_frames_transcription import model_tpu
-from tensorflow.contrib import training as contrib_training
 
 Config = collections.namedtuple('Config', ('model_fn', 'hparams'))
 

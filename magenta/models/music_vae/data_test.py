@@ -20,6 +20,7 @@ from __future__ import print_function
 
 import functools
 
+from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
 import magenta.music as mm
@@ -29,7 +30,6 @@ from magenta.music.protobuf import music_pb2
 import mock
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib.training import HParams
 
 NO_EVENT = constants.MELODY_NO_EVENT
 NOTE_OFF = constants.MELODY_NOTE_OFF
@@ -1414,7 +1414,7 @@ class GetDatasetTest(tf.test.TestCase):
 
     # Create test config and verify results
     config = configs.Config(
-        hparams=HParams(batch_size=1),
+        hparams=contrib_training.HParams(batch_size=1),
         note_sequence_augmenter=None,
         data_converter=converter,
         train_examples_path='some_path',

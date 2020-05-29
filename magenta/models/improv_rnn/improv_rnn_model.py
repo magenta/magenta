@@ -17,9 +17,9 @@
 import copy
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
-from tensorflow.contrib import training as contrib_training
 
 DEFAULT_MIN_NOTE = 48
 DEFAULT_MAX_NOTE = 84

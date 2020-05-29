@@ -17,6 +17,7 @@
 
 import copy
 
+from magenta.contrib import rnn as contrib_rnn
 from magenta.models.svg_vae import image_vae
 from magenta.models.svg_vae import svg_decoder_loss
 from tensor2tensor.layers import common_hparams
@@ -25,7 +26,6 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import trainer_lib
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import rnn as contrib_rnn
 
 rnn = tf.nn.rnn_cell
 

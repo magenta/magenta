@@ -22,6 +22,8 @@ import functools
 
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import tf_utils
+from magenta.contrib import rnn as contrib_rnn
+from magenta.contrib import training as contrib_training
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import metrics
@@ -30,8 +32,6 @@ import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
-from tensorflow.contrib import rnn as contrib_rnn
-from tensorflow.contrib import training as contrib_training
 
 
 def conv_net(inputs, hparams):

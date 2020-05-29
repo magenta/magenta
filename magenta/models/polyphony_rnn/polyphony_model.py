@@ -15,11 +15,10 @@
 """Polyphonic RNN model."""
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
 from magenta.models.shared import events_rnn_model
 from magenta.music.protobuf import generator_pb2
-
-from tensorflow.contrib import training as contrib_training
 
 
 class PolyphonyRnnModel(events_rnn_model.EventSequenceRnnModel):

@@ -24,7 +24,7 @@ import os
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
+import tf_slim
 
 flags = tf.app.flags
 FLAGS = flags.FLAGS
@@ -79,9 +79,6 @@ flags.DEFINE_integer(
 flags.DEFINE_integer(
     'num_sync_workers', 0,
     'The number of synchronized workers.')
-flags.DEFINE_integer(
-    'num_data_threads', 4,
-    'The number of data preprocessing threads.')
 flags.DEFINE_string(
     'eval_dir_suffix', '',
     'Suffix to add to eval output directory.')
@@ -209,7 +206,7 @@ def train(train_dir,
           saver=tf.train.Saver(
               max_to_keep=checkpoints_to_keep,
               keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
-      contrib_training.train(
+      tf_slim.training.train(
           train_op=train_op,
           logdir=train_dir,
           scaffold=scaffold,
@@ -240,10 +237,10 @@ def evaluate(train_dir,
         **_get_input_tensors(dataset_fn().take(num_batches), config))
 
     hooks = [
-        contrib_training.StopAfterNEvalsHook(num_batches),
-        contrib_training.SummaryAtEndHook(eval_dir)
+        tf_slim.evaluation.StopAfterNEvalsHook(num_batches),
+        tf_slim.evaluation.SummaryAtEndHook(eval_dir)
     ]
-    contrib_training.evaluate_repeatedly(
+    tf_slim.evaluation.evaluate_repeatedly(
         train_dir,
         eval_ops=eval_op,
         hooks=hooks,
@@ -303,7 +300,6 @@ def run(config_map,
     return data.get_dataset(
         config,
         tf_file_reader=tf_file_reader,
-        num_threads=FLAGS.num_data_threads,
         is_training=is_training,
         cache_dataset=FLAGS.cache_dataset)
 

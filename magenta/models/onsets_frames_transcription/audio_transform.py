@@ -23,9 +23,9 @@ import random
 import subprocess
 import tempfile
 
+from magenta.contrib import training as contrib_training
 import sox
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
 
 # The base pipeline is a list of stages, each of which consists of a name
 # (corresponding to a SoX function) and a dictionary of parameters with name

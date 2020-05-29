@@ -17,11 +17,10 @@
 
 import random
 
+from magenta.contrib import training as contrib_training
 from magenta.models.sketch_rnn import rnn
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import rnn as contrib_rnn
-from tensorflow.contrib import training as contrib_training
 
 
 def copy_hparams(hparams):
@@ -177,12 +176,12 @@ class Model(object):
     if use_input_dropout:
       tf.logging.info('Dropout to input w/ keep_prob = %4.4f.',
                       self.hps.input_dropout_prob)
-      cell = contrib_rnn.DropoutWrapper(
+      cell = tf.nn.rnn_cell.DropoutWrapper(
           cell, input_keep_prob=self.hps.input_dropout_prob)
     if use_output_dropout:
       tf.logging.info('Dropout to output w/ keep_prob = %4.4f.',
                       self.hps.output_dropout_prob)
-      cell = contrib_rnn.DropoutWrapper(
+      cell = tf.nn.rnn_cell.DropoutWrapper(
           cell, output_keep_prob=self.hps.output_dropout_prob)
     self.cell = cell
 

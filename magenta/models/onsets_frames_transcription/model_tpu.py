@@ -18,13 +18,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from magenta.contrib import rnn as contrib_rnn
+from magenta.contrib import training as contrib_training
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import estimator_spec_util
 import tensorflow.compat.v1 as tf
 import tf_slim as slim
-
-from tensorflow.contrib import rnn as contrib_rnn
-from tensorflow.contrib import training as contrib_training
 
 
 def conv_net(inputs, hparams):

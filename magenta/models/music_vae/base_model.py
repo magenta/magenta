@@ -14,23 +14,17 @@
 
 # Lint as: python3
 """Base Music Variational Autoencoder (MusicVAE) model."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import abc
 
-import six
+from magenta.contrib import training as contrib_training
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import metrics as contrib_metrics
-from tensorflow.contrib import training as contrib_training
+import tf_slim
 
 ds = tfp.distributions
 
 
-class BaseEncoder(six.with_metaclass(abc.ABCMeta, object)):
+class BaseEncoder(object, metaclass=abc.ABCMeta):
   """Abstract encoder class.
 
     Implementations must define the following abstract methods:
@@ -68,7 +62,7 @@ class BaseEncoder(six.with_metaclass(abc.ABCMeta, object)):
     pass
 
 
-class BaseDecoder(six.with_metaclass(abc.ABCMeta, object)):
+class BaseDecoder(object, metaclass=abc.ABCMeta):
   """Abstract decoder class.
 
   Implementations must define the following abstract methods:
@@ -330,7 +324,7 @@ class MusicVAE(object):
       metric_map[n] = tf.metrics.mean(t)
 
     metrics_to_values, metrics_to_updates = (
-        contrib_metrics.aggregate_metric_map(metric_map))
+        tf_slim.metrics.aggregate_metric_map(metric_map))
 
     for metric_name, metric_value in metrics_to_values.items():
       tf.summary.scalar(metric_name, metric_value)

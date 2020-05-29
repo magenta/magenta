@@ -18,9 +18,9 @@ import collections
 import functools
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
 from magenta.music.performance_lib import PerformanceEvent
-from tensorflow.contrib import training as contrib_training
 
 # State for constructing a time-varying control sequence. Keeps track of the
 # current event position and time step in the generated performance, to allow

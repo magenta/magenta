@@ -15,12 +15,12 @@
 """Tests for polyphony_rnn_create_dataset."""
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.polyphony_rnn import polyphony_encoder_decoder
 from magenta.models.polyphony_rnn import polyphony_rnn_pipeline
 from magenta.models.shared import events_rnn_model
 from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
 
 FLAGS = tf.app.flags.FLAGS
 

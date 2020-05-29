@@ -23,16 +23,15 @@ import abc
 
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
+import magenta.contrib.rnn as contrib_rnn
+import magenta.contrib.training as contrib_training
 from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import seq2seq as contrib_seq2seq
-from tensorflow.contrib import training as contrib_training
 
-rnn = contrib_rnn
 seq2seq = contrib_seq2seq
 
 # ENCODERS
@@ -118,7 +117,7 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
       last_h_bw = outputs_bw[0]
 
     else:
-      _, states_fw, states_bw = rnn.stack_bidirectional_dynamic_rnn(
+      _, states_fw, states_bw = contrib_rnn.stack_bidirectional_dynamic_rnn(
           cells_fw,
           cells_bw,
           sequence,
@@ -547,7 +546,7 @@ class BidirectionalLstmControlPreprocessingDecoder(base_model.BaseDecoder):
           tf.concat([outputs_fw, outputs_bw], axis=2), [1, 0, 2])
 
     else:
-      outputs, _, _ = rnn.stack_bidirectional_dynamic_rnn(
+      outputs, _, _ = contrib_rnn.stack_bidirectional_dynamic_rnn(
           cells_fw,
           cells_bw,
           c_input,

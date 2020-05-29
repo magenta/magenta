@@ -21,10 +21,9 @@ from __future__ import print_function
 import os
 import random
 
+from magenta.contrib import training as contrib_training
 import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import training as contrib_training
 
 LSTM_STATE_NAME = 'lstm'
 
@@ -304,7 +303,7 @@ def make_rnn_cell(rnn_layer_sizes, state_is_tuple=False):
         and cell matrix as a state instead of a concatenated matrix.
 
   Returns:
-      A tf.contrib.rnn.MultiRNNCell based on the given hyperparameters.
+      A tf.rnn.rnn_cell.MultiRNNCell based on the given hyperparameters.
   """
   cells = []
   for num_units in rnn_layer_sizes:

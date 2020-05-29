@@ -20,9 +20,9 @@ from __future__ import print_function
 
 import collections
 
+from magenta.contrib import rnn as contrib_rnn
 import tensorflow.compat.v1 as tf
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
-from tensorflow.contrib import rnn as contrib_rnn
 from tensorflow.contrib import seq2seq
 from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
 

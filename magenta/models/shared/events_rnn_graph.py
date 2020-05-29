@@ -16,12 +16,12 @@
 import numbers
 
 import magenta
+from magenta.contrib import rnn as contrib_rnn
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tf_slim
 
 from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
-from tensorflow.contrib import rnn as contrib_rnn
 
 rnn = tf.nn.rnn_cell
 

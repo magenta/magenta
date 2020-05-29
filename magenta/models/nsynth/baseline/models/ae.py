@@ -14,12 +14,11 @@
 
 # Lint as: python2, python3
 """Autoencoder model for training on spectrograms."""
+from magenta.contrib import training as contrib_training
 from magenta.models.nsynth import utils
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tf_slim as slim
-
-from tensorflow.contrib import training as contrib_training
 
 
 def get_hparams(config_name):

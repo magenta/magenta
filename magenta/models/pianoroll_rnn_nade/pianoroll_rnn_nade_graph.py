@@ -58,7 +58,7 @@ class RnnNade(object):
   [2]: https://arxiv.org/abs/1206.6392
 
   Args:
-    rnn_cell: The tf.contrib.rnn.RnnCell to use.
+    rnn_cell: The tf.nn.rnn_cell.RnnCell to use.
     num_dims: The number of binary dimensions for each observation.
     num_hidden: The number of hidden units in the NADE.
   """

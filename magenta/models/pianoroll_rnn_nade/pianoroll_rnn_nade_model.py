@@ -14,12 +14,11 @@
 
 """RNN-NADE model."""
 
+from magenta.contrib import training as contrib_training
 from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_graph
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
 from magenta.music.protobuf import generator_pb2
-
-from tensorflow.contrib import training as contrib_training
 
 
 class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):

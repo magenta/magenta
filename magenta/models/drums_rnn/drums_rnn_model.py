@@ -20,9 +20,9 @@ from __future__ import division
 from __future__ import print_function
 
 import magenta
+from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
 import magenta.music as mm
-from tensorflow.contrib import training as contrib_training
 
 
 class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
