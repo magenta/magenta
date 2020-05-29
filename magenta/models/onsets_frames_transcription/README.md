@@ -128,8 +128,6 @@ Now can train your own transcription model using the training TFRecord file gene
 
 Note that if you have the `audio_transform` hparam set to true (which it is by default), you will need to have the [sox](http://sox.sourceforge.net/) binary installed on your system.
 
-Note that if you run a training or an eval job on a platform other than an NVIDIA GPU, you will need to add the argument `--hparams=use_cudnn=false` when running that job. This will use a cuDNN-compatible ops that can run on the CPU.
-
 ```bash
 TRAIN_EXAMPLES=<path to training tfrecord(s) generated during dataset creation>
 RUN_DIR=<path where checkpoints and summary events should be saved>

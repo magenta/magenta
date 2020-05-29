@@ -22,9 +22,7 @@ import collections
 
 from magenta.contrib import rnn as contrib_rnn
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import cudnn_rnn as contrib_cudnn_rnn
 from tensorflow.contrib import seq2seq
-from tensorflow.contrib.cudnn_rnn.python.layers import cudnn_rnn
 
 rnn = tf.nn.rnn_cell
 
@@ -46,125 +44,19 @@ def rnn_cell(rnn_cell_size, dropout_keep_prob, residual, is_training=True):
   return rnn.MultiRNNCell(cells)
 
 
-def cudnn_lstm_layer(layer_sizes, dropout_keep_prob, is_training=True,
-                     name_or_scope='rnn'):
-  """Builds a CudnnLSTM Layer based on the given parameters."""
-  dropout_keep_prob = dropout_keep_prob if is_training else 1.0
-  for ls in layer_sizes:
-    if ls != layer_sizes[0]:
-      raise ValueError(
-          'CudnnLSTM does not support layers with differing sizes. Got: %s' %
-          layer_sizes)
-  lstm = cudnn_rnn.CudnnLSTM(
-      num_layers=len(layer_sizes),
-      num_units=layer_sizes[0],
-      direction='unidirectional',
-      dropout=1.0 - dropout_keep_prob,
-      name=name_or_scope)
-
-  class BackwardCompatibleCudnnParamsFormatConverterLSTM(
-      contrib_cudnn_rnn.CudnnParamsFormatConverterLSTM):
-    """Overrides CudnnParamsFormatConverterLSTM for backward-compatibility."""
-
-    def _cudnn_to_tf_biases(self, *cu_biases):
-      """Overrides to subtract 1.0 from `forget_bias` (see BasicLSTMCell)."""
-      (tf_bias,) = (
-          super(BackwardCompatibleCudnnParamsFormatConverterLSTM,
-                self)._cudnn_to_tf_biases(*cu_biases))
-      i, c, f, o = tf.split(tf_bias, 4)
-      # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      return (tf.concat([i, c, f - 1.0, o], axis=0),)
-
-    def _tf_to_cudnn_biases(self, *tf_biases):
-      """Overrides to add 1.0 to `forget_bias` (see BasicLSTMCell)."""
-      (tf_bias,) = tf_biases
-      i, c, f, o = tf.split(tf_bias, 4)
-      # Non-Cudnn LSTM cells add 1.0 to the forget bias variable.
-      return (super(BackwardCompatibleCudnnParamsFormatConverterLSTM,
-                    self)._tf_to_cudnn_biases(
-                        tf.concat([i, c, f + 1.0, o], axis=0)))
-
-  class BackwardCompatibleCudnnLSTMSaveable(contrib_cudnn_rnn.CudnnLSTMSaveable
-                                           ):
-    """Overrides CudnnLSTMSaveable for backward-compatibility."""
-
-    _format_converter_cls = BackwardCompatibleCudnnParamsFormatConverterLSTM
-
-    def _tf_canonical_name_prefix(self, layer, is_fwd=True):
-      """Overrides for backward-compatible variable names."""
-      if self._direction == 'unidirectional':
-        return 'multi_rnn_cell/cell_%d/lstm_cell' % layer
-      else:
-        return (
-            'cell_%d/bidirectional_rnn/%s/multi_rnn_cell/cell_0/lstm_cell'
-            % (layer, 'fw' if is_fwd else 'bw'))
-
-  lstm._saveable_cls = BackwardCompatibleCudnnLSTMSaveable  # pylint:disable=protected-access
-  return lstm
-
-
-def build_bidirectional_lstm(layer_sizes,
-                             use_cudnn, dropout_keep_prob, residual,
-                             is_training, name_or_scope):
+def build_bidirectional_lstm(
+    layer_sizes, dropout_keep_prob, residual, is_training):
   """Build the Tensorflow graph for a bidirectional LSTM."""
-  if use_cudnn and residual:
-    raise ValueError('Residual connections not supported in cuDNN.')
-
-  if isinstance(name_or_scope, tf.VariableScope):
-    name = name_or_scope.name
-    reuse = name_or_scope.reuse
-  else:
-    name = name_or_scope
-    reuse = None
 
   cells_fw = []
   cells_bw = []
-  for i, layer_size in enumerate(layer_sizes):
-    if use_cudnn:
-      cells_fw.append(cudnn_lstm_layer(
-          [layer_size], dropout_keep_prob, is_training,
-          name_or_scope=tf.VariableScope(
-              reuse, name + '/cell_%d/bidirectional_rnn/fw' % i)))
-      cells_bw.append(cudnn_lstm_layer(
-          [layer_size], dropout_keep_prob, is_training,
-          name_or_scope=tf.VariableScope(
-              reuse, name + '/cell_%d/bidirectional_rnn/bw' % i)))
-    else:
-      cells_fw.append(
-          rnn_cell([layer_size], dropout_keep_prob, residual, is_training))
-      cells_bw.append(
-          rnn_cell([layer_size], dropout_keep_prob, residual, is_training))
+  for layer_size in layer_sizes:
+    cells_fw.append(
+        rnn_cell([layer_size], dropout_keep_prob, residual, is_training))
+    cells_bw.append(
+        rnn_cell([layer_size], dropout_keep_prob, residual, is_training))
 
   return cells_fw, cells_bw
-
-
-def cudnn_bidirectional_lstm(cells_fw, cells_bw, inputs, length, is_training):
-  """Implements stacked bidirectional LSTM for variable-length inputs."""
-  inputs_fw = tf.transpose(inputs, [1, 0, 2])
-  for lstm_fw, lstm_bw in zip(cells_fw, cells_bw):
-    outputs_fw, _ = lstm_fw(inputs_fw, training=is_training)
-    inputs_bw = tf.reverse_sequence(
-        inputs_fw, length, seq_axis=0, batch_axis=1)
-    outputs_bw, _ = lstm_bw(inputs_bw, training=is_training)
-    outputs_bw = tf.reverse_sequence(
-        outputs_bw, length, seq_axis=0, batch_axis=1)
-    inputs_fw = tf.concat([outputs_fw, outputs_bw], axis=2)
-  return outputs_fw, outputs_bw
-
-
-def state_tuples_to_cudnn_lstm_state(lstm_state_tuples):
-  """Convert tuple of LSTMStateTuples to CudnnLSTM format."""
-  h = tf.stack([s.h for s in lstm_state_tuples])
-  c = tf.stack([s.c for s in lstm_state_tuples])
-  return (h, c)
-
-
-def cudnn_lstm_state_to_state_tuples(cudnn_lstm_state):
-  """Convert CudnnLSTM format to tuple of LSTMStateTuples."""
-  h, c = cudnn_lstm_state
-  return tuple(
-      rnn.LSTMStateTuple(h=h_i, c=c_i)
-      for h_i, c_i in zip(tf.unstack(h), tf.unstack(c)))
 
 
 def _get_final_index(sequence_length, time_major=True):

@@ -45,39 +45,26 @@ class LstmEncoder(base_model.BaseEncoder):
     return self._cell.output_size
 
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
-    if hparams.use_cudnn and hparams.residual_encoder:
-      raise ValueError('Residual connections not supported in cuDNN.')
+    if hparams.use_cudnn:
+      tf.logging.warning('cuDNN LSTM no longer supported. Using regular LSTM.')
 
     self._is_training = is_training
     self._name_or_scope = name_or_scope
-    self._use_cudnn = hparams.use_cudnn
 
     tf.logging.info('\nEncoder Cells (unidirectional):\n'
                     '  units: %s\n',
                     hparams.enc_rnn_size)
-    if self._use_cudnn:
-      self._cudnn_lstm = lstm_utils.cudnn_lstm_layer(
-          hparams.enc_rnn_size,
-          hparams.dropout_keep_prob,
-          is_training,
-          name_or_scope=self._name_or_scope)
-    else:
-      self._cell = lstm_utils.rnn_cell(
-          hparams.enc_rnn_size, hparams.dropout_keep_prob,
-          hparams.residual_encoder, is_training)
+    self._cell = lstm_utils.rnn_cell(
+        hparams.enc_rnn_size, hparams.dropout_keep_prob,
+        hparams.residual_encoder, is_training)
 
   def encode(self, sequence, sequence_length):
     # Convert to time-major.
     sequence = tf.transpose(sequence, [1, 0, 2])
-    if self._use_cudnn:
-      outputs, _ = self._cudnn_lstm(
-          sequence, training=self._is_training)
-      return lstm_utils.get_final(outputs, sequence_length)
-    else:
-      outputs, _ = tf.nn.dynamic_rnn(
-          self._cell, sequence, sequence_length, dtype=tf.float32,
-          time_major=True, scope=self._name_or_scope)
-      return outputs[-1]
+    outputs, _ = tf.nn.dynamic_rnn(
+        self._cell, sequence, sequence_length, dtype=tf.float32,
+        time_major=True, scope=self._name_or_scope)
+    return outputs[-1]
 
 
 class BidirectionalLstmEncoder(base_model.BaseEncoder):
@@ -85,14 +72,13 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
 
   @property
   def output_depth(self):
-    if self._use_cudnn:
-      return self._cells[0][-1].num_units + self._cells[1][-1].num_units
     return self._cells[0][-1].output_size + self._cells[1][-1].output_size
 
   def build(self, hparams, is_training=True, name_or_scope='encoder'):
     self._is_training = is_training
     self._name_or_scope = name_or_scope
-    self._use_cudnn = hparams.use_cudnn
+    if hparams.use_cudnn:
+      tf.logging.warning('cuDNN LSTM no longer supported. Using regular LSTM.')
 
     tf.logging.info('\nEncoder Cells (bidirectional):\n'
                     '  units: %s\n',
@@ -100,35 +86,25 @@ class BidirectionalLstmEncoder(base_model.BaseEncoder):
 
     self._cells = lstm_utils.build_bidirectional_lstm(
         layer_sizes=hparams.enc_rnn_size,
-        use_cudnn=self._use_cudnn,
         dropout_keep_prob=hparams.dropout_keep_prob,
         residual=hparams.residual_encoder,
-        is_training=is_training,
-        name_or_scope=name_or_scope)
+        is_training=is_training)
 
   def encode(self, sequence, sequence_length):
     cells_fw, cells_bw = self._cells
 
-    if self._use_cudnn:
-      outputs_fw, outputs_bw = lstm_utils.cudnn_bidirectional_lstm(
-          cells_fw, cells_bw, sequence, sequence_length, self._is_training)
-      last_h_fw = lstm_utils.get_final(outputs_fw, sequence_length)
-      # outputs_bw has already been reversed, so we can take the first element.
-      last_h_bw = outputs_bw[0]
-
-    else:
-      _, states_fw, states_bw = contrib_rnn.stack_bidirectional_dynamic_rnn(
-          cells_fw,
-          cells_bw,
-          sequence,
-          sequence_length=sequence_length,
-          time_major=False,
-          dtype=tf.float32,
-          scope=self._name_or_scope)
-      # Note we access the outputs (h) from the states since the backward
-      # ouputs are reversed to the input order in the returned outputs.
-      last_h_fw = states_fw[-1][-1].h
-      last_h_bw = states_bw[-1][-1].h
+    _, states_fw, states_bw = contrib_rnn.stack_bidirectional_dynamic_rnn(
+        cells_fw,
+        cells_bw,
+        sequence,
+        sequence_length=sequence_length,
+        time_major=False,
+        dtype=tf.float32,
+        scope=self._name_or_scope)
+    # Note we access the outputs (h) from the states since the backward
+    # ouputs are reversed to the input order in the returned outputs.
+    last_h_fw = states_fw[-1][-1].h
+    last_h_bw = states_bw[-1][-1].h
 
     return tf.concat([last_h_fw, last_h_bw], 1)
 
@@ -245,8 +221,8 @@ class BaseLstmDecoder(base_model.BaseDecoder):
   """
 
   def build(self, hparams, output_depth, is_training=True):
-    if hparams.use_cudnn and hparams.residual_decoder:
-      raise ValueError('Residual connections not supported in cuDNN.')
+    if hparams.use_cudnn:
+      tf.logging.warning('cuDNN LSTM no longer supported. Using regular LSTM.')
 
     self._is_training = is_training
 
@@ -262,12 +238,6 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     self._dec_cell = lstm_utils.rnn_cell(
         hparams.dec_rnn_size, hparams.dropout_keep_prob,
         hparams.residual_decoder, is_training)
-    if hparams.use_cudnn:
-      self._cudnn_dec_lstm = lstm_utils.cudnn_lstm_layer(
-          hparams.dec_rnn_size, hparams.dropout_keep_prob, is_training,
-          name_or_scope='decoder')
-    else:
-      self._cudnn_dec_lstm = None
 
   @property
   def state_size(self):
@@ -308,8 +278,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     Args:
       z: Batch of latent vectors, sized `[batch_size, z_size]`, where `z_size`
         may be 0 for unconditioned decoding.
-      helper: A seq2seq.Helper to use. If a TrainingHelper is passed and a
-        CudnnLSTM has previously been defined, it will be used instead.
+      helper: A seq2seq.Helper to use.
       input_shape: The shape of each model input vector passed to the decoder.
       max_length: (Optional) The maximum iterations to decode.
 
@@ -319,45 +288,23 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     initial_state = lstm_utils.initial_cell_state_from_embedding(
         self._dec_cell, z, name='decoder/z_to_initial_state')
 
-    # CudnnLSTM does not support sampling so it can only replace TrainingHelper.
-    if  self._cudnn_dec_lstm and type(helper) is seq2seq.TrainingHelper:  # pylint:disable=unidiomatic-typecheck
-      rnn_output, _ = self._cudnn_dec_lstm(
-          tf.transpose(helper.inputs, [1, 0, 2]),
-          initial_state=lstm_utils.state_tuples_to_cudnn_lstm_state(
-              initial_state),
-          training=self._is_training)
-      with tf.variable_scope('decoder'):
-        rnn_output = self._output_layer(rnn_output)
-
-      results = lstm_utils.LstmDecodeResults(
-          rnn_input=helper.inputs[:, :, :self._output_depth],
-          rnn_output=tf.transpose(rnn_output, [1, 0, 2]),
-          samples=tf.zeros([z.shape[0], 0]),
-          # TODO(adarob): Pass the final state when it is valid (fixed-length).
-          final_state=None,
-          final_sequence_lengths=helper.sequence_length)
-    else:
-      if self._cudnn_dec_lstm:
-        tf.logging.warning(
-            'CudnnLSTM does not support sampling. Using `dynamic_decode` '
-            'instead.')
-      decoder = lstm_utils.Seq2SeqLstmDecoder(
-          self._dec_cell,
-          helper,
-          initial_state=initial_state,
-          input_shape=input_shape,
-          output_layer=self._output_layer)
-      final_output, final_state, final_lengths = seq2seq.dynamic_decode(
-          decoder,
-          maximum_iterations=max_length,
-          swap_memory=True,
-          scope='decoder')
-      results = lstm_utils.LstmDecodeResults(
-          rnn_input=final_output.rnn_input[:, :, :self._output_depth],
-          rnn_output=final_output.rnn_output,
-          samples=final_output.sample_id,
-          final_state=final_state,
-          final_sequence_lengths=final_lengths)
+    decoder = lstm_utils.Seq2SeqLstmDecoder(
+        self._dec_cell,
+        helper,
+        initial_state=initial_state,
+        input_shape=input_shape,
+        output_layer=self._output_layer)
+    final_output, final_state, final_lengths = seq2seq.dynamic_decode(
+        decoder,
+        maximum_iterations=max_length,
+        swap_memory=True,
+        scope='decoder')
+    results = lstm_utils.LstmDecodeResults(
+        rnn_input=final_output.rnn_input[:, :, :self._output_depth],
+        rnn_output=final_output.rnn_output,
+        samples=final_output.sample_id,
+        final_state=final_state,
+        final_sequence_lengths=final_lengths)
 
     return results
 
@@ -520,7 +467,9 @@ class BidirectionalLstmControlPreprocessingDecoder(base_model.BaseDecoder):
 
   def build(self, hparams, output_depth, is_training=True):
     self._is_training = is_training
-    self._use_cudnn = hparams.use_cudnn
+
+    if hparams.use_cudnn:
+      tf.logging.warning('cuDNN LSTM no longer supported. Using regular LSTM.')
 
     tf.logging.info('\nControl Preprocessing Cells (bidirectional):\n'
                     '  units: %s\n',
@@ -528,32 +477,23 @@ class BidirectionalLstmControlPreprocessingDecoder(base_model.BaseDecoder):
 
     self._control_preprocessing_cells = lstm_utils.build_bidirectional_lstm(
         layer_sizes=hparams.control_preprocessing_rnn_size,
-        use_cudnn=self._use_cudnn,
         dropout_keep_prob=hparams.dropout_keep_prob,
         residual=hparams.residual_decoder,
-        is_training=is_training,
-        name_or_scope='control_preprocessing')
+        is_training=is_training)
 
     self._core_decoder.build(hparams, output_depth, is_training)
 
   def _preprocess_controls(self, c_input, length):
     cells_fw, cells_bw = self._control_preprocessing_cells
 
-    if self._use_cudnn:
-      outputs_fw, outputs_bw = lstm_utils.cudnn_bidirectional_lstm(
-          cells_fw, cells_bw, c_input, length, self._is_training)
-      outputs = tf.transpose(
-          tf.concat([outputs_fw, outputs_bw], axis=2), [1, 0, 2])
-
-    else:
-      outputs, _, _ = contrib_rnn.stack_bidirectional_dynamic_rnn(
-          cells_fw,
-          cells_bw,
-          c_input,
-          sequence_length=length,
-          time_major=False,
-          dtype=tf.float32,
-          scope='control_preprocessing')
+    outputs, _, _ = contrib_rnn.stack_bidirectional_dynamic_rnn(
+        cells_fw,
+        cells_bw,
+        c_input,
+        sequence_length=length,
+        time_major=False,
+        dtype=tf.float32,
+        scope='control_preprocessing')
 
     return outputs
 
@@ -1350,7 +1290,7 @@ def get_default_hparams():
       'dropout_keep_prob': 1.0,  # Probability all dropout keep.
       'sampling_schedule': 'constant',  # constant, exponential, inverse_sigmoid
       'sampling_rate': 0.0,  # Interpretation is based on `sampling_schedule`.
-      'use_cudnn': False,  # Uses faster CudnnLSTM to train. For GPU only.
+      'use_cudnn': False,  # DEPRECATED
       'residual_encoder': False,  # Use residual connections in encoder.
       'residual_decoder': False,  # Use residual connections in decoder.
       'control_preprocessing_rnn_size': [256],  # Decoder control preprocessing.
