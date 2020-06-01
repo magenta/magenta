@@ -14,12 +14,9 @@
 
 """Tests for drums_encoder_decoder."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import absltest
 from magenta.music import drums_encoder_decoder
-import tensorflow.compat.v1 as tf
+
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()
@@ -30,7 +27,7 @@ def _index_to_binary(index):
   return fmt % int(bin(index)[2:])
 
 
-class MultiDrumOneHotEncodingTest(tf.test.TestCase):
+class MultiDrumOneHotEncodingTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = drums_encoder_decoder.MultiDrumOneHotEncoding()
@@ -67,15 +64,15 @@ class MultiDrumOneHotEncodingTest(tf.test.TestCase):
         2 ** (len(drums_encoder_decoder.DEFAULT_DRUM_TYPE_PITCHES) // 2))
     self.assertEqual(frozenset, type(event1))
     self.assertEqual(frozenset, type(event2))
-    self.assertEqual(1, len(event1))
-    self.assertEqual(1, len(event2))
+    self.assertLen(event1, 1)
+    self.assertLen(event2, 1)
     self.assertNotEqual(event1, event2)
 
     # Multiple bits active should encode to multiple drums.
     event = self.enc.decode_event(7)
     self.assertEqual(frozenset, type(event))
-    self.assertEqual(3, len(event))
+    self.assertLen(event, 3)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

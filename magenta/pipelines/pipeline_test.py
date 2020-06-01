@@ -14,13 +14,9 @@
 
 """Tests for pipeline."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
-import tempfile
 
+from absl.testing import absltest
 from magenta.common import testing_lib
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
@@ -45,7 +41,7 @@ class MockPipeline(pipeline.Pipeline):
         'dataset_2': [MockStringProto(input_object + '_C')]}
 
 
-class PipelineTest(tf.test.TestCase):
+class PipelineTest(absltest.TestCase):
 
   def testFileIteratorRecursive(self):
     target_files = [
@@ -61,7 +57,7 @@ class PipelineTest(tf.test.TestCase):
         ('stuff.txt', b'some stuff'),
         ('a/q/r/file', b'more stuff')]
 
-    root_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
+    root_dir = self.create_tempdir().full_path
     for path, contents in target_files + extra_files:
       abs_path = os.path.join(root_dir, path)
       tf.gfile.MakeDirs(os.path.dirname(abs_path))
@@ -85,7 +81,7 @@ class PipelineTest(tf.test.TestCase):
         ('stuff.txt', b'some stuff'),
         ('a/q/r/file', b'more stuff')]
 
-    root_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
+    root_dir = self.create_tempdir().full_path
     for path, contents in target_files + extra_files:
       abs_path = os.path.join(root_dir, path)
       tf.gfile.MakeDirs(os.path.dirname(abs_path))
@@ -107,7 +103,7 @@ class PipelineTest(tf.test.TestCase):
 
   def testRunPipelineSerial(self):
     strings = ['abcdefg', 'helloworld!', 'qwerty']
-    root_dir = tempfile.mkdtemp(dir=self.get_temp_dir())
+    root_dir = self.create_tempdir().full_path
     pipeline.run_pipeline_serial(
         MockPipeline(), iter(strings), root_dir)
 
@@ -259,4 +255,4 @@ class PipelineTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

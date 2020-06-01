@@ -21,6 +21,8 @@ from magenta.music.protobuf import music_pb2
 from magenta.pipelines import performance_pipeline
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 FLAGS = tf.app.flags.FLAGS
 
 

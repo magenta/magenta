@@ -31,6 +31,7 @@ def main(argv):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.app.flags.mark_flags_as_required(['model_dir', 'examples_path'])
 
   tf.app.run(main)

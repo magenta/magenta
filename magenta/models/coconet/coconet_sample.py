@@ -685,4 +685,5 @@ def parse_art_to_pianoroll(art, tt=None):
 
 
 if __name__ == "__main__":
+  tf.disable_v2_behavior()
   tf.app.run()

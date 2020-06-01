@@ -167,5 +167,6 @@ def print_statistics(pianorolls):
 
 
 if __name__ == '__main__':
+  tf.disable_v2_behavior()
   tf.logging.set_verbosity(tf.logging.INFO)
   tf.app.run()

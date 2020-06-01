@@ -14,19 +14,14 @@
 
 """Tests to ensure correct reading and writing of NoteSequence record files."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tempfile
 
+from absl.testing import absltest
 from magenta.music import note_sequence_io
 from magenta.music.protobuf import music_pb2
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow.compat.v1 as tf
 
 
-class NoteSequenceIoTest(tf.test.TestCase):
+class NoteSequenceIoTest(absltest.TestCase):
 
   def testGenerateId(self):
     sequence_id_1 = note_sequence_io.generate_note_sequence_id(
@@ -60,4 +55,4 @@ class NoteSequenceIoTest(tf.test.TestCase):
         self.assertEqual(sequence, sequences[i])
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

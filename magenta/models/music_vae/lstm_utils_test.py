@@ -13,14 +13,11 @@
 # limitations under the License.
 
 """Tests for MusicVAE lstm_utils library."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 LSTMStateTuple = tf.nn.rnn_cell.LSTMStateTuple
 

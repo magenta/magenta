@@ -13,15 +13,11 @@
 # limitations under the License.
 
 """Test to ensure correct midi input and output."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import os.path
 import tempfile
 
+from absl.testing import absltest
 from magenta.music import constants
 from magenta.music import midi_io
 from magenta.music.protobuf import music_pb2
@@ -56,7 +52,7 @@ _SIMPLE_MIDI_FILE_SUSTAIN = .95
 #   midi.NoteOnEvent(tick=0, channel=0, data=[2, 0]),
 
 
-class MidiIoTest(tf.test.TestCase):
+class MidiIoTest(absltest.TestCase):
 
   def setUp(self):
     self.midi_simple_filename = os.path.join(
@@ -128,9 +124,9 @@ class MidiIoTest(tf.test.TestCase):
     if seq_instruments:
       self.assertEqual(len(midi.instruments), len(seq_instruments))
     else:
-      self.assertEqual(1, len(midi.instruments))
-      self.assertEqual(0, len(midi.instruments[0].notes))
-      self.assertEqual(0, len(midi.instruments[0].pitch_bends))
+      self.assertLen(midi.instruments, 1)
+      self.assertEmpty(midi.instruments[0].notes)
+      self.assertEmpty(midi.instruments[0].pitch_bends)
 
     for midi_instrument, seq_instrument_key in zip(
         midi.instruments, sorted_seq_instrument_keys):
@@ -283,14 +279,14 @@ class MidiIoTest(tf.test.TestCase):
     # Translate without dropping.
     translated_midi = midi_io.sequence_proto_to_pretty_midi(
         source_sequence)
-    self.assertEqual(1, len(translated_midi.instruments))
-    self.assertEqual(0, len(translated_midi.instruments[0].notes))
+    self.assertLen(translated_midi.instruments, 1)
+    self.assertEmpty(translated_midi.instruments[0].notes)
 
     # Translate dropping anything after 30 seconds.
     translated_midi = midi_io.sequence_proto_to_pretty_midi(
         source_sequence, drop_events_n_seconds_after_last_note=30)
-    self.assertEqual(1, len(translated_midi.instruments))
-    self.assertEqual(0, len(translated_midi.instruments[0].notes))
+    self.assertLen(translated_midi.instruments, 1)
+    self.assertEmpty(translated_midi.instruments[0].notes)
 
   def testNonEmptySequenceWithNoNotesToPrettyMidi_DropEventsAfterLastNote(self):
     source_sequence = music_pb2.NoteSequence()
@@ -375,4 +371,4 @@ class MidiIoTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

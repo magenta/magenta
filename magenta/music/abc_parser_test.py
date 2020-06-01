@@ -14,10 +14,6 @@
 
 """Tests for abc_parser."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import copy
 import os.path
 
@@ -26,7 +22,6 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
-import six
 import tensorflow.compat.v1 as tf
 
 
@@ -36,8 +31,7 @@ class AbcParserTest(tf.test.TestCase):
     self.maxDiff = None  # pylint:disable=invalid-name
 
   def compare_accidentals(self, expected, accidentals):
-    values = [v[1] for v in sorted(six.iteritems(accidentals))]
-    self.assertEqual(expected, values)
+    self.assertCountEqual(expected, accidentals.values())
 
   def compare_proto_list(self, expected, test):
     self.assertEqual(len(expected), len(test))
@@ -205,11 +199,10 @@ class AbcParserTest(tf.test.TestCase):
     tunes, exceptions = abc_parser.parse_abc_tunebook_file(
         os.path.join(tf.resource_loader.get_data_files_path(),
                      'testdata/english.abc'))
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(2, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0],
-                               abc_parser.VariantEndingError))
-    self.assertTrue(isinstance(exceptions[1], abc_parser.PartError))
+    self.assertLen(tunes, 1)
+    self.assertLen(exceptions, 2)
+    self.assertIsInstance(exceptions[0], abc_parser.VariantEndingError)
+    self.assertIsInstance(exceptions[1], abc_parser.PartError)
 
     expected_metadata1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -360,8 +353,8 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         CC,',C,C'c
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
 
     expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -452,8 +445,8 @@ class AbcParserTest(tf.test.TestCase):
         % deprecated tempo syntax depends on unit note length.
         L:1/4  % define note length after tempo to verify that is supported.
         """)
-    self.assertEqual(11, len(tunes))
-    self.assertEqual(0, len(exceptions))
+    self.assertLen(tunes, 11)
+    self.assertEmpty(exceptions)
 
     self.assertEqual(60, tunes[1].tempos[0].qpm)
     self.assertEqual(100, tunes[2].tempos[0].qpm)
@@ -463,7 +456,7 @@ class AbcParserTest(tf.test.TestCase):
     self.assertEqual(120, tunes[6].tempos[0].qpm)
     self.assertEqual(120, tunes[7].tempos[0].qpm)
     self.assertEqual(75, tunes[8].tempos[0].qpm)
-    self.assertEqual(0, len(tunes[9].tempos))
+    self.assertEmpty(tunes[9].tempos, 0)
     self.assertEqual(25, tunes[10].tempos[0].qpm)
     self.assertEqual(100, tunes[11].tempos[0].qpm)
 
@@ -491,8 +484,8 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         B3/c/d B/c3/d
         """)
-    self.assertEqual(3, len(tunes))
-    self.assertEqual(0, len(exceptions))
+    self.assertLen(tunes, 3)
+    self.assertEmpty(exceptions)
 
     expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -566,8 +559,8 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         CC/C//C///C////
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
 
     expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
@@ -623,9 +616,9 @@ class AbcParserTest(tf.test.TestCase):
     tunes, exceptions = abc_parser.parse_abc_tunebook_file(
         os.path.join(tf.resource_loader.get_data_files_path(),
                      'testdata/zocharti_loch.abc'))
-    self.assertEqual(0, len(tunes))
-    self.assertEqual(1, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0], abc_parser.MultiVoiceError))
+    self.assertEmpty(tunes)
+    self.assertLen(exceptions, 1)
+    self.assertIsInstance(exceptions[0], abc_parser.MultiVoiceError)
 
   def testRepeats(self):
     # Several equivalent versions of the same tune.
@@ -697,11 +690,11 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         :| Bcd |:: Bcd ::|
         """)
-    self.assertEqual(7, len(tunes))
-    self.assertEqual(3, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0], abc_parser.RepeatParseError))
-    self.assertTrue(isinstance(exceptions[1], abc_parser.RepeatParseError))
-    self.assertTrue(isinstance(exceptions[2], abc_parser.RepeatParseError))
+    self.assertLen(tunes, 7)
+    self.assertLen(exceptions, 3)
+    self.assertIsInstance(exceptions[0], abc_parser.RepeatParseError)
+    self.assertIsInstance(exceptions[1], abc_parser.RepeatParseError)
+    self.assertIsInstance(exceptions[2], abc_parser.RepeatParseError)
     expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -912,10 +905,9 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4
         T:Test
         invalid notes!""")
-    self.assertEqual(0, len(tunes))
-    self.assertEqual(1, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0],
-                               abc_parser.InvalidCharacterError))
+    self.assertEmpty(tunes)
+    self.assertLen(exceptions, 1)
+    self.assertIsInstance(exceptions[0], abc_parser.InvalidCharacterError)
 
   def testOneSidedRepeat(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""
@@ -925,8 +917,8 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         Bcd :| Bcd
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
     expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -1010,10 +1002,9 @@ class AbcParserTest(tf.test.TestCase):
         L:1/4
         T:Test
         [CEG]""")
-    self.assertEqual(0, len(tunes))
-    self.assertEqual(1, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0],
-                               abc_parser.ChordError))
+    self.assertEmpty(tunes)
+    self.assertLen(exceptions, 1)
+    self.assertIsInstance(exceptions[0], abc_parser.ChordError)
 
   def testChordAnnotations(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""
@@ -1025,8 +1016,8 @@ class AbcParserTest(tf.test.TestCase):
         % verify that an empty annotation doesn't cause problems.
         ""D
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
     expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -1073,8 +1064,8 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         GF^GGg|Gg
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
     expected_ns1 = testing_lib.parse_test_proto(
         music_pb2.NoteSequence,
         """
@@ -1145,9 +1136,9 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         .a~bHcLdMeOfPgSATbucvd
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
-    self.assertEqual(11, len(tunes[1].notes))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
+    self.assertLen(tunes[1].notes, 11)
 
   def testSlur(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""
@@ -1157,9 +1148,9 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         (ABC) ( a b c ) (c (d e f) g a)
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
-    self.assertEqual(12, len(tunes[1].notes))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
+    self.assertLen(tunes[1].notes, 12)
 
   def testTie(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""
@@ -1169,9 +1160,9 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         abc-|cba c4-c4 C.-C
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
-    self.assertEqual(10, len(tunes[1].notes))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
+    self.assertLen(tunes[1].notes, 10)
 
   def testTuplet(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""
@@ -1181,9 +1172,9 @@ class AbcParserTest(tf.test.TestCase):
         T:Test
         (3abc
         """)
-    self.assertEqual(0, len(tunes))
-    self.assertEqual(1, len(exceptions))
-    self.assertTrue(isinstance(exceptions[0], abc_parser.TupletError))
+    self.assertEmpty(tunes)
+    self.assertLen(exceptions, 1)
+    self.assertIsInstance(exceptions[0], abc_parser.TupletError)
 
   def testLineContinuation(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook(r"""
@@ -1200,9 +1191,9 @@ class AbcParserTest(tf.test.TestCase):
         \
         cedf:|
         """)
-    self.assertEqual(1, len(tunes))
-    self.assertEqual(0, len(exceptions))
-    self.assertEqual(26, len(tunes[1].notes))
+    self.assertLen(tunes, 1)
+    self.assertEmpty(exceptions)
+    self.assertLen(tunes[1].notes, 26)
 
 if __name__ == '__main__':
   tf.test.main()

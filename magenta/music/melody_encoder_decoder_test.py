@@ -14,21 +14,17 @@
 
 """Tests for melody_encoder_decoder."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import absltest
 from magenta.music import constants
 from magenta.music import encoder_decoder
 from magenta.music import melodies_lib
 from magenta.music import melody_encoder_decoder
-import tensorflow.compat.v1 as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
 
 
-class MelodyOneHotEncodingTest(tf.test.TestCase):
+class MelodyOneHotEncodingTest(absltest.TestCase):
 
   def testInit(self):
     melody_encoder_decoder.MelodyOneHotEncoding(0, 128)
@@ -74,7 +70,7 @@ class MelodyOneHotEncodingTest(tf.test.TestCase):
     self.assertEqual(NOTE_OFF, enc.decode_event(1))
 
 
-class MelodyOneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
+class MelodyOneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
     self.min_note = 60
@@ -177,7 +173,7 @@ class MelodyOneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.assertListEqual(list(melody4), [60, NOTE_OFF])
 
 
-class MelodyLookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
+class MelodyLookbackEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def testDefaultRange(self):
     med = encoder_decoder.LookbackEventSequenceEncoderDecoder(
@@ -457,7 +453,7 @@ class MelodyLookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
         med.get_inputs_batch(melodies))
 
 
-class KeyMelodyEncoderDecoderTest(tf.test.TestCase):
+class KeyMelodyEncoderDecoderTest(absltest.TestCase):
 
   def testDefaultRange(self):
     med = melody_encoder_decoder.KeyMelodyEncoderDecoder(48, 84)
@@ -647,4 +643,4 @@ class KeyMelodyEncoderDecoderTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

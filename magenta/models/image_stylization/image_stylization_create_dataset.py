@@ -19,11 +19,6 @@ unique style label and the pre-computed Gram matrices for all layers of a VGG16
 classifier pre-trained on Imagenet (where max-pooling operations have been
 replaced with average-pooling operations).
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import io
 import os
 
@@ -98,6 +93,7 @@ def main(unused_argv):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.app.run(main)
 
 

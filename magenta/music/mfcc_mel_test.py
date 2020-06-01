@@ -14,16 +14,12 @@
 
 """Tests for mfcc_mel."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import absltest
 from magenta.music import mfcc_mel
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 
-class MfccMelTest(tf.test.TestCase):
+class MfccMelTest(absltest.TestCase):
 
   def testMelSpectrumAgreesWithGoldenValues(self):
     # Parallel dsp/mfcc:mel_spectrum_test.
@@ -83,4 +79,4 @@ class MfccMelTest(tf.test.TestCase):
 
 
 if __name__ == "__main__":
-  tf.test.main()
+  absltest.main()

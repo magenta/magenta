@@ -14,11 +14,6 @@
 
 # Lint as: python3
 """LSTM-based encoders and decoders for MusicVAE."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import abc
 
 from magenta.common import flatten_maybe_padded_sequences

@@ -13,11 +13,6 @@
 # limitations under the License.
 
 """Tests for Score2Perf music encoders."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tempfile
 
 import magenta
@@ -25,6 +20,8 @@ from magenta.models.score2perf import music_encoders
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 
 class MidiPerformanceEncoderTest(tf.test.TestCase):

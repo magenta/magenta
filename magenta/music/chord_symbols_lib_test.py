@@ -14,8 +14,8 @@
 
 """Tests for chord_symbols_lib."""
 
+from absl.testing import absltest
 from magenta.music import chord_symbols_lib
-import tensorflow.compat.v1 as tf
 
 CHORD_QUALITY_MAJOR = chord_symbols_lib.CHORD_QUALITY_MAJOR
 CHORD_QUALITY_MINOR = chord_symbols_lib.CHORD_QUALITY_MINOR
@@ -24,7 +24,7 @@ CHORD_QUALITY_DIMINISHED = chord_symbols_lib.CHORD_QUALITY_DIMINISHED
 CHORD_QUALITY_OTHER = chord_symbols_lib.CHORD_QUALITY_OTHER
 
 
-class ChordSymbolFunctionsTest(tf.test.TestCase):
+class ChordSymbolFunctionsTest(absltest.TestCase):
 
   def testTransposeChordSymbol(self):
     # Test basic triads.
@@ -220,4 +220,4 @@ class ChordSymbolFunctionsTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

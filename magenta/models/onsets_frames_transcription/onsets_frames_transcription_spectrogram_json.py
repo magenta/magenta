@@ -65,6 +65,7 @@ def main(argv):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.app.run(main)
 
 if __name__ == '__main__':

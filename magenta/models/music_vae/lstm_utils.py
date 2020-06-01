@@ -13,11 +13,6 @@
 # limitations under the License.
 
 """MusicVAE LSTM model utilities."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 
 from magenta.contrib import rnn as contrib_rnn

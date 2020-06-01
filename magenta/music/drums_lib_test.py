@@ -13,6 +13,7 @@
 # limitations under the License.
 
 """Tests for drums_lib."""
+
 from magenta.music import drums_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib

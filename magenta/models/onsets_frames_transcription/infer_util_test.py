@@ -23,6 +23,8 @@ from magenta.models.onsets_frames_transcription import infer_util
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 
 class InferUtilTest(tf.test.TestCase):
 

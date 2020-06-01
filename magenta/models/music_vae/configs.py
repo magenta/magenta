@@ -14,11 +14,6 @@
 
 # Lint as: python3
 """Configurations for MusicVAE models."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 
 from magenta.common import merge_hparams

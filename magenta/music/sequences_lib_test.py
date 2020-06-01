@@ -380,7 +380,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=3.0)
-    self.assertEqual(3, len(subsequences))
+    self.assertLen(subsequences, 3)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -451,7 +451,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=[3.0, 4.0])
-    self.assertEqual(3, len(subsequences))
+    self.assertLen(subsequences, 3)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -508,7 +508,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=2.0, skip_splits_inside_notes=True)
-    self.assertEqual(2, len(subsequences))
+    self.assertLen(subsequences, 2)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -529,7 +529,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence.subsequence_info.end_time_offset = 0.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEqual(1, len(subsequences))
+    self.assertLen(subsequences, 1)
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceDuplicateTimeChanges(self):
@@ -560,7 +560,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence.subsequence_info.end_time_offset = 0.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEqual(1, len(subsequences))
+    self.assertLen(subsequences, 1)
     self.assertProtoEquals(expected_subsequence, subsequences[0])
 
   def testSplitNoteSequenceCoincidentTimeChanges(self):
@@ -622,7 +622,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_2.subsequence_info.end_time_offset = 5.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEqual(2, len(subsequences))
+    self.assertLen(subsequences, 2)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -689,7 +689,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(
         sequence, skip_splits_inside_notes=True)
-    self.assertEqual(2, len(subsequences))
+    self.assertLen(subsequences, 2)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -769,7 +769,7 @@ class SequencesLibTest(tf.test.TestCase):
     expected_subsequence_3.subsequence_info.end_time_offset = 5.0
 
     subsequences = sequences_lib.split_note_sequence_on_time_changes(sequence)
-    self.assertEqual(3, len(subsequences))
+    self.assertLen(subsequences, 3)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -835,7 +835,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence(
         sequence, hop_size_seconds=[3.0, 4.0])
-    self.assertEqual(3, len(subsequences))
+    self.assertLen(subsequences, 3)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -871,7 +871,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence_on_silence(
         sequence, gap_seconds=0.5)
-    self.assertEqual(3, len(subsequences))
+    self.assertLen(subsequences, 3)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
     self.assertProtoEquals(expected_subsequence_3, subsequences[2])
@@ -895,7 +895,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     subsequences = sequences_lib.split_note_sequence_on_silence(
         sequence, gap_seconds=1.0)
-    self.assertEqual(2, len(subsequences))
+    self.assertLen(subsequences, 2)
     self.assertProtoEquals(expected_subsequence_1, subsequences[0])
     self.assertProtoEquals(expected_subsequence_2, subsequences[1])
 
@@ -967,7 +967,7 @@ class SequencesLibTest(tf.test.TestCase):
 
     sequences_lib.assert_is_quantized_sequence(relative_quantized_sequence)
     sequences_lib.assert_is_quantized_sequence(absolute_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusError):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):  # pylint:disable=g-error-prone-assert-raises
       sequences_lib.assert_is_quantized_sequence(self.note_sequence)
 
   def testAssertIsRelativeQuantizedNoteSequence(self):
@@ -983,10 +983,10 @@ class SequencesLibTest(tf.test.TestCase):
 
     sequences_lib.assert_is_relative_quantized_sequence(
         relative_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusError):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):  # pylint:disable=g-error-prone-assert-raises
       sequences_lib.assert_is_relative_quantized_sequence(
           absolute_quantized_sequence)
-    with self.assertRaises(sequences_lib.QuantizationStatusError):
+    with self.assertRaises(sequences_lib.QuantizationStatusError):  # pylint:disable=g-error-prone-assert-raises
       sequences_lib.assert_is_relative_quantized_sequence(self.note_sequence)
 
   def testQuantizeNoteSequence_TimeSignatureChange(self):
@@ -2011,7 +2011,7 @@ class SequencesLibTest(tf.test.TestCase):
     sequence = sequences_lib.pianoroll_to_note_sequence(
         frames, frames_per_second=DEFAULT_FRAMES_PER_SECOND, min_duration_ms=0)
 
-    self.assertEqual(1, len(sequence.notes))
+    self.assertLen(sequence.notes, 1)
     self.assertEqual(39, sequence.notes[0].pitch)
     self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
                      sequence.notes[0].start_time)
@@ -2033,7 +2033,7 @@ class SequencesLibTest(tf.test.TestCase):
         frames_per_second=DEFAULT_FRAMES_PER_SECOND,
         min_duration_ms=0,
         onset_predictions=onsets)
-    self.assertEqual(2, len(sequence.notes))
+    self.assertLen(sequence.notes, 2)
 
     self.assertEqual(39, sequence.notes[0].pitch)
     self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
@@ -2065,7 +2065,7 @@ class SequencesLibTest(tf.test.TestCase):
         min_duration_ms=0,
         onset_predictions=onsets,
         velocity_values=velocity_values)
-    self.assertEqual(2, len(sequence.notes))
+    self.assertLen(sequence.notes, 2)
 
     self.assertEqual(39, sequence.notes[0].pitch)
     self.assertEqual(50, sequence.notes[0].velocity)
@@ -2092,7 +2092,7 @@ class SequencesLibTest(tf.test.TestCase):
         velocity_values=velocity_values,
         velocity_scale=127,
         velocity_bias=0)
-    self.assertEqual(2, len(sequence.notes))
+    self.assertLen(sequence.notes, 2)
 
     self.assertEqual(39, sequence.notes[0].pitch)
     self.assertEqual(63, sequence.notes[0].velocity)
@@ -2114,7 +2114,7 @@ class SequencesLibTest(tf.test.TestCase):
         min_duration_ms=0,
         onset_predictions=onsets,
         velocity=100)
-    self.assertEqual(2, len(sequence.notes))
+    self.assertLen(sequence.notes, 2)
 
     self.assertEqual(39, sequence.notes[0].pitch)
     self.assertEqual(100, sequence.notes[0].velocity)
@@ -2138,7 +2138,7 @@ class SequencesLibTest(tf.test.TestCase):
         frames_per_second=DEFAULT_FRAMES_PER_SECOND,
         min_duration_ms=0,
         onset_predictions=onsets)
-    self.assertEqual(3, len(sequence.notes))
+    self.assertLen(sequence.notes, 3)
 
     self.assertEqual(39, sequence.notes[0].pitch)
     self.assertEqual(25 / DEFAULT_FRAMES_PER_SECOND,
@@ -2166,7 +2166,7 @@ class SequencesLibTest(tf.test.TestCase):
         onsets, frames_per_second=10, note_duration_seconds=0.05,
         min_midi_pitch=60, velocity_values=velocity_values)
 
-    self.assertEqual(3, len(sequence.notes))
+    self.assertLen(sequence.notes, 3)
 
     self.assertEqual(60, sequence.notes[0].pitch)
     self.assertEqual(0, sequence.notes[0].start_time)
@@ -2195,7 +2195,7 @@ class SequencesLibTest(tf.test.TestCase):
         min_midi_pitch=60, velocity_values=velocity_values,
         velocity_scale=127, velocity_bias=0)
 
-    self.assertEqual(3, len(sequence.notes))
+    self.assertLen(sequence.notes, 3)
 
     self.assertEqual(60, sequence.notes[0].pitch)
     self.assertEqual(0, sequence.notes[0].start_time)

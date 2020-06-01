@@ -14,14 +14,14 @@
 
 """Tests for chords_encoder_decoder."""
 
+from absl.testing import absltest
 from magenta.music import chords_encoder_decoder
 from magenta.music import constants
-import tensorflow.compat.v1 as tf
 
 NO_CHORD = constants.NO_CHORD
 
 
-class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
+class MajorMinorChordOneHotEncodingTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = chords_encoder_decoder.MajorMinorChordOneHotEncoding()
@@ -70,7 +70,7 @@ class MajorMinorChordOneHotEncodingTest(tf.test.TestCase):
     self.assertEqual('Em', figure)
 
 
-class TriadChordOneHotEncodingTest(tf.test.TestCase):
+class TriadChordOneHotEncodingTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = chords_encoder_decoder.TriadChordOneHotEncoding()
@@ -127,7 +127,7 @@ class TriadChordOneHotEncodingTest(tf.test.TestCase):
     self.assertEqual('Fdim', figure)
 
 
-class PitchChordsEncoderDecoderTest(tf.test.TestCase):
+class PitchChordsEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = chords_encoder_decoder.PitchChordsEncoderDecoder()
@@ -182,4 +182,4 @@ class PitchChordsEncoderDecoderTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

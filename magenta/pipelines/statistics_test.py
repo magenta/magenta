@@ -14,12 +14,11 @@
 
 """Tests for statistics."""
 
+from absl.testing import absltest
 from magenta.pipelines import statistics
-import six
-import tensorflow.compat.v1 as tf
 
 
-class StatisticsTest(tf.test.TestCase):
+class StatisticsTest(absltest.TestCase):
 
   def testCounter(self):
     counter = statistics.Counter('name_123')
@@ -68,8 +67,7 @@ class StatisticsTest(tf.test.TestCase):
     self.assertEqual(histo.counters, {float('-inf'): 6, 1: 1, 2: 13, 10: 3})
 
     histo_3 = statistics.Histogram('name_123', [1, 2, 7])
-    with six.assertRaisesRegex(
-        self,
+    with self.assertRaisesRegex(
         statistics.MergeStatisticsError,
         r'Histogram buckets do not match. '
         r'Expected \[-inf, 1, 2, 10\], got \[-inf, 1, 2, 7\]'):
@@ -98,4 +96,4 @@ class StatisticsTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

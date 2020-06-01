@@ -23,6 +23,7 @@ import numpy as np
 from tensor2tensor.data_generators import generator_utils
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string(

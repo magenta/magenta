@@ -13,11 +13,6 @@
 # limitations under the License.
 
 """Tests for shared data lib."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import copy
 import tempfile
 import time
@@ -33,6 +28,8 @@ from magenta.music.protobuf import music_pb2
 
 import numpy as np
 import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 
 class DataTest(tf.test.TestCase):

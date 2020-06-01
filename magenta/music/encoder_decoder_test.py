@@ -14,17 +14,13 @@
 
 """Tests for encoder_decoder."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import absltest
 from magenta.music import encoder_decoder
 from magenta.music import testing_lib
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 
-class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
+class OneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.OneHotEventSequenceEncoderDecoder(
@@ -116,7 +112,7 @@ class OneHotEventSequenceEncoderDecoderTest(tf.test.TestCase):
                           np.log(0.4) + np.log(0.6)], p)
 
 
-class OneHotIndexEventSequenceEncoderDecoderTest(tf.test.TestCase):
+class OneHotIndexEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.OneHotIndexEventSequenceEncoderDecoder(
@@ -160,7 +156,7 @@ class OneHotIndexEventSequenceEncoderDecoderTest(tf.test.TestCase):
         self.enc.get_inputs_batch(event_sequences))
 
 
-class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
+class LookbackEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
@@ -275,7 +271,7 @@ class LookbackEventSequenceEncoderDecoderTest(tf.test.TestCase):
     self.assertEqual(2, self.enc.class_index_to_event(2, events[:5]))
 
 
-class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
+class ConditionalEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.ConditionalEventSequenceEncoderDecoder(
@@ -377,7 +373,7 @@ class ConditionalEventSequenceEncoderDecoderTest(tf.test.TestCase):
                           np.log(0.4) + np.log(0.6)], p)
 
 
-class OptionalEventSequenceEncoderTest(tf.test.TestCase):
+class OptionalEventSequenceEncoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.OptionalEventSequenceEncoder(
@@ -406,7 +402,7 @@ class OptionalEventSequenceEncoderTest(tf.test.TestCase):
         self.enc.events_to_input(events, 4))
 
 
-class MultipleEventSequenceEncoderTest(tf.test.TestCase):
+class MultipleEventSequenceEncoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = encoder_decoder.MultipleEventSequenceEncoder([
@@ -438,4 +434,4 @@ class MultipleEventSequenceEncoderTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

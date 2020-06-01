@@ -22,6 +22,8 @@ from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_model
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 
 class EventSequenceRNNGraphTest(tf.test.TestCase):
 

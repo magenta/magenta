@@ -14,17 +14,13 @@
 
 """Tests for melody inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import absltest
 from magenta.music import melody_inference
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 
-class MelodyInferenceTest(tf.test.TestCase):
+class MelodyInferenceTest(absltest.TestCase):
 
   def testSequenceNoteFrames(self):
     sequence = music_pb2.NoteSequence()
@@ -114,4 +110,4 @@ class MelodyInferenceTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

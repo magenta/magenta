@@ -22,6 +22,8 @@ import tensorflow.compat.v1 as tf
 
 from tensorflow.lite.python import convert  # pylint: disable=g-direct-tensorflow-import
 
+tf.disable_v2_behavior()
+
 
 def _TmpFilePath(suffix):
   """Returns the path to a new temporary file."""

@@ -22,6 +22,8 @@ from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_train
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('run_dir', '/tmp/polyphony_rnn/logdir/run1',
                            'Path to the directory where checkpoints and '

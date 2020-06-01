@@ -14,10 +14,6 @@
 
 """Test to ensure correct import of MusicXML."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import operator
 import os.path
@@ -323,7 +319,7 @@ class MusicXMLParserTest(tf.test.TestCase):
         tf.resource_loader.get_data_files_path(),
         'testdata/unicode_filename.mxl')
     sequence = musicxml_reader.musicxml_file_to_sequence_proto(unicode_filename)
-    self.assertEqual(len(sequence.notes), 8)
+    self.assertLen(sequence.notes, 8)
 
   def testcompressedxmltosequence(self):
     """Test the translation from compressed MusicXML to Sequence proto.
@@ -465,9 +461,9 @@ class MusicXMLParserTest(tf.test.TestCase):
         self.time_signature_filename)
 
     # One time signature per measure
-    self.assertEqual(len(ns.time_signatures), 6)
-    self.assertEqual(len(ns.key_signatures), 1)
-    self.assertEqual(len(ns.notes), 112)
+    self.assertLen(ns.time_signatures, 6)
+    self.assertLen(ns.key_signatures, 1)
+    self.assertLen(ns.notes, 112)
 
   def test_unmetered_music(self):
     """Test that time signatures are inserted for music without time signatures.
@@ -1756,7 +1752,7 @@ class MusicXMLParserTest(tf.test.TestCase):
       temp_file.flush()
       musicxml_parser.MusicXMLDocument(temp_file.name)
       sequence = musicxml_reader.musicxml_file_to_sequence_proto(temp_file.name)
-      self.assertEqual(1, len(sequence.key_signatures))
+      self.assertLen(sequence.key_signatures, 1)
       self.assertEqual(music_pb2.NoteSequence.KeySignature.G_FLAT,
                        sequence.key_signatures[0].key)
 

@@ -24,7 +24,6 @@ from magenta.models.image_stylization import model
 import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
-
 DEFAULT_CONTENT_WEIGHTS = '{"vgg_16/conv3": 1.0}'
 DEFAULT_STYLE_WEIGHTS = ('{"vgg_16/conv1": 1e-4, "vgg_16/conv2": 1e-4,'
                          ' "vgg_16/conv3": 1e-4, "vgg_16/conv4": 1e-4}')
@@ -193,6 +192,7 @@ def main(_):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.app.run(main)
 
 

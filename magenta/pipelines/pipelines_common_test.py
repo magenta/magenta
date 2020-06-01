@@ -16,18 +16,17 @@
 
 import functools
 
+from absl.testing import absltest
 from magenta.common import testing_lib as common_testing_lib
 from magenta.pipelines import pipelines_common
-import six
-import tensorflow.compat.v1 as tf
 
 
-class PipelineUnitsCommonTest(tf.test.TestCase):
+class PipelineUnitsCommonTest(absltest.TestCase):
 
-  def _unit_transform_test(self, unit, input_instance,
+  def _unit_transform_test(self, unit, input_instance,  # pylint:disable=g-unreachable-test-method
                            expected_outputs):
     outputs = unit.transform(input_instance)
-    self.assertTrue(isinstance(outputs, list))
+    self.assertIsInstance(outputs, list)
     common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
     self.assertEqual(unit.input_type, type(input_instance))
     if outputs:
@@ -38,18 +37,18 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         str, ['a', 'b', 'c'], [0.1, 0.4])
     random_nums = [0.55, 0.05, 0.34, 0.99]
     choices = ['c', 'a', 'b', 'c']
-    random_partition.rand_func = functools.partial(six.next, iter(random_nums))
+    random_partition.rand_func = functools.partial(next, iter(random_nums))
     self.assertEqual(random_partition.input_type, str)
     self.assertEqual(random_partition.output_type,
                      {'a': str, 'b': str, 'c': str})
     for i, s in enumerate(['hello', 'qwerty', '1234567890', 'zxcvbnm']):
       results = random_partition.transform(s)
-      self.assertTrue(isinstance(results, dict))
+      self.assertIsInstance(results, dict)
       self.assertEqual(set(results.keys()), set(['a', 'b', 'c']))
-      self.assertEqual(len(results.values()), 3)
-      self.assertEqual(len([l for l in results.values() if l == []]), 2)  # pylint: disable=g-explicit-bool-comparison
+      self.assertLen(results.values(), 3)
+      self.assertLen([l for l in results.values() if l == []], 2)  # pylint: disable=g-explicit-bool-comparison
       self.assertEqual(results[choices[i]], [s])
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

@@ -14,14 +14,14 @@
 
 """Tests for pianoroll_pipeline."""
 
+from absl.testing import absltest
 from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import pianoroll_pipeline
-import tensorflow.compat.v1 as tf
 
 
-class PianorollPipelineTest(tf.test.TestCase):
+class PianorollPipelineTest(absltest.TestCase):
 
   def setUp(self):
     super(PianorollPipelineTest, self).setUp()
@@ -42,11 +42,11 @@ class PianorollPipelineTest(tf.test.TestCase):
 
     seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence)
-    self.assertEqual(1, len(seqs))
+    self.assertLen(seqs, 1)
 
     seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, min_steps_discard=2, max_steps_discard=5)
-    self.assertEqual(1, len(seqs))
+    self.assertLen(seqs, 1)
 
     self.note_sequence.notes[0].end_time = 1.0
     self.note_sequence.total_time = 1.0
@@ -54,7 +54,7 @@ class PianorollPipelineTest(tf.test.TestCase):
         self.note_sequence, steps_per_quarter=1)
     seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, min_steps_discard=3, max_steps_discard=5)
-    self.assertEqual(0, len(seqs))
+    self.assertEmpty(seqs)
 
     self.note_sequence.notes[0].end_time = 10.0
     self.note_sequence.total_time = 10.0
@@ -62,7 +62,7 @@ class PianorollPipelineTest(tf.test.TestCase):
         self.note_sequence, steps_per_quarter=1)
     seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, min_steps_discard=3, max_steps_discard=5)
-    self.assertEqual(0, len(seqs))
+    self.assertEmpty(seqs)
 
   def testExtractPianorollMultiProgram(self):
     music_testing_lib.add_track_to_sequence(
@@ -74,7 +74,7 @@ class PianorollPipelineTest(tf.test.TestCase):
 
     seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence)
-    self.assertEqual(0, len(seqs))
+    self.assertEmpty(seqs)
 
   def testExtractNonZeroStart(self):
     music_testing_lib.add_track_to_sequence(
@@ -84,11 +84,11 @@ class PianorollPipelineTest(tf.test.TestCase):
 
     seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, start_step=4, min_steps_discard=1)
-    self.assertEqual(0, len(seqs))
+    self.assertEmpty(seqs)
     seqs, _ = pianoroll_pipeline.extract_pianoroll_sequences(
         quantized_sequence, start_step=0, min_steps_discard=1)
-    self.assertEqual(1, len(seqs))
+    self.assertLen(seqs, 1)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

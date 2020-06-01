@@ -13,17 +13,14 @@
 # limitations under the License.
 
 """Beam pipeline to generate examples for a Score2Perf dataset."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import copy
 import functools
 import hashlib
 import logging
 import os
 import random
+import typing
+
 import apache_beam as beam
 from apache_beam import typehints
 from apache_beam.metrics import Metrics
@@ -36,7 +33,6 @@ from magenta.music.protobuf import music_pb2
 import numpy as np
 from tensor2tensor.data_generators import generator_utils
 import tensorflow.compat.v1 as tf
-import typing
 
 # TODO(iansimon): this should probably be defined in the problem
 SCORE_BPM = 120.0

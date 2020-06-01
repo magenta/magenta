@@ -12,16 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
+# Lint as: python3
 """A MIDI interface to the sequence generators.
 
 Captures monophonic input MIDI sequences and plays back responses from the
 sequence generator.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 import re
 import threading
@@ -36,8 +32,9 @@ from magenta.models.pianoroll_rnn_nade import pianoroll_rnn_nade_sequence_genera
 from magenta.models.polyphony_rnn import polyphony_sequence_generator
 from magenta.models.shared import sequence_generator_bundle
 import six
-from six.moves import input  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 FLAGS = tf.app.flags.FLAGS
 

@@ -23,6 +23,8 @@ from magenta.pipelines import drum_pipelines
 from magenta.pipelines import note_sequence_pipelines
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 FLAGS = tf.app.flags.FLAGS
 
 

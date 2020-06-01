@@ -16,15 +16,12 @@
 
 Most tests check for parity with numpy operations.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl.testing import parameterized
 from magenta.models.gansynth.lib import spectral_ops
 import numpy as np
 import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 
 class SpectralOpsTest(parameterized.TestCase, tf.test.TestCase):

@@ -14,6 +14,7 @@
 
 """Tests for melody_pipelines."""
 
+from absl.testing import absltest
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import constants
 from magenta.music import melodies_lib
@@ -21,13 +22,12 @@ from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import melody_pipelines
-import tensorflow.compat.v1 as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
 
 
-class MelodyPipelinesTest(tf.test.TestCase):
+class MelodyPipelinesTest(absltest.TestCase):
 
   def setUp(self):
     self.steps_per_quarter = 4
@@ -46,7 +46,7 @@ class MelodyPipelinesTest(tf.test.TestCase):
   def _unit_transform_test(self, unit, input_instance,
                            expected_outputs):
     outputs = unit.transform(input_instance)
-    self.assertTrue(isinstance(outputs, list))
+    self.assertIsInstance(outputs, list)
     common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
     self.assertEqual(unit.input_type, type(input_instance))
     if outputs:
@@ -103,7 +103,7 @@ class MelodyPipelinesTest(tf.test.TestCase):
         quantized_sequence, min_bars=1, gap_bars=1, min_unique_pitches=2,
         ignore_polyphonic_notes=True)
 
-    self.assertEqual(2, len(melodies))
+    self.assertLen(melodies, 2)
     self.assertIsInstance(melodies[0], melodies_lib.Melody)
     self.assertIsInstance(melodies[1], melodies_lib.Melody)
 
@@ -299,4 +299,4 @@ class MelodyPipelinesTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

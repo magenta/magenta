@@ -16,14 +16,14 @@
 
 import copy
 
+from absl.testing import absltest
 from magenta.music import pianoroll_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 
-class PianorollLibTest(tf.test.TestCase):
+class PianorollLibTest(absltest.TestCase):
 
   def setUp(self):
     self.maxDiff = None  # pylint:disable=invalid-name
@@ -167,4 +167,4 @@ class PianorollLibTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

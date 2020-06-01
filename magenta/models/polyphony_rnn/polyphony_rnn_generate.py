@@ -31,6 +31,8 @@ from magenta.music.protobuf import generator_pb2
 from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'run_dir', None,

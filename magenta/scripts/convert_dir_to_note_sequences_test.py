@@ -22,6 +22,8 @@ from magenta.music import note_sequence_io
 from magenta.scripts import convert_dir_to_note_sequences
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 
 class ConvertMidiDirToSequencesTest(tf.test.TestCase):
 

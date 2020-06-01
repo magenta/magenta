@@ -18,6 +18,7 @@
 
 import abc
 import collections
+import queue
 import re
 import threading
 import time
@@ -25,7 +26,6 @@ import time
 from magenta.common import concurrency
 from magenta.music.protobuf import music_pb2
 import mido
-from six.moves import queue as Queue
 import tensorflow.compat.v1 as tf
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05
@@ -451,7 +451,7 @@ class MidiCaptor(threading.Thread):
   def __init__(self, qpm, start_time=0, stop_time=None, stop_signal=None):
     # A lock for synchronization.
     self._lock = threading.RLock()
-    self._receive_queue = Queue.Queue()
+    self._receive_queue = queue.Queue()
     self._captured_sequence = music_pb2.NoteSequence()
     self._captured_sequence.tempos.add(qpm=qpm)
     self._start_time = start_time
@@ -540,7 +540,7 @@ class MidiCaptor(threading.Thread):
           break
       try:
         msg = self._receive_queue.get(block=True, timeout=timeout)
-      except Queue.Empty:
+      except queue.Empty:
         continue
 
       if msg is MidiCaptor._WAKE_MESSAGE:
@@ -554,9 +554,9 @@ class MidiCaptor(threading.Thread):
 
       with self._lock:
         msg_str = str(msg)
-        for regex, queue in self._iter_signals:
+        for regex, queue_ in self._iter_signals:
           if regex.match(msg_str) is not None:
-            queue.put(msg.copy())
+            queue_.put(msg.copy())
 
       self._capture_message(msg)
 
@@ -568,8 +568,8 @@ class MidiCaptor(threading.Thread):
       # Set final captured sequence.
       self._captured_sequence = self.captured_sequence(end_time)
       # Wake up all generators.
-      for regex, queue in self._iter_signals:
-        queue.put(MidiCaptor._WAKE_MESSAGE)
+      for regex, queue_ in self._iter_signals:
+        queue_.put(MidiCaptor._WAKE_MESSAGE)
 
   def stop(self, stop_time=None, block=True):
     """Ends capture and truncates the captured sequence at `stop_time`.
@@ -669,9 +669,9 @@ class MidiCaptor(threading.Thread):
       next_yield_time = time.time() + period
     else:
       regex = re.compile(str(signal))
-      queue = Queue.Queue()
+      capture_queue = queue.Queue()
       with self._lock:
-        self._iter_signals.append((regex, queue))
+        self._iter_signals.append((regex, capture_queue))
 
     while self.is_alive():
       if signal is None:
@@ -686,7 +686,7 @@ class MidiCaptor(threading.Thread):
         end_time = next_yield_time
         next_yield_time += period
       else:
-        signal_msg = queue.get()
+        signal_msg = capture_queue.get()
         if signal_msg is MidiCaptor._WAKE_MESSAGE:
           # This is only recieved when the thread is in the process of
           # terminating. Wait until it is done before yielding the final

@@ -16,20 +16,20 @@
 
 import math
 
+from absl.testing import absltest
 from magenta.music import performance_encoder_decoder
 from magenta.music import performance_lib
 from magenta.music.performance_encoder_decoder import ModuloPerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import NotePerformanceEventSequenceEncoderDecoder
 from magenta.music.performance_encoder_decoder import PerformanceModuloEncoding
 from magenta.music.performance_lib import PerformanceEvent
-import tensorflow.compat.v1 as tf
 
 cos = math.cos
 sin = math.sin
 pi = math.pi
 
 
-class PerformanceOneHotEncodingTest(tf.test.TestCase):
+class PerformanceOneHotEncodingTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = performance_encoder_decoder.PerformanceOneHotEncoding(
@@ -88,7 +88,7 @@ class PerformanceOneHotEncodingTest(tf.test.TestCase):
             event_type=PerformanceEvent.TIME_SHIFT, event_value=100)))
 
 
-class PerformanceModuloEncodingTest(tf.test.TestCase):
+class PerformanceModuloEncodingTest(absltest.TestCase):
   """Test class for PerformanceModuloEncoding."""
 
   def setUp(self):
@@ -229,7 +229,7 @@ class PerformanceModuloEncodingTest(tf.test.TestCase):
                        expected_encoded_modulo_event)
 
 
-class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
+class ModuloPerformanceEventSequenceEncoderTest(absltest.TestCase):
   """Test class for ModuloPerformanceEventSequenceEncoder.
 
   ModuloPerformanceEventSequenceEncoderDecoder is tightly coupled with the
@@ -345,7 +345,7 @@ class ModuloPerformanceEventSequenceEncoderTest(tf.test.TestCase):
                                actual_encoded_modulo_event[i])
 
 
-class NotePerformanceEventSequenceEncoderDecoderTest(tf.test.TestCase):
+class NotePerformanceEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = NotePerformanceEventSequenceEncoderDecoder(
@@ -395,4 +395,4 @@ class NotePerformanceEventSequenceEncoderDecoderTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

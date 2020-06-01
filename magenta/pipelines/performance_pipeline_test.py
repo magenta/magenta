@@ -14,17 +14,14 @@
 
 """Tests for performance_pipeline."""
 
+from absl.testing import absltest
 from magenta.music import sequences_lib
 from magenta.music import testing_lib as music_testing_lib
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import performance_pipeline
 
-import tensorflow.compat.v1 as tf
 
-FLAGS = tf.app.flags.FLAGS
-
-
-class PerformancePipelineTest(tf.test.TestCase):
+class PerformancePipelineTest(absltest.TestCase):
 
   def setUp(self):
     super(PerformancePipelineTest, self).setUp()
@@ -38,24 +35,24 @@ class PerformancePipelineTest(tf.test.TestCase):
         self.note_sequence, steps_per_second=100)
 
     perfs, _ = performance_pipeline.extract_performances(quantized_sequence)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=1, max_events_truncate=10)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=8, max_events_truncate=10)
-    self.assertEqual(0, len(perfs))
+    self.assertEmpty(perfs)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=1, max_events_truncate=3)
-    self.assertEqual(1, len(perfs))
-    self.assertEqual(3, len(perfs[0]))
+    self.assertLen(perfs, 1)
+    self.assertLen(perfs[0], 3)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, max_steps_truncate=100)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
     self.assertEqual(100, perfs[0].num_steps)
 
   def testExtractPerformancesMultiProgram(self):
@@ -67,7 +64,7 @@ class PerformancePipelineTest(tf.test.TestCase):
         self.note_sequence, steps_per_second=100)
 
     perfs, _ = performance_pipeline.extract_performances(quantized_sequence)
-    self.assertEqual(0, len(perfs))
+    self.assertEmpty(perfs)
 
   def testExtractPerformancesNonZeroStart(self):
     music_testing_lib.add_track_to_sequence(
@@ -77,10 +74,10 @@ class PerformancePipelineTest(tf.test.TestCase):
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, start_step=400, min_events_discard=1)
-    self.assertEqual(0, len(perfs))
+    self.assertEmpty(perfs)
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, start_step=0, min_events_discard=1)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
 
   def testExtractPerformancesRelativeQuantized(self):
     self.note_sequence.tempos.add(qpm=60.0)
@@ -91,24 +88,24 @@ class PerformancePipelineTest(tf.test.TestCase):
 
     perfs, _ = performance_pipeline.extract_performances \
         (quantized_sequence)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=1, max_events_truncate=10)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=8, max_events_truncate=10)
-    self.assertEqual(0, len(perfs))
+    self.assertEmpty(perfs)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=1, max_events_truncate=3)
-    self.assertEqual(1, len(perfs))
-    self.assertEqual(3, len(perfs[0]))
+    self.assertLen(perfs, 1)
+    self.assertLen(perfs[0], 3)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, max_steps_truncate=100)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
     self.assertEqual(100, perfs[0].num_steps)
 
   def testExtractPerformancesSplitInstruments(self):
@@ -121,16 +118,16 @@ class PerformancePipelineTest(tf.test.TestCase):
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, split_instruments=True)
-    self.assertEqual(2, len(perfs))
+    self.assertLen(perfs, 2)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=8, split_instruments=True)
-    self.assertEqual(1, len(perfs))
+    self.assertLen(perfs, 1)
 
     perfs, _ = performance_pipeline.extract_performances(
         quantized_sequence, min_events_discard=16, split_instruments=True)
-    self.assertEqual(0, len(perfs))
+    self.assertEmpty(perfs)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

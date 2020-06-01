@@ -31,6 +31,8 @@ import mock
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 NO_EVENT = constants.MELODY_NO_EVENT
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_DRUMS = 0

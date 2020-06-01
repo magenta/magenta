@@ -32,12 +32,6 @@ https://storage.googleapis.com/download.magenta.tensorflow.org/models/arbitrary_
 One can download and extract this tar file and to provide the path to the
 checkpoint in it to the checkpoint flag.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import google_type_annotations
-from __future__ import print_function
-
 from absl import flags
 
 from magenta.models.arbitrary_image_stylization import arbitrary_image_stylization_build_model
@@ -101,6 +95,7 @@ def main(unused_argv=None):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.compat.v1.app.run(main)
 
 

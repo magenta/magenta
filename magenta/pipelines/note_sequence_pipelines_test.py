@@ -14,20 +14,20 @@
 
 """Tests for note_sequence_pipelines."""
 
+from absl.testing import absltest
 from magenta.common import testing_lib as common_testing_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import note_sequence_pipelines
-import tensorflow.compat.v1 as tf
 
 
-class PipelineUnitsCommonTest(tf.test.TestCase):
+class PipelineUnitsCommonTest(absltest.TestCase):
 
   def _unit_transform_test(self, unit, input_instance,
                            expected_outputs):
     outputs = unit.transform(input_instance)
-    self.assertTrue(isinstance(outputs, list))
+    self.assertIsInstance(outputs, list)
     common_testing_lib.assert_set_equality(self, expected_outputs, outputs)
     self.assertEqual(unit.input_type, type(input_instance))
     if outputs:
@@ -156,9 +156,9 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         [(36, 100, 2.0, 2.01)],
         is_drum=True)
     transposed = tp.transform(note_sequence)
-    self.assertEqual(2, len(transposed))
-    self.assertEqual(2, len(transposed[0].notes))
-    self.assertEqual(2, len(transposed[1].notes))
+    self.assertLen(transposed, 2)
+    self.assertLen(transposed[0].notes, 2)
+    self.assertLen(transposed[1].notes, 2)
     self.assertEqual(12, transposed[0].notes[0].pitch)
     self.assertEqual(13, transposed[1].notes[0].pitch)
     self.assertEqual(36, transposed[0].notes[1].pitch)
@@ -179,12 +179,12 @@ class PipelineUnitsCommonTest(tf.test.TestCase):
         note_sequence, 0,
         [(10, 100, 1.0, 2.0), (12, 100, 2.0, 4.0), (13, 100, 4.0, 5.0)])
     transposed = tp.transform(note_sequence)
-    self.assertEqual(1, len(transposed))
-    self.assertEqual(3, len(transposed[0].notes))
+    self.assertLen(transposed, 1)
+    self.assertLen(transposed[0].notes, 3)
     self.assertEqual(9, transposed[0].notes[0].pitch)
     self.assertEqual(11, transposed[0].notes[1].pitch)
     self.assertEqual(12, transposed[0].notes[2].pitch)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

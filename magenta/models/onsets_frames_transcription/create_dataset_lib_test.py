@@ -21,6 +21,8 @@ from magenta.models.onsets_frames_transcription import create_dataset_lib
 import numpy as np
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 
 class CreateDatasetLibTest(tf.test.TestCase):
 

@@ -13,11 +13,6 @@
 # limitations under the License.
 
 """Tests for export_saved_model."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import tempfile
 
@@ -25,6 +20,8 @@ from magenta.models.coconet import export_saved_model
 from magenta.models.coconet import lib_graph
 from magenta.models.coconet import lib_hparams
 import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 
 class ExportSavedModelTest(tf.test.TestCase):

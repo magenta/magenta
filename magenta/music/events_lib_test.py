@@ -16,11 +16,11 @@
 
 import copy
 
+from absl.testing import absltest
 from magenta.music import events_lib
-import tensorflow.compat.v1 as tf
 
 
-class EventsLibTest(tf.test.TestCase):
+class EventsLibTest(absltest.TestCase):
 
   def testDeepcopy(self):
     events = events_lib.SimpleEventSequence(
@@ -94,4 +94,4 @@ class EventsLibTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

@@ -13,11 +13,6 @@
 # limitations under the License.
 
 """MusicVAE data library for hierarchical converters."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import abc
 
 from magenta.models.music_vae import data
@@ -28,7 +23,7 @@ from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import performance_pipeline
 import numpy as np
-from tensorflow.python.util import nest  # pylint:disable=g-direct-tensorflow-import
+import tensorflow.compat.v1 as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
@@ -211,10 +206,10 @@ def hierarchical_pad_tensors(tensors, sample_size, randomize, max_lengths,
   def _hierarchical_pad(input_, output, control):
     """Pad and flatten hierarchical inputs, outputs, and controls."""
     # Pad empty segments with end tokens and flatten hierarchy.
-    input_ = nest.flatten(
+    input_ = tf.nest.flatten(
         pad_with_element(input_, max_lengths[:-1],
                          data.np_onehot([end_token], input_depth)))
-    output = nest.flatten(
+    output = tf.nest.flatten(
         pad_with_element(output, max_lengths[:-1],
                          data.np_onehot([end_token], output_depth)))
     length = np.squeeze(np.array([len(x) for x in input_], np.int32))
@@ -226,7 +221,7 @@ def hierarchical_pad_tensors(tensors, sample_size, randomize, max_lengths,
         [pad_with_value(x, max_lengths[-1], 0) for x in output])
 
     if np.size(control):
-      control = nest.flatten(
+      control = tf.nest.flatten(
           pad_with_element(control, max_lengths[:-1],
                            data.np_onehot([control_pad_token], control_depth)))
       control = np.concatenate(

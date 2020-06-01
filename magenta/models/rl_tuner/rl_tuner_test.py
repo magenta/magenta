@@ -28,6 +28,8 @@ import matplotlib
 import matplotlib.pyplot as plt  # pylint: disable=unused-import
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 # Need to use 'Agg' option for plotting and saving files from command line.
 # Can't use 'Agg' in RL Tuner because it breaks plotting in notebooks.
 # pylint: disable=g-import-not-at-top,wrong-import-position

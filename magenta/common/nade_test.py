@@ -17,6 +17,8 @@
 from magenta.common.nade import Nade
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 
 class NadeTest(tf.test.TestCase):
 

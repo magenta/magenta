@@ -14,12 +14,12 @@
 
 """Tests for pianoroll_encoder_decoder."""
 
+from absl.testing import absltest
 from magenta.music import pianoroll_encoder_decoder
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 
-class PianorollEncodingTest(tf.test.TestCase):
+class PianorollEncodingTest(absltest.TestCase):
 
   def setUp(self):
     self.enc = pianoroll_encoder_decoder.PianorollEncoderDecoder(5)
@@ -57,4 +57,4 @@ class PianorollEncodingTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

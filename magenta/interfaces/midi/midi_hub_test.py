@@ -15,6 +15,7 @@
 """Tests for midi_hub."""
 
 import collections
+import queue
 import threading
 import time
 
@@ -23,7 +24,6 @@ from magenta.interfaces.midi import midi_hub
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
 import mido
-from six.moves import queue as Queue
 import tensorflow.compat.v1 as tf
 
 Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])
@@ -33,7 +33,7 @@ class MockMidiPort(mido.ports.BaseIOPort):
 
   def __init__(self):
     super(MockMidiPort, self).__init__()
-    self.message_queue = Queue.Queue()
+    self.message_queue = queue.Queue()
 
   def send(self, msg):
     msg.time = time.time()
@@ -180,7 +180,7 @@ class MidiHubTest(tf.test.TestCase):
       self.assertEqual(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
 
-    self.assertTrue(not note_events)
+    self.assertFalse(note_events)
 
   def testStartPlayback_NoUpdates_UpdateError(self):
     # Use a time in the past to test handling of past notes.
@@ -234,7 +234,7 @@ class MidiHubTest(tf.test.TestCase):
       self.assertEqual(msg.note, note_event[2])
       self.assertAlmostEqual(msg.time, note_event[0], delta=0.01)
 
-    self.assertTrue(not note_events)
+    self.assertFalse(note_events)
     player.stop()
 
   def testCaptureSequence_StopSignal(self):
@@ -430,7 +430,7 @@ class MidiHubTest(tf.test.TestCase):
         signal=midi_hub.MidiSignal(type='note_off')):
       captured_seqs.append(captured_seq)
 
-    self.assertEqual(4, len(captured_seqs))
+    self.assertLen(captured_seqs, 4)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -480,7 +480,7 @@ class MidiHubTest(tf.test.TestCase):
       time.sleep(0.1)
       captured_seqs.append(captured_seq)
 
-    self.assertEqual(3, len(captured_seqs))
+    self.assertLen(captured_seqs, 3)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -525,7 +525,7 @@ class MidiHubTest(tf.test.TestCase):
       time.sleep(0.5)
       captured_seqs.append(captured_seq)
 
-    self.assertEqual(2, len(captured_seqs))
+    self.assertLen(captured_seqs, 2)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -564,7 +564,7 @@ class MidiHubTest(tf.test.TestCase):
     time.sleep(1.0)
     captor.cancel_callback(name)
 
-    self.assertEqual(3, len(captured_seqs))
+    self.assertLen(captured_seqs, 3)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)
@@ -615,7 +615,7 @@ class MidiHubTest(tf.test.TestCase):
     time.sleep(1.3)
     captor.cancel_callback(name)
 
-    self.assertEqual(2, len(captured_seqs))
+    self.assertLen(captured_seqs, 2)
 
     expected_seq = music_pb2.NoteSequence()
     expected_seq.tempos.add(qpm=120)

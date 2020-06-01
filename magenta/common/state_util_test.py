@@ -17,7 +17,6 @@
 from magenta.common import state_util
 import numpy as np
 import tensorflow.compat.v1 as tf
-from tensorflow.python.util import nest as tf_nest
 
 
 class StateUtilTest(tf.test.TestCase):
@@ -43,8 +42,8 @@ class StateUtilTest(tf.test.TestCase):
         np.array([[[10], [11]], [[21], [22]], [[0], [0]]]))
 
   def _assert_sructures_equal(self, struct1, struct2):
-    tf_nest.assert_same_structure(struct1, struct2)
-    for a, b in zip(tf_nest.flatten(struct1), tf_nest.flatten(struct2)):
+    tf.nest.assert_same_structure(struct1, struct2)
+    for a, b in zip(tf.nest.flatten(struct1), tf.nest.flatten(struct2)):
       np.testing.assert_array_equal(a, b)
 
   def testBatch(self):

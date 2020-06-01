@@ -44,6 +44,8 @@ from magenta.music import midi_io
 from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string('csv', None, 'Path to dataset CSV')

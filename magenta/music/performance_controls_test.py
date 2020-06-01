@@ -14,12 +14,12 @@
 
 """Tests for performance controls."""
 
+from absl.testing import absltest
 from magenta.music import performance_controls
 from magenta.music import performance_lib
-import tensorflow.compat.v1 as tf
 
 
-class NoteDensityPerformanceControlSignalTest(tf.test.TestCase):
+class NoteDensityPerformanceControlSignalTest(absltest.TestCase):
 
   def setUp(self):
     self.control = performance_controls.NoteDensityPerformanceControlSignal(
@@ -77,7 +77,7 @@ class NoteDensityPerformanceControlSignalTest(tf.test.TestCase):
                      self.control.encoder.events_to_input(density_sequence, 5))
 
 
-class PitchHistogramPerformanceControlSignalTest(tf.test.TestCase):
+class PitchHistogramPerformanceControlSignalTest(absltest.TestCase):
 
   def setUp(self):
     self.control = performance_controls.PitchHistogramPerformanceControlSignal(
@@ -150,4 +150,4 @@ class PitchHistogramPerformanceControlSignalTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

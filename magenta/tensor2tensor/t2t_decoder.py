@@ -16,10 +16,6 @@
 
 # Registers all Magenta problems with Tensor2Tensor.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from magenta.tensor2tensor import models  # pylint: disable=unused-import
 from magenta.tensor2tensor import problems  # pylint: disable=unused-import
 from tensor2tensor.bin import t2t_decoder
@@ -31,6 +27,7 @@ def main(argv):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.logging.set_verbosity(tf.logging.INFO)
   tf.app.run(main)
 

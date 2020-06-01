@@ -22,6 +22,8 @@ from magenta.models.shared import events_rnn_model
 from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
+tf.disable_v2_behavior()
+
 FLAGS = tf.app.flags.FLAGS
 
 

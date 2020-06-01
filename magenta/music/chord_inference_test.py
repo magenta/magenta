@@ -14,20 +14,16 @@
 
 """Tests for chord_inference."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+from absl.testing import absltest
 from magenta.music import chord_inference
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-class ChordInferenceTest(tf.test.TestCase):
+class ChordInferenceTest(absltest.TestCase):
 
   def testSequenceNotePitchVectors(self):
     sequence = music_pb2.NoteSequence()
@@ -133,4 +129,4 @@ class ChordInferenceTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

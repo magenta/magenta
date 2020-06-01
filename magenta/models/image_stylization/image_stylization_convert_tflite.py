@@ -13,11 +13,6 @@
 # limitations under the License.
 
 """Convert trained mobile style transfer model to TF Lite."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import tempfile
 
@@ -134,6 +129,7 @@ def main(unused_argv=None):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.app.run(main)
 
 

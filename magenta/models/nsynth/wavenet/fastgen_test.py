@@ -13,11 +13,6 @@
 # limitations under the License.
 
 """Tests for fastgen."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 from absl.testing import parameterized
@@ -25,6 +20,8 @@ import librosa
 from magenta.models.nsynth.wavenet import fastgen
 import numpy as np
 import tensorflow.compat.v1 as tf
+
+tf.disable_v2_behavior()
 
 
 class FastegenTest(parameterized.TestCase, tf.test.TestCase):

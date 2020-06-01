@@ -155,6 +155,7 @@ def main(unused_argv=None):
 
 
 def console_entry_point():
+  tf.disable_v2_behavior()
   tf.app.run(main)
 
 

@@ -14,13 +14,10 @@
 
 """Tests for audio_io.py."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import wave
 
+from absl.testing import absltest
 from magenta.music import audio_io
 import numpy as np
 import scipy
@@ -28,7 +25,7 @@ import six
 import tensorflow.compat.v1 as tf
 
 
-class AudioIoTest(tf.test.TestCase):
+class AudioIoTest(absltest.TestCase):
 
   def setUp(self):
     self.wav_filename = os.path.join(tf.resource_loader.get_data_files_path(),
@@ -72,8 +69,8 @@ class AudioIoTest(tf.test.TestCase):
     repeated = audio_io.repeat_samples_to_duration(
         samples, sample_rate=5, duration=1.8)
     expected_samples = [0, 1, 2, 3, 4, 0, 1, 2, 3]
-    self.assertAllEqual(expected_samples, repeated)
+    np.testing.assert_array_equal(expected_samples, repeated)
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()
