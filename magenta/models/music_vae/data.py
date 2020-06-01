@@ -373,6 +373,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       before converting.
     chord_encoding: An instantiated OneHotEncoding object to use for encoding
       chords on which to condition, or None if not conditioning on chords.
+    condition_on_key: If True, condition on key; key is represented as a
+      depth-12 one-hot encoding.
   """
 
   def __init__(self, event_list_fn, event_extractor_fn,
@@ -380,7 +382,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
                slice_steps=None, steps_per_quarter=None, steps_per_second=None,
                quarters_per_bar=4, pad_to_total_time=False,
                max_tensors_per_notesequence=None,
-               presplit_on_time_changes=True, chord_encoding=None):
+               presplit_on_time_changes=True, chord_encoding=None,
+               condition_on_key=False):
     if (steps_per_quarter, steps_per_second).count(None) != 1:
       raise ValueError(
           'Exactly one of `steps_per_quarter` and `steps_per_second` should be '
@@ -392,6 +395,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     self._event_extractor_fn = event_extractor_fn
     self._legacy_encoder_decoder = legacy_encoder_decoder
     self._chord_encoding = chord_encoding
+    self._condition_on_key = condition_on_key
     self._steps_per_quarter = steps_per_quarter
     if steps_per_quarter:
       self._steps_per_bar = steps_per_quarter * quarters_per_bar
@@ -404,7 +408,10 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 
     depth = legacy_encoder_decoder.num_classes + add_end_token
     control_depth = (
-        chord_encoding.num_classes if chord_encoding is not None else 0)
+        chord_encoding.num_classes if chord_encoding is not None else 0
+    ) + (
+        12 if condition_on_key else 0
+    )
     super(LegacyEventListOneHotConverter, self).__init__(
         input_depth=depth,
         input_dtype=np.bool,
@@ -415,6 +422,104 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         end_token=legacy_encoder_decoder.num_classes if add_end_token else None,
         presplit_on_time_changes=presplit_on_time_changes,
         max_tensors_per_notesequence=max_tensors_per_notesequence)
+
+  def _dedupe_and_sample(self, all_sliced_lists):
+    """Dedupe lists of events, chords, and keys, then optionally sample."""
+    # This function expects the following lists (when chords & keys are present;
+    # when absent those lists will simply be missing):
+    #
+    # all_sliced_lists = [
+    #   [
+    #     [event_00, event_01, ..., event_0a],
+    #     [event_10, event_11, ..., event_1b],
+    #     [event_20, event_21, ..., event_2c]
+    #   ],
+    #   [
+    #     [chord_00, chord_01, ..., chord_0a],
+    #     [chord_10, chord_11, ..., chord_1b],
+    #     [chord_20, chord_21, ..., chord_2c]
+    #   ],
+    #   [
+    #     [key_00, key_01, ..., key_0a],
+    #     [key_10, key_11, ..., key_1b],
+    #     [key_20, key_21, ..., key_2c]
+    #   ]
+    # ]
+
+    sliced_multievent_lists = [zip(*lists) for lists in zip(*all_sliced_lists)]
+
+    # Now we have:
+    #
+    # sliced_multievent_lists = [
+    #   [(event_00, chord_00, key_00), ..., (event_0a, chord_0a, key_0a)],
+    #   [(event_10, chord_10, key_10), ..., (event_1b, chord_1b, key_1b)],
+    #   [(event_20, chord_20, key_20), ..., (event_2c, chord_2c, key_2c)]
+    # ]
+
+    # TODO(adarob): Consider handling the fact that different event lists can
+    # be mapped to identical tensors by the encoder_decoder (e.g., Drums).
+
+    unique_multievent_tuples = list(set(tuple(l)
+                                        for l in sliced_multievent_lists))
+    unique_multievent_tuples = maybe_sample_items(
+        unique_multievent_tuples,
+        self.max_tensors_per_notesequence,
+        self.is_training)
+
+    # Now unique_multievent_tuples is structured like sliced_multievent_lists
+    # above, with duplicates removed and optionally sampled.
+
+    if unique_multievent_tuples:
+      # Return lists structured like input all_sliced_lists.
+      return list(zip(*[zip(*t) for t in unique_multievent_tuples if t]))
+    else:
+      return []
+
+  def _chords_and_keys_to_controls(self, chord_tuples, key_tuples):
+    """Map chord and/or key tuples to control tensors."""
+    control_seqs = []
+
+    # Use zip_longest here because chord_tuples and key_tuples should either be:
+    #   a) a list of tuples, with chord_tuples and key_tuples the same shape
+    #   b) the empty list
+    for ct, kt in itertools.zip_longest(chord_tuples, key_tuples):
+      controls = []
+
+      if ct is not None:
+        try:
+          chord_tokens = [self._chord_encoding.encode_event(e) for e in ct]
+          if self.end_token:
+            # Repeat the last chord instead of using a special token;
+            # otherwise the model may learn to rely on the special token to
+            # detect endings.
+            if chord_tokens:
+              chord_tokens.append(chord_tokens[-1])
+            else:
+              chord_tokens.append(
+                  self._chord_encoding.encode_event(mm.NO_CHORD))
+        except (mm.ChordSymbolError, mm.ChordEncodingError):
+          return []
+        controls.append(np_onehot(
+            chord_tokens, self._chord_encoding.num_classes,
+            self.control_dtype))
+
+      if kt is not None:
+        if self.end_token:
+          # Repeat the last key. If the sequence is empty, just pick randomly.
+          if kt:
+            kt.append(kt[-1])
+          else:
+            kt.append(np.random.choice(range(12)))
+        controls.append(np_onehot(kt, 12, self.control_dtype))
+
+      # Concatenate controls (chord and/or key) depthwise. The resulting control
+      # tensor should be one of:
+      #   a) a one-hot-encoded chord (if not conditioning on key)
+      #   b) a one-hot-encoded key (if not conditioning on chord)
+      #   c) both (a) and (b), concatenated depthwise
+      control_seqs.append(np.concatenate(controls, axis=1))
+
+    return control_seqs
 
   def to_tensors(self, note_sequence):
     """Converts NoteSequence to unique, one-hot tensor sequences."""
@@ -432,13 +537,15 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
             mm.NegativeTimeError) as e:
       return ConverterTensors()
 
-    if self._chord_encoding and not any(
+    if (self._chord_encoding and not any(
         ta.annotation_type == CHORD_SYMBOL
-        for ta in quantized_sequence.text_annotations):
-      # We are conditioning on chords but sequence does not have chords. Try to
-      # infer them.
+        for ta in quantized_sequence.text_annotations)) or (
+            self._condition_on_key and not quantized_sequence.key_signatures):
+      # We are conditioning on chords and/or key but sequence does not have
+      # them. Try to infer chords and optionally key.
       try:
-        mm.infer_chords_for_sequence(quantized_sequence)
+        mm.infer_chords_for_sequence(quantized_sequence,
+                                     add_key_signatures=self._condition_on_key)
       except mm.ChordInferenceError:
         return ConverterTensors()
 
@@ -455,46 +562,49 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     else:
       sliced_event_lists = event_lists
 
+    # We are going to dedupe the event lists. However, when conditioning on
+    # chords and/or key, we want to include the same event list multiple times
+    # if it appears with different chords or keys.
+    all_sliced_lists = [sliced_event_lists]
+
     if self._chord_encoding:
+      # Extract chord lists that correspond to event lists, i.e. for each event
+      # we find the chord active at that time step.
       try:
         sliced_chord_lists = chords_lib.event_list_chords(
             quantized_sequence, sliced_event_lists)
       except chords_lib.CoincidentChordsError:
         return ConverterTensors()
-      sliced_event_lists = [zip(el, cl) for el, cl in zip(sliced_event_lists,
-                                                          sliced_chord_lists)]
+      all_sliced_lists.append(sliced_chord_lists)
 
-    # TODO(adarob): Consider handling the fact that different event lists can
-    # be mapped to identical tensors by the encoder_decoder (e.g., Drums).
+    if self._condition_on_key:
+      # Extract key lists that correspond to event lists, i.e. for each event
+      # we find the key active at that time step.
+      if self._steps_per_second:
+        steps_per_second = self._steps_per_second
+      else:
+        qpm = quantized_sequence.tempos[0].qpm
+        steps_per_second = self._steps_per_quarter * qpm / 60.0
+      sliced_key_lists = chords_lib.event_list_keys(
+          quantized_sequence, sliced_event_lists, steps_per_second)
+      all_sliced_lists.append(sliced_key_lists)
 
-    unique_event_tuples = list(set(tuple(l) for l in sliced_event_lists))
-    unique_event_tuples = maybe_sample_items(unique_event_tuples,
-                                             self.max_tensors_per_notesequence,
-                                             self.is_training)
-
-    if not unique_event_tuples:
+    all_unique_tuples = self._dedupe_and_sample(all_sliced_lists)
+    if not all_unique_tuples:
       return ConverterTensors()
 
-    control_seqs = []
-    if self._chord_encoding:
-      unique_event_tuples, unique_chord_tuples = zip(
-          *[zip(*t) for t in unique_event_tuples if t])
-      for t in unique_chord_tuples:
-        try:
-          chord_tokens = [self._chord_encoding.encode_event(e) for e in t]
-          if self.end_token:
-            # Repeat the last chord instead of using a special token; otherwise
-            # the model may learn to rely on the special token to detect
-            # endings.
-            if chord_tokens:
-              chord_tokens.append(chord_tokens[-1])
-            else:
-              chord_tokens.append(
-                  self._chord_encoding.encode_event(mm.NO_CHORD))
-        except (mm.ChordSymbolError, mm.ChordEncodingError):
-          return ConverterTensors()
-        control_seqs.append(
-            np_onehot(chord_tokens, self.control_depth, self.control_dtype))
+    unique_event_tuples = all_unique_tuples[0]
+    unique_chord_tuples = all_unique_tuples[1] if self._chord_encoding else []
+    unique_key_tuples = all_unique_tuples[-1] if self._condition_on_key else []
+
+    if self._chord_encoding or self._condition_on_key:
+      # We need to encode control sequences consisting of chords and/or keys.
+      control_seqs = self._chords_and_keys_to_controls(
+          unique_chord_tuples, unique_key_tuples)
+      if not control_seqs:
+        return ConverterTensors()
+    else:
+      control_seqs = []
 
     seqs = []
     for t in unique_event_tuples:
@@ -528,9 +638,13 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         sequence = event_list.to_sequence(velocity=OUTPUT_VELOCITY)
       if self._chord_encoding and controls is not None:
         chords = [self._chord_encoding.decode_event(e)
-                  for e in np.argmax(controls[i], axis=-1)[:end_index]]
+                  for e in np.argmax(controls[i][:, :-12], axis=-1)[:end_index]]
         chord_times = [step * seconds_per_step for step in event_list.steps]
         chords_lib.add_chords_to_sequence(sequence, chords, chord_times)
+      if self._condition_on_key and controls is not None:
+        keys = np.argmax(controls[i][:, -12:], axis=-1)[:end_index]
+        key_times = [step * seconds_per_step for step in event_list.steps]
+        chords_lib.add_keys_to_sequence(sequence, keys, key_times)
       output_sequences.append(sequence)
     return output_sequences
 
@@ -550,7 +664,7 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
                gap_bars=1.0, steps_per_quarter=4, quarters_per_bar=4,
                add_end_token=False, pad_to_total_time=False,
                max_tensors_per_notesequence=5, presplit_on_time_changes=True,
-               chord_encoding=None):
+               chord_encoding=None, condition_on_key=False):
     """Initialize a OneHotMelodyConverter object.
 
     Args:
@@ -578,6 +692,8 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
           before converting.
       chord_encoding: An instantiated OneHotEncoding object to use for encoding
           chords on which to condition, or None if not conditioning on chords.
+      condition_on_key: If True, condition on key; key is represented as a
+          depth-12 one-hot encoding.
     """
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
@@ -611,7 +727,8 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
         quarters_per_bar=quarters_per_bar,
         max_tensors_per_notesequence=max_tensors_per_notesequence,
         presplit_on_time_changes=presplit_on_time_changes,
-        chord_encoding=chord_encoding)
+        chord_encoding=chord_encoding,
+        condition_on_key=condition_on_key)
 
   @property
   def melody_fn(self):

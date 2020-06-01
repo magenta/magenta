@@ -48,6 +48,13 @@ def add_chords_to_sequence(note_sequence, chords):
     annotation.annotation_type = CHORD_SYMBOL
 
 
+def add_key_signatures_to_sequence(note_sequence, keys):
+  for key, time in keys:
+    ks = note_sequence.key_signatures.add()
+    ks.time = time
+    ks.key = key
+
+
 def add_beats_to_sequence(note_sequence, beats):
   for time in beats:
     annotation = note_sequence.text_annotations.add()

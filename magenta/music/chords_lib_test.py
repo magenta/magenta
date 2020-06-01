@@ -169,6 +169,25 @@ class ChordsLibTest(tf.test.TestCase):
 
     self.assertEqual(expected_chords, chords)
 
+  def testEventListKeysWithMelodies(self):
+    note_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    note_sequence.tempos.add(qpm=60.0)
+    testing_lib.add_key_signatures_to_sequence(note_sequence, [(6, 2), (0, 6)])
+    note_sequence.total_time = 8.0
+
+    melodies = [
+        melodies_lib.Melody([60, -2, -2, -1],
+                            start_step=0, steps_per_quarter=1, steps_per_bar=4),
+        melodies_lib.Melody([62, -2, -2, -1],
+                            start_step=4, steps_per_quarter=1, steps_per_bar=4),
+    ]
+
+    keys = chords_lib.event_list_keys(
+        note_sequence, melodies, steps_per_second=1)
+    expected_keys = [[6, 6, 6, 6], [6, 6, 0, 0]]
+
+    self.assertEqual(expected_keys, keys)
+
   def testAddChordsToSequence(self):
     note_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
     note_sequence.tempos.add(qpm=60.0)
@@ -182,6 +201,21 @@ class ChordsLibTest(tf.test.TestCase):
     chords = [NO_CHORD, 'C', 'C', 'G7']
     chord_times = [0.0, 2.0, 4.0, 6.0]
     chords_lib.add_chords_to_sequence(note_sequence, chords, chord_times)
+
+    self.assertEqual(expected_sequence, note_sequence)
+
+  def testAddKeysToSequence(self):
+    note_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    note_sequence.tempos.add(qpm=60.0)
+    testing_lib.add_key_signatures_to_sequence(note_sequence, [(0, 2), (7, 6)])
+    note_sequence.total_time = 8.0
+
+    expected_sequence = copy.deepcopy(note_sequence)
+    del note_sequence.key_signatures[:]
+
+    keys = [0, 0, 7]
+    key_times = [2.0, 4.0, 6.0]
+    chords_lib.add_keys_to_sequence(note_sequence, keys, key_times)
 
     self.assertEqual(expected_sequence, note_sequence)
 

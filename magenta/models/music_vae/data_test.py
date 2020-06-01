@@ -142,6 +142,13 @@ class BaseDataTest(object):
         a = a.astype(np.int)
       if b.dtype == np.bool:
         b = b.astype(np.int)
+      # Take argmaxes to make one-hots easier to read.
+      if (a.shape[-1] == b.shape[-1] and
+          np.all(a >= 0) and np.all(b >= 0) and
+          np.all(a.max(axis=-1) == 1) and np.all(b.max(axis=-1) == 1) and
+          np.all(a.sum(axis=-1) == 1) and np.all(b.sum(axis=-1) == 1)):
+        a = np.argmax(a, axis=-1)
+        b = np.argmax(b, axis=-1)
       np.testing.assert_array_equal(a, b)
 
 
@@ -228,7 +235,7 @@ class BaseOneHotDataTest(BaseDataTest):
     self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
 
 
-class BaseChordConditionedOneHotDataTest(BaseOneHotDataTest):
+class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testUnslicedChordConditioned(self):
     converter = self.converter_class(
@@ -310,8 +317,192 @@ class BaseChordConditionedOneHotDataTest(BaseOneHotDataTest):
     self.assertArraySetsEqual(
         self.expected_sliced_chord_labels, actual_sliced_chord_labels)
 
+  def testUnslicedKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=None,
+        condition_on_key=True)
+    tensors = converter.to_tensors(self.sequence)
+    actual_unsliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
+    actual_unsliced_key_labels = [
+        np.argmax(t, axis=-1) for t in tensors.controls]
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_unsliced_labels, converter),
+        tensors.inputs)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_labels, actual_unsliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_key_labels, actual_unsliced_key_labels)
 
-class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
+  def testTfUnslicedKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=None,
+        condition_on_key=True)
+    with self.test_session() as sess:
+      sequence = tf.placeholder(tf.string)
+      input_tensors_, output_tensors_, control_tensors_, lengths_ = (
+          data.convert_to_tensors_op(sequence, converter))
+      input_tensors, output_tensors, control_tensors, lengths = sess.run(
+          [input_tensors_, output_tensors_, control_tensors_, lengths_],
+          feed_dict={sequence: self.sequence.SerializeToString()})
+    actual_input_tensors = [t[:l] for t, l in zip(input_tensors, lengths)]
+    actual_unsliced_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(output_tensors, lengths)]
+    actual_unsliced_key_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(control_tensors, lengths)]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_unsliced_labels, converter),
+        actual_input_tensors)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_labels, actual_unsliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_key_labels, actual_unsliced_key_labels)
+
+  def testSlicedKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
+        condition_on_key=True)
+    tensors = converter.to_tensors(self.sequence)
+    actual_sliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
+    actual_sliced_key_labels = [
+        np.argmax(t, axis=-1) for t in tensors.controls]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_sliced_labels, converter),
+        tensors.inputs)
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_key_labels, actual_sliced_key_labels)
+
+  def testTfSlicedKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
+        condition_on_key=True)
+    with self.test_session() as sess:
+      sequence = tf.placeholder(tf.string)
+      input_tensors_, output_tensors_, control_tensors_, lengths_ = (
+          data.convert_to_tensors_op(sequence, converter))
+      input_tensors, output_tensors, control_tensors, lengths = sess.run(
+          [input_tensors_, output_tensors_, control_tensors_, lengths_],
+          feed_dict={sequence: self.sequence.SerializeToString()})
+    actual_sliced_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(output_tensors, lengths)]
+    actual_sliced_key_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(control_tensors, lengths)]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_sliced_labels, converter),
+        input_tensors)
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_key_labels, actual_sliced_key_labels)
+
+  def testUnslicedChordAndKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        condition_on_key=True)
+    tensors = converter.to_tensors(self.sequence)
+    actual_unsliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
+    actual_unsliced_chord_labels = [
+        np.argmax(t[:, :-12], axis=-1) for t in tensors.controls]
+    actual_unsliced_key_labels = [
+        np.argmax(t[:, -12:], axis=-1) for t in tensors.controls]
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_unsliced_labels, converter),
+        tensors.inputs)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_labels, actual_unsliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_chord_labels, actual_unsliced_chord_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_key_labels, actual_unsliced_key_labels)
+
+  def testTfUnslicedChordAndKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        condition_on_key=True)
+    with self.test_session() as sess:
+      sequence = tf.placeholder(tf.string)
+      input_tensors_, output_tensors_, control_tensors_, lengths_ = (
+          data.convert_to_tensors_op(sequence, converter))
+      input_tensors, output_tensors, control_tensors, lengths = sess.run(
+          [input_tensors_, output_tensors_, control_tensors_, lengths_],
+          feed_dict={sequence: self.sequence.SerializeToString()})
+    actual_input_tensors = [t[:l] for t, l in zip(input_tensors, lengths)]
+    actual_unsliced_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(output_tensors, lengths)]
+    actual_unsliced_chord_labels = [
+        np.argmax(t[:, :-12], axis=-1)[:l] for t, l in zip(control_tensors,
+                                                           lengths)]
+    actual_unsliced_key_labels = [
+        np.argmax(t[:, -12:], axis=-1)[:l] for t, l in zip(control_tensors,
+                                                           lengths)]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_unsliced_labels, converter),
+        actual_input_tensors)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_labels, actual_unsliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_chord_labels, actual_unsliced_chord_labels)
+    self.assertArraySetsEqual(
+        self.expected_unsliced_key_labels, actual_unsliced_key_labels)
+
+  def testSlicedChordAndKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        condition_on_key=True)
+    tensors = converter.to_tensors(self.sequence)
+    actual_sliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
+    actual_sliced_chord_labels = [
+        np.argmax(t[:, :-12], axis=-1) for t in tensors.controls]
+    actual_sliced_key_labels = [
+        np.argmax(t[:, -12:], axis=-1) for t in tensors.controls]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_sliced_labels, converter),
+        tensors.inputs)
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_chord_labels, actual_sliced_chord_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_key_labels, actual_sliced_key_labels)
+
+  def testTfSlicedChordAndKeyConditioned(self):
+    converter = self.converter_class(
+        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
+        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        condition_on_key=True)
+    with self.test_session() as sess:
+      sequence = tf.placeholder(tf.string)
+      input_tensors_, output_tensors_, control_tensors_, lengths_ = (
+          data.convert_to_tensors_op(sequence, converter))
+      input_tensors, output_tensors, control_tensors, lengths = sess.run(
+          [input_tensors_, output_tensors_, control_tensors_, lengths_],
+          feed_dict={sequence: self.sequence.SerializeToString()})
+    actual_sliced_labels = [
+        np.argmax(t, axis=-1)[:l] for t, l in zip(output_tensors, lengths)]
+    actual_sliced_chord_labels = [
+        np.argmax(t[:, :-12], axis=-1)[:l] for t, l in zip(control_tensors,
+                                                           lengths)]
+    actual_sliced_key_labels = [
+        np.argmax(t[:, -12:], axis=-1)[:l] for t, l in zip(control_tensors,
+                                                           lengths)]
+
+    self.assertArraySetsEqual(
+        self.labels_to_inputs(self.expected_sliced_labels, converter),
+        input_tensors)
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_chord_labels, actual_sliced_chord_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_key_labels, actual_sliced_key_labels)
+
+
+class OneHotMelodyConverterTest(BaseConditionedOneHotDataTest,
                                 tf.test.TestCase):
 
   def setUp(self):
@@ -331,6 +522,9 @@ class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
         sequence,
         [('F', 2), ('C', 8), ('Am', 16), ('N.C.', 20),
          ('Bb7', 32), ('G', 36), ('F', 48), ('C', 52)])
+    testing_lib.add_key_signatures_to_sequence(
+        sequence,
+        [(0, 2), (5, 20), (0, 36)])
     self.sequence = sequence
 
     # Subtract min pitch (21).
@@ -399,6 +593,14 @@ class OneHotMelodyConverterTest(BaseChordConditionedOneHotDataTest,
     self.expected_sliced_chord_labels = [
         np.array([chord_encoding.encode_event(e) for e in es])
         for es in expected_sliced_chord_events]
+
+    self.expected_unsliced_key_labels = [np.array(es) for es in [
+        (0,) * 16, (0,) * 4, (0,) * 8, (5,) * 4 + (0,) * 4, (0,) * 8,
+    ]]
+
+    self.expected_sliced_key_labels = [np.array(es) for es in [
+        (0,) * 8, (0,) * 8, (0,) * 8, (0,) * 8, (5,) * 4 + (0,) * 4,
+    ]]
 
     self.converter_class = data.OneHotMelodyConverter
 

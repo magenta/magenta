@@ -26,6 +26,7 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
+import bisect
 
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
@@ -282,8 +283,44 @@ def event_list_chords(quantized_sequence, event_lists):
   return chord_lists
 
 
+def event_list_keys(sequence, event_lists, steps_per_second):
+  """Extract corresponding keys for multiple EventSequences.
+
+  Args:
+    sequence: The underlying NoteSequence from which to extract the keys.
+    event_lists: A list of EventSequence objects.
+    steps_per_second: The number of quantized steps per second in the event
+        lists.
+
+  Returns:
+    A nested list of keys (integers 0-11 indicating the key signature) the same
+    length as `event_lists`, where each list is the same length as the
+    corresponding EventSequence (in events, not necessarily steps).
+  """
+  if not sequence.key_signatures:
+    raise ValueError('Sequence has no key signatures.')
+
+  key_changes = sorted((steps_per_second * ks.time, ks.key)
+                       for ks in sequence.key_signatures)
+  key_change_steps = [step for (step, _) in key_changes]
+
+  def step_to_key(step):
+    index = bisect.bisect(key_change_steps, step)
+    if index == 0:
+      # Step is before first key signature; just use that key.
+      return key_changes[0][1]
+    else:
+      return key_changes[index - 1][1]
+
+  key_lists = []
+  for e in event_lists:
+    key_lists.append([step_to_key(step) for step in e.steps])
+
+  return key_lists
+
+
 def add_chords_to_sequence(note_sequence, chords, chord_times):
-  """Add chords to a NoteSequence at specified times.
+  """Add chords to a NoteSequence (in place) at specified times.
 
   Args:
     note_sequence: The NoteSequence proto to which chords will be added (in
@@ -311,6 +348,36 @@ def add_chords_to_sequence(note_sequence, chords, chord_times):
       ta.annotation_type = CHORD_SYMBOL
       ta.time = time
       ta.text = chord
+
+
+def add_keys_to_sequence(note_sequence, keys, key_times):
+  """Add key signatures to a NoteSequence (in place) at specified times.
+
+  Args:
+    note_sequence: The NoteSequence proto to which key signatures will be added
+        (in place). Should not already have key signatures.
+    keys: A Python list of keys (integers 0-11) to add to `note_sequence` as
+        KeySignature fields.
+    key_times: A Python list containing the time in seconds at which to add
+        each key signature. Should be the same length as `keys` and
+        nondecreasing.
+
+  Raises:
+    ValueError: If `note_sequence` already has key signatures, or if `key_times`
+        is not sorted in ascending order.
+  """
+  if note_sequence.key_signatures:
+    raise ValueError('NoteSequence already has keys.')
+  if any(t1 > t2 for t1, t2 in zip(key_times[:-1], key_times[1:])):
+    raise ValueError('Key times not sorted in ascending order.')
+
+  current_key = None
+  for key, time in zip(keys, key_times):
+    if key != current_key:
+      current_key = key
+      ks = note_sequence.key_signatures.add()
+      ks.time = time
+      ks.key = key
 
 
 class ChordRenderer(object):
