@@ -18,8 +18,8 @@ import copy
 import os
 import re
 import tarfile
+import tempfile
 
-from backports import tempfile
 import numpy as np
 import tensorflow.compat.v1 as tf
 

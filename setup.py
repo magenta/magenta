@@ -25,30 +25,22 @@ with open('magenta/version.py') as in_file:
   exec(in_file.read())  # pylint: disable=exec-used
 
 REQUIRED_PACKAGES = [
-    'IPython',
-    'Pillow >= 3.4.2',
     'absl-py',
+    'apache-beam[gcp] >= 2.14.0',
     'attrs',
-    'backports.tempfile',
     'bokeh >= 0.12.0',
-    # Temporary fix for gast issue with TF.
-    # Details:
-    # https://github.com/tensorflow/tensorflow/issues/32319
-    # https://github.com/tensorflow/tensorflow/commit/c72125bd59858ec82a9238b232bbd77c45889c5a
-    'gast == 0.2.2',
-    # tensor2tensor requires gym, but the newest version of gym depends on a
-    # a version of cloudpickle that is incompatible with tensorflow-probability
-    # 0.7.0.
-    'gym < 0.16.0',
+    'dm-sonnet',
     'imageio',
     'intervaltree >= 2.1.0',
+    'IPython',
     'joblib >= 0.12',
     'librosa >= 0.6.2',
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
     'mir_eval >= 0.4',
-    'numpy >= 1.14.6',  # 1.14.6 is required for colab compatibility.
+    'numpy',
     'pandas >= 0.18.1',
+    'Pillow >= 3.4.2',
     'pretty_midi >= 0.2.6',
     'protobuf >= 3.6.1',
     'pygtrie >= 2.3',
@@ -57,23 +49,13 @@ REQUIRED_PACKAGES = [
     'scipy >= 0.18.1',
     'six >= 1.12.0',
     'sk-video',
-    # Keep Sonnet < 2.0.0 because that requires TF2.
-    # For now, restrict to < 1.36 because that requires tensorflow-probability
-    # 0.8.0, which causes problems with tensor2tensor.
-    'dm-sonnet < 1.36.0',  # Sonnet 2 requires TF2.
     'sox >= 1.3.7',
-    'tensorflow >= 1.15.0, < 2.0.0',  # Magenta is not yet TF2 compatible.
-    'tensorflow-datasets >= 1.0.2',
-    # Pinned to be compatible with tensor2tensor requirements.
-    'tensorflow-probability == 0.7.0',
-    'tensor2tensor >= 1.13.4',
+    'tensor2tensor',
+    'tensorflow',
+    'tensorflow-datasets',
+    'tensorflow-probability',
     'tf_slim',
     'wheel',
-    'futures;python_version=="2.7"',
-    'apache-beam[gcp] >= 2.14.0',
-    # Temporary fix for:
-    # https://issues.apache.org/jira/projects/AVRO/issues/AVRO-2737?filter=allopenissues
-    'avro-python3 !=1.9.2',
 ]
 
 EXTRAS_REQUIRE = {
@@ -176,7 +158,6 @@ setup(
     tests_require=[
         'pytest >= 5.2.0',
         'pytest-xdist < 1.30.0',  # 1.30 has problems working with pylint plugin
-        'pylint < 2.0.0;python_version<"3"',
-        'pylint >= 2.4.2;python_version>="3"',
+        'pylint >= 2.4.2',
     ],
 )
