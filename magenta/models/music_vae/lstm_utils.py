@@ -16,8 +16,8 @@
 import collections
 
 from magenta.contrib import rnn as contrib_rnn
+from magenta.contrib import seq2seq as contrib_seq2seq
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib import seq2seq
 
 rnn = tf.nn.rnn_cell
 
@@ -182,7 +182,7 @@ class Seq2SeqLstmDecoderOutput(
   pass
 
 
-class Seq2SeqLstmDecoder(seq2seq.BasicDecoder):
+class Seq2SeqLstmDecoder(contrib_seq2seq.BasicDecoder):
   """Overrides BaseDecoder to include rnn inputs in the output."""
 
   def __init__(self, cell, helper, initial_state, input_shape,

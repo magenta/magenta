@@ -19,15 +19,14 @@ import abc
 from magenta.common import flatten_maybe_padded_sequences
 from magenta.common import Nade
 import magenta.contrib.rnn as contrib_rnn
+import magenta.contrib.seq2seq as contrib_seq2seq
 import magenta.contrib.training as contrib_training
 from magenta.models.music_vae import base_model
 from magenta.models.music_vae import lstm_utils
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
-from tensorflow.contrib import seq2seq as contrib_seq2seq
 
-seq2seq = contrib_seq2seq
 
 # ENCODERS
 
@@ -289,7 +288,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         initial_state=initial_state,
         input_shape=input_shape,
         output_layer=self._output_layer)
-    final_output, final_state, final_lengths = seq2seq.dynamic_decode(
+    final_output, final_state, final_lengths = contrib_seq2seq.dynamic_decode(
         decoder,
         maximum_iterations=max_length,
         swap_memory=True,
@@ -340,7 +339,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     if sampling_probability_static == 0.0:
       # Use teacher forcing.
       x_input = tf.concat([x_input, repeated_z, c_input], axis=2)
-      helper = seq2seq.TrainingHelper(x_input, x_length)
+      helper = contrib_seq2seq.TrainingHelper(x_input, x_length)
     else:
       # Use scheduled sampling.
       if has_z or has_control:
@@ -351,7 +350,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
           auxiliary_inputs = tf.concat([auxiliary_inputs, c_input], axis=2)
       else:
         auxiliary_inputs = None
-      helper = seq2seq.ScheduledOutputTrainingHelper(
+      helper = contrib_seq2seq.ScheduledOutputTrainingHelper(
           inputs=x_input,
           sequence_length=x_length,
           auxiliary_inputs=auxiliary_inputs,
@@ -441,7 +440,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
         ], axis=-1)
       return (finished, next_inputs, state)
 
-    sampler = seq2seq.CustomHelper(
+    sampler = contrib_seq2seq.CustomHelper(
         initialize_fn=initialize_fn, sample_fn=sample_fn,
         next_inputs_fn=next_inputs_fn, sample_ids_shape=[self._output_depth],
         sample_ids_dtype=tf.float32)
@@ -558,8 +557,8 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     return sampler.sample()
 
   def sample(self, n, max_length=None, z=None, c_input=None, temperature=None,
-             start_inputs=None, beam_width=None, end_token=None):
-    """Overrides BaseLstmDecoder `sample` method to add optional beam search.
+             start_inputs=None, end_token=None):
+    """Overrides BaseLstmDecoder `sample` method to add optional end token.
 
     Args:
       n: Scalar number of samples to return.
@@ -568,106 +567,23 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
       z: (Optional) Latent vectors to sample from. Required if model is
         conditional. Sized `[n, z_size]`.
       c_input: (Optional) Control sequence, sized `[max_length, control_depth]`.
-      temperature: (Optional) The softmax temperature to use when not doing beam
-        search. Defaults to 1.0. Ignored when `beam_width` is provided.
+      temperature: (Optional) The softmax temperature to use  Defaults to 1.0.
       start_inputs: (Optional) Initial inputs to use for batch.
         Sized `[n, output_depth]`.
-      beam_width: (Optional) Width of beam to use for beam search. Beam search
-        is disabled if not provided.
       end_token: (Optional) Scalar token signaling the end of the sequence to
         use for early stopping.
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
       final_state: The final states of the decoder.
     Raises:
-      ValueError: If `z` is provided and its first dimension does not equal `n`,
-        or if `c_input` is provided under beam search.
+      ValueError: If `z` is provided and its first dimension does not equal `n`.
     """
-    if beam_width is None:
-      if end_token is None:
-        end_fn = None
-      else:
-        end_fn = lambda x: tf.equal(tf.argmax(x, axis=-1), end_token)
-      return super(CategoricalLstmDecoder, self).sample(
-          n, max_length, z, c_input, temperature, start_inputs, end_fn)
-
-    # TODO(iansimon): Support conditioning in beam search decoder, which may be
-    # awkward as there's no helper.
-    if c_input is not None:
-      raise ValueError('Control sequence unsupported in beam search.')
-
-    # If `end_token` is not given, use an impossible value.
-    end_token = self._output_depth if end_token is None else end_token
-    if z is not None and z.shape[0].value != n:
-      raise ValueError(
-          '`z` must have a first dimension that equals `n` when given. '
-          'Got: %d vs %d' % (z.shape[0].value, n))
-
-    if temperature is not None:
-      tf.logging.warning('`temperature` is ignored when using beam search.')
-    # Use a dummy Z in unconditional case.
-    z = tf.zeros((n, 0), tf.float32) if z is None else z
-
-    # If not given, start with dummy `-1` token and replace with zero vectors in
-    # `embedding_fn`.
-    if start_inputs is None:
-      start_tokens = -1 * tf.ones([n], dtype=tf.int32)
+    if end_token is None:
+      end_fn = None
     else:
-      start_tokens = tf.argmax(start_inputs, axis=-1, output_type=tf.int32)
-
-    initial_state = lstm_utils.initial_cell_state_from_embedding(
-        self._dec_cell, z, name='decoder/z_to_initial_state')
-    beam_initial_state = seq2seq.tile_batch(
-        initial_state, multiplier=beam_width)
-
-    # Tile `z` across beams.
-    beam_z = tf.tile(tf.expand_dims(z, 1), [1, beam_width, 1])
-
-    def embedding_fn(tokens):
-      # If tokens are the start_tokens (negative), replace with zero vectors.
-      next_inputs = tf.cond(
-          tf.less(tokens[0, 0], 0),
-          lambda: tf.zeros([n, beam_width, self._output_depth]),
-          lambda: tf.one_hot(tokens, self._output_depth))
-
-      # Concatenate `z` to next inputs.
-      next_inputs = tf.concat([next_inputs, beam_z], axis=-1)
-      return next_inputs
-
-    decoder = seq2seq.BeamSearchDecoder(
-        self._dec_cell,
-        embedding_fn,
-        start_tokens,
-        end_token,
-        beam_initial_state,
-        beam_width,
-        output_layer=self._output_layer,
-        length_penalty_weight=0.0)
-
-    final_output, final_state, final_lengths = seq2seq.dynamic_decode(
-        decoder,
-        maximum_iterations=max_length,
-        swap_memory=True,
-        scope='decoder')
-
-    samples = tf.one_hot(final_output.predicted_ids[:, :, 0],
-                         self._output_depth)
-    # Rebuild the input by combining the inital input with the sampled output.
-    if start_inputs is None:
-      initial_inputs = tf.zeros([n, 1, self._output_depth])
-    else:
-      initial_inputs = tf.expand_dims(start_inputs, axis=1)
-
-    rnn_input = tf.concat([initial_inputs, samples[:, :-1]], axis=1)
-
-    results = lstm_utils.LstmDecodeResults(
-        rnn_input=rnn_input,
-        rnn_output=None,
-        samples=samples,
-        final_state=tf.nest.map_structure(
-            lambda x: x[:, 0], final_state.cell_state),
-        final_sequence_lengths=final_lengths[:, 0])
-    return samples, results
+      end_fn = lambda x: tf.equal(tf.argmax(x, axis=-1), end_token)
+    return super(CategoricalLstmDecoder, self).sample(
+        n, max_length, z, c_input, temperature, start_inputs, end_fn)
 
 
 class MultiOutCategoricalLstmDecoder(CategoricalLstmDecoder):

@@ -19,11 +19,11 @@ import collections
 
 import magenta
 from magenta.common import Nade
+from magenta.contrib import seq2seq as contrib_seq2seq
 from magenta.models.shared import events_rnn_graph
 import tensorflow.compat.v1 as tf
-import tf_slim
+import tf_slim  # pylint:disable=g-bad-import-order
 
-from tensorflow.contrib import seq2seq as contrib_seq2seq
 
 _RnnNadeStateTuple = collections.namedtuple(
     'RnnNadeStateTuple', ('b_enc', 'b_dec', 'rnn_state'))
