@@ -194,7 +194,7 @@ class Model(object):
 
     # gen_one_hot_labels = real_one_hot_labels
     gen_one_hot_labels = data_helper.provide_one_hot_labels(batch_size)
-    num_tokens = real_one_hot_labels.shape[1].value
+    num_tokens = int(real_one_hot_labels.shape[1])
 
     current_image_id = tf.train.get_or_create_global_step()
     current_image_id_inc_op = current_image_id.assign_add(batch_size)
@@ -436,7 +436,7 @@ class Model(object):
     fake_batch_size = config['fake_batch_size']
     real_batch_size = self.batch_size
     real_one_hot_labels = self.real_one_hot_labels
-    num_tokens = real_one_hot_labels.shape[1].value
+    num_tokens = int(real_one_hot_labels.shape[1])
 
     # When making prediction, use the ema smoothed generator vars by
     # `_custom_getter`.

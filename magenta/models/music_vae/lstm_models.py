@@ -181,7 +181,7 @@ class HierarchicalLstmEncoder(base_model.BaseEncoder):
     Returns:
       embedding: A batch of embeddings, sized `[batch_size, N]`.
     """
-    batch_size = sequence.shape[0].value
+    batch_size = int(sequence.shape[0])
     sequence_length = lstm_utils.maybe_split_sequence_lengths(
         sequence_length, np.prod(self._level_lengths[1:]),
         self._total_length)
@@ -323,7 +323,7 @@ class BaseLstmDecoder(base_model.BaseDecoder):
       metric_map: Map from metric name to tf.metrics return values for logging.
       decode_results: The LstmDecodeResults.
     """
-    batch_size = x_input.shape[0].value
+    batch_size = int(x_input.shape[0])
 
     has_z = z is not None
     z = tf.zeros([batch_size, 0]) if z is None else z
@@ -399,10 +399,10 @@ class BaseLstmDecoder(base_model.BaseDecoder):
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
     """
-    if z is not None and z.shape[0].value != n:
+    if z is not None and int(z.shape[0]) != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
-          'Got: %d vs %d' % (z.shape[0].value, n))
+          'Got: %d vs %d' % (z.shape[0], n))
 
     # Use a dummy Z in unconditional case.
     z = tf.zeros((n, 0), tf.float32) if z is None else z
@@ -547,7 +547,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
             tf.metrics.accuracy(flat_truth, flat_predictions),
         'metrics/mean_per_class_accuracy':
             tf.metrics.mean_per_class_accuracy(
-                flat_truth, flat_predictions, flat_x_target.shape[-1].value),
+                flat_truth, flat_predictions, int(flat_x_target.shape[-1])),
     }
     return r_loss, metric_map
 
@@ -741,10 +741,10 @@ class SplitMultiOutLstmDecoder(base_model.BaseDecoder):
 
   def sample(self, n, max_length=None, z=None, c_input=None, temperature=1.0,
              start_inputs=None, **core_sampler_kwargs):
-    if z is not None and z.shape[0].value != n:
+    if z is not None and int(z.shape[0]) != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
-          'Got: %d vs %d' % (z.shape[0].value, n))
+          'Got: %d vs %d' % (z.shape[0], n))
 
     if max_length is None:
       # TODO(adarob): Support variable length outputs.
@@ -1041,7 +1041,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       raise ValueError(
           'Re-encoder mode unsupported when conditioning on controls.')
 
-    batch_size = x_input.shape[0].value
+    batch_size = int(x_input.shape[0])
 
     x_length = lstm_utils.maybe_split_sequence_lengths(
         x_length, np.prod(self._level_lengths[:-1]), self._total_length)
@@ -1135,10 +1135,10 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
       ValueError: If `z` is provided and its first dimension does not equal `n`,
         or if `c_input` is provided in re-encoder mode.
     """
-    if z is not None and z.shape[0].value != n:
+    if z is not None and int(z.shape[0]) != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
-          'Got: %d vs %d' % (z.shape[0].value, n))
+          'Got: %d vs %d' % (z.shape[0], n))
     z = tf.zeros([n, 0]) if z is None else z
 
     if self._hierarchical_encoder and c_input is not None:

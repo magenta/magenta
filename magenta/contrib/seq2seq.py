@@ -50,8 +50,8 @@ def _transpose_batch_time(x):
       x, tf.concat(([1, 0], tf.range(2, x_rank)), axis=0))
   x_t.set_shape(
       tf.TensorShape(
-          [x_static_shape.dims[1].value,
-           x_static_shape.dims[0].value]).concatenate(x_static_shape[2:]))
+          [x_static_shape[1], x_static_shape[0]]).concatenate(
+              x_static_shape[2:]))
   return x_t
 
 

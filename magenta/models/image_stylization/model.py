@@ -169,7 +169,7 @@ def residual_block(input_, kernel_size, scope, activation_fn=tf.nn.relu):
   if kernel_size % 2 == 0:
     raise ValueError('kernel_size is expected to be odd.')
   with tf.variable_scope(scope):
-    num_outputs = input_.get_shape()[-1].value
+    num_outputs = int(input_.get_shape()[-1])
     h_1 = conv2d(input_, kernel_size, 1, num_outputs, 'conv1', activation_fn)
     h_2 = conv2d(h_1, kernel_size, 1, num_outputs, 'conv2', None)
     return input_ + h_2

@@ -252,7 +252,7 @@ def crop_or_pad(waves, length, channels):
     A 3D `Tensor` of NLC format with shape [N, length, channels].
   """
   waves = tf.convert_to_tensor(waves)
-  batch_size = waves.shape[0].value
+  batch_size = int(waves.shape[0])
   waves_shape = tf.shape(waves)
 
   # Force audio length.

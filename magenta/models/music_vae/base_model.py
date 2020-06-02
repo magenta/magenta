@@ -333,10 +333,10 @@ class MusicVAE(object):
 
   def sample(self, n, max_length=None, z=None, c_input=None, **kwargs):
     """Sample with an optional conditional embedding `z`."""
-    if z is not None and z.shape[0].value != n:
+    if z is not None and int(z.shape[0]) != n:
       raise ValueError(
           '`z` must have a first dimension that equals `n` when given. '
-          'Got: %d vs %d' % (z.shape[0].value, n))
+          'Got: %d vs %d' % (z.shape[0], n))
 
     if self.hparams.z_size and z is None:
       tf.logging.warning(

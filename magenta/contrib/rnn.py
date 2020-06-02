@@ -111,11 +111,11 @@ class _Linear(object):  # pylint:disable=g-classes-have-attributes
     for shape in shapes:
       if shape.ndims != 2:
         raise ValueError("linear is expecting 2D arguments: %s" % shapes)
-      if shape.dims[1].value is None:
+      if shape[1] is None:
         raise ValueError("linear expects shape[1] to be provided for shape %s, "
                          "but saw %s" % (shape, shape[1]))
       else:
-        total_arg_size += shape.dims[1].value
+        total_arg_size += int(shape[1])
 
     dtype = [a.dtype for a in args][0]
 
@@ -553,7 +553,7 @@ def _lstm_block_cell(x,
     ValueError: If cell_size is None.
   """
   if wci is None:
-    cell_size = cs_prev.get_shape().with_rank(2).dims[1].value
+    cell_size = int(cs_prev.shape.with_rank(2)[1])
     if cell_size is None:
       raise ValueError("cell_size from `cs_prev` should not be None.")
     wci = tf.constant(0, dtype=tf.float32, shape=[cell_size])
@@ -682,10 +682,10 @@ class LSTMBlockCell(LayerRNNCell):
     return self._num_units
 
   def build(self, inputs_shape):
-    if not inputs_shape.dims[1].value:
+    if not inputs_shape[1]:
       raise ValueError(
           "Expecting inputs_shape[1] to be set: %s" % str(inputs_shape))
-    input_size = inputs_shape.dims[1].value
+    input_size = int(inputs_shape[1])
     self._kernel = self.add_variable(
         self._names["W"], [input_size + self._num_units, self._num_units * 4])
     self._bias = self.add_variable(

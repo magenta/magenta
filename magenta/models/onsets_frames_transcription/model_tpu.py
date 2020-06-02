@@ -57,7 +57,7 @@ def conv_net(inputs, hparams):
     # Flatten while preserving batch and time dimensions.
     dims = tf.shape(net)
     net = tf.reshape(
-        net, (dims[0], dims[1], net.shape[2].value * net.shape[3].value),
+        net, (dims[0], dims[1], net.shape[2] * net.shape[3]),
         'flatten_end')
 
     net = slim.fully_connected(net, hparams.fc_size, scope='fc_end')

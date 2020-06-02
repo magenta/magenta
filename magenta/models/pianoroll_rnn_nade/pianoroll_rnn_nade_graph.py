@@ -102,7 +102,7 @@ class RnnNade(object):
     Returns:
       final_state: An RnnNadeStateTuple, the final state of the RNN-NADE.
     """
-    batch_size = inputs.shape[0].value
+    batch_size = int(inputs.shape[0])
 
     if lengths is None:
       lengths = tf.tile(tf.shape(inputs)[1:2], [batch_size])
@@ -150,7 +150,7 @@ class RnnNade(object):
       cond_prob: The conditional probabilities at each non-padded value for
           every batch, sized `[sum(lengths), num_dims]`.
     """
-    assert self._num_dims == sequences.shape[2].value
+    assert self._num_dims == int(sequences.shape[2])
 
     # Remove last value from input sequences.
     inputs = sequences[:, 0:-1, :]

@@ -318,7 +318,7 @@ def arbitrary_style_image_inputs(style_dataset_file,
       label = features['label']
 
       if image_size is not None:
-        image_channels = image.shape[2].value
+        image_channels = int(image.shape[2])
         if augment_style_images:
           image_orig = image
           image = tf.image.random_brightness(image, max_delta=0.8)
@@ -436,7 +436,7 @@ def load_image(image_file, image_size=None):
   image = tf.constant(np.uint8(load_np_image(image_file) * 255.0))
   if image_size is not None:
     # Center-crop into a square and resize to image_size
-    small_side = min(image.get_shape()[0].value, image.get_shape()[1].value)
+    small_side = int(min(image.shape[0], image.shape[1]))
     image = tf.image.resize_image_with_crop_or_pad(
         image, small_side, small_side)
     image = tf.image.resize_images(image, [image_size, image_size])
@@ -487,17 +487,17 @@ def form_image_grid(input_tensor, grid_shape, image_shape, num_channels):
     ValueError: The grid shape and minibatch size don't match, or the image
         shape and number of channels are incompatible with the input tensor.
   """
-  if grid_shape[0] * grid_shape[1] != int(input_tensor.get_shape()[0]):
+  if grid_shape[0] * grid_shape[1] != int(input_tensor.shape[0]):
     raise ValueError('Grid shape incompatible with minibatch size.')
-  if len(input_tensor.get_shape()) == 2:
+  if len(input_tensor.shape) == 2:
     num_features = image_shape[0] * image_shape[1] * num_channels
-    if int(input_tensor.get_shape()[1]) != num_features:
+    if int(input_tensor.shape[1]) != num_features:
       raise ValueError('Image shape and number of channels incompatible with '
                        'input tensor.')
-  elif len(input_tensor.get_shape()) == 4:
-    if (int(input_tensor.get_shape()[1]) != image_shape[0] or
-        int(input_tensor.get_shape()[2]) != image_shape[1] or
-        int(input_tensor.get_shape()[3]) != num_channels):
+  elif len(input_tensor.shape) == 4:
+    if (int(input_tensor.shape[1]) != image_shape[0] or
+        int(input_tensor.shape[2]) != image_shape[1] or
+        int(input_tensor.shape[3]) != num_channels):
       raise ValueError('Image shape and number of channels incompatible with '
                        'input tensor.')
   else:
@@ -629,7 +629,7 @@ def _aspect_preserving_resize(image, smallest_side):
   """
   smallest_side = tf.convert_to_tensor(smallest_side, dtype=tf.int32)
 
-  input_rank = len(image.get_shape())
+  input_rank = len(image.shape)
   if input_rank == 3:
     image = tf.expand_dims(image, 0)
 

@@ -30,7 +30,7 @@ def get_default_embedding_size(num_features):
 
 def one_hot_to_embedding(one_hot, embedding_size=None):
   """Gets a dense embedding vector from a one-hot encoding."""
-  num_tokens = one_hot.shape[1].value
+  num_tokens = int(one_hot.shape[1])
   label_id = tf.argmax(one_hot, axis=1)
   if embedding_size is None:
     embedding_size = get_default_embedding_size(num_tokens)

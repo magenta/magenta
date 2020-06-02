@@ -77,7 +77,7 @@ def _naive_rdft(signal_tensor, fft_length):
   imag_dft_tensor = tf.constant(
       np.imag(complex_dft_matrix_kept_values).astype(np.float32),
       name='imaginary_dft_matrix')
-  signal_frame_length = signal_tensor.shape[-1].value
+  signal_frame_length = int(signal_tensor.shape[-1])
   half_pad = (fft_length - signal_frame_length) // 2
   pad_values = tf.concat([
       tf.zeros([tf.rank(signal_tensor) - 1, 2], tf.int32),
@@ -263,7 +263,7 @@ def build_mel_calculation_graph(waveform_input,
         waveform_input, window_length_samples, hop_length_samples, fft_length)
 
   # Warp the linear-scale, magnitude spectrograms into the mel-scale.
-  num_spectrogram_bins = magnitude_spectrogram.shape[-1].value
+  num_spectrogram_bins = int(magnitude_spectrogram.shape[-1])
   if tflite_compatible:
     linear_to_mel_weight_matrix = tf.constant(
         mfcc_mel.SpectrogramToMelMatrix(num_mel_bins, num_spectrogram_bins,

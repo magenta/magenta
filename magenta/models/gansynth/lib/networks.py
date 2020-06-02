@@ -420,7 +420,7 @@ def generator(z,
         outputs.append(lod * alpha)
 
     predictions = tf.add_n(outputs)
-    batch_size = z.shape[0].value
+    batch_size = int(z.shape[0])
     predictions.set_shape([batch_size, final_h, final_w, colors])
     end_points['predictions'] = predictions
 

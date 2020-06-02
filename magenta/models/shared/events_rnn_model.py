@@ -81,7 +81,7 @@ class EventSequenceRnnModel(mm.BaseModel):
 
   def _batch_size(self):
     """Extracts the batch size from the graph."""
-    return self._session.graph.get_collection('inputs')[0].shape[0].value
+    return int(self._session.graph.get_collection('inputs')[0].shape[0])
 
   def _generate_step_for_batch(self, event_sequences, inputs, initial_state,
                                temperature):
