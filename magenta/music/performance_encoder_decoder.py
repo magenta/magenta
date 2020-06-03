@@ -14,8 +14,6 @@
 
 """Classes for converting between performance input and model input/output."""
 
-from __future__ import division
-
 import math
 
 from magenta.music import encoder_decoder

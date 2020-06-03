@@ -14,10 +14,6 @@
 
 """Infer melody from polyphonic NoteSequence."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import bisect
 
 from magenta.music import constants

@@ -17,18 +17,14 @@
 Input and output wrappers for converting between MIDI and other formats.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
+import io
 import sys
 import tempfile
 
 from magenta.music import constants
 from magenta.music.protobuf import music_pb2
 import pretty_midi
-import six
 import tensorflow.compat.v1 as tf
 
 # pylint: enable=g-import-not-at-top
@@ -73,7 +69,7 @@ def midi_to_note_sequence(midi_data):
     midi = midi_data
   else:
     try:
-      midi = pretty_midi.PrettyMIDI(six.BytesIO(midi_data))
+      midi = pretty_midi.PrettyMIDI(io.BytesIO(midi_data))
     except:
       raise MIDIConversionError('Midi decoding error %s: %s' %
                                 (sys.exc_info()[0], sys.exc_info()[1]))

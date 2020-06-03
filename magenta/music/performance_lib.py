@@ -14,18 +14,16 @@
 
 """Utility functions for working with polyphonic performances."""
 
-from __future__ import division
-
 import abc
 import collections
 import math
 
+from absl import logging
 import attr
 from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 MAX_MIDI_PITCH = constants.MAX_MIDI_PITCH
 MIN_MIDI_PITCH = constants.MIN_MIDI_PITCH
@@ -435,8 +433,8 @@ class BasePerformance(events_lib.EventSequence):
             (step, velocity))
       elif event.event_type == PerformanceEvent.NOTE_OFF:
         if not pitch_start_steps_and_velocities[event.event_value]:
-          tf.logging.debug(
-              'Ignoring NOTE_OFF at position %d with no previous NOTE_ON' % i)
+          logging.debug(
+              'Ignoring NOTE_OFF at position %d with no previous NOTE_ON', i)
         else:
           # Create a note for the pitch that is now ending.
           pitch_start_step, pitch_velocity = pitch_start_steps_and_velocities[
@@ -444,8 +442,8 @@ class BasePerformance(events_lib.EventSequence):
           pitch_start_steps_and_velocities[event.event_value] = (
               pitch_start_steps_and_velocities[event.event_value][1:])
           if step == pitch_start_step:
-            tf.logging.debug(
-                'Ignoring note with zero duration at step %d' % step)
+            logging.debug(
+                'Ignoring note with zero duration at step %d', step)
             continue
           note = sequence.notes.add()
           note.start_time = (pitch_start_step * seconds_per_step +
@@ -476,8 +474,7 @@ class BasePerformance(events_lib.EventSequence):
       for pitch_start_step, pitch_velocity in pitch_start_steps_and_velocities[
           pitch]:
         if step == pitch_start_step:
-          tf.logging.debug(
-              'Ignoring note with zero duration at step %d' % step)
+          logging.debug('Ignoring note with zero duration at step %d', step)
           continue
         note = sequence.notes.add()
         note.start_time = (pitch_start_step * seconds_per_step +

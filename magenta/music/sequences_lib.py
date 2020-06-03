@@ -14,10 +14,6 @@
 
 """Defines sequence of notes objects for creating datasets."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import copy
 import itertools
@@ -25,12 +21,11 @@ import math
 import operator
 import random
 
+from absl import logging
 from magenta.music import chord_symbols_lib
 from magenta.music import constants
 from magenta.music.protobuf import music_pb2
 import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
-import tensorflow.compat.v1 as tf
 
 # Set the quantization cutoff.
 # Note events before this cutoff are rounded down to nearest step. Notes
@@ -1271,13 +1266,13 @@ def augment_note_sequence(ns,
       ns_max_pitch = max(ns.notes, key=lambda note: note.pitch).pitch
 
       if ns_min_pitch < min_allowed_pitch:
-        tf.logging.warn(
+        logging.warn(
             'A note sequence has some pitch=%d, which is less '
-            'than min_allowed_pitch=%d' % (ns_min_pitch, min_allowed_pitch))
+            'than min_allowed_pitch=%d', ns_min_pitch, min_allowed_pitch)
       if ns_max_pitch > max_allowed_pitch:
-        tf.logging.warn(
+        logging.warn(
             'A note sequence has some pitch=%d, which is greater '
-            'than max_allowed_pitch=%d' % (ns_max_pitch, max_allowed_pitch))
+            'than max_allowed_pitch=%d', ns_max_pitch, max_allowed_pitch)
 
       min_transpose = _clamp_transpose(min_transpose, ns_min_pitch,
                                        ns_max_pitch, min_allowed_pitch,
@@ -1392,14 +1387,14 @@ def adjust_notesequence_times(ns, time_func, minimum_duration=None):
 
     if start_time == end_time:
       if minimum_duration:
-        tf.logging.warn(
+        logging.warn(
             'Adjusting note duration of 0 to new minimum duration of %f. '
             'Original start: %f, end %f. New start %f, end %f.',
             minimum_duration, note.start_time, note.end_time, start_time,
             end_time)
         end_time += minimum_duration
       else:
-        tf.logging.warn(
+        logging.warn(
             'Skipping note that ends before or at the same time it begins. '
             'Original start: %f, end %f. New start %f, end %f.',
             note.start_time, note.end_time, start_time, end_time)
@@ -1563,8 +1558,7 @@ def apply_sustain_control_changes(note_sequence, sustain_control_number=64):
       continue
     value = cc.control_value
     if value < 0 or value > 127:
-      tf.logging.warn('Sustain control change has out of range value: %d',
-                      value)
+      logging.warn('Sustain control change has out of range value: %d', value)
     if value >= 64:
       events.append((cc.time, _SUSTAIN_ON, cc))
     elif value < 64:
@@ -1832,7 +1826,7 @@ def sequence_to_pianoroll(
 
   for note in sorted(sequence.notes, key=lambda n: n.start_time):
     if note.pitch < min_pitch or note.pitch > max_pitch:
-      tf.logging.warn('Skipping out of range pitch: %d', note.pitch)
+      logging.warn('Skipping out of range pitch: %d', note.pitch)
       continue
     start_frame, end_frame = frames_from_times(note.start_time, note.end_time)
 

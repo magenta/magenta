@@ -44,16 +44,11 @@ encodings also consider whether the event sequence is repeating, and the input
 encoding includes binary counters for timekeeping.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import abc
 import numbers
 
 from magenta.music import constants
 import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR

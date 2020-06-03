@@ -14,8 +14,6 @@
 
 """Utility functions for working with pianoroll sequences."""
 
-from __future__ import division
-
 import copy
 
 from magenta.music import constants

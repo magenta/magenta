@@ -23,10 +23,6 @@ specifies an encoding of Melody objects into input vectors and output labels for
 use by melody models.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 
 from magenta.music import constants

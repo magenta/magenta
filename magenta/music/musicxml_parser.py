@@ -17,16 +17,12 @@
 Simple MusicXML parser used to convert MusicXML
 into tensorflow.magenta.NoteSequence.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import fractions
 import xml.etree.ElementTree as ET
 import zipfile
 
 from magenta.music import constants
-import six
 
 Fraction = fractions.Fraction
 
@@ -189,20 +185,19 @@ class MusicXMLDocument(object):
       # Raise a MusicXMLParseError if multiple MusicXML files found
 
       infolist = mxlzip.infolist()
-      if six.PY3:
-        # In py3, instead of returning raw bytes, ZipFile.infolist() tries to
-        # guess the filenames' encoding based on file headers, and decodes using
-        # this encoding in order to return a list of strings. If the utf-8
-        # header is missing, it decodes using the DOS code page 437 encoding
-        # which is almost definitely wrong. Here we need to explicitly check
-        # for when this has occurred and change the encoding to utf-8.
-        # https://stackoverflow.com/questions/37723505/namelist-from-zipfile-returns-strings-with-an-invalid-encoding
-        zip_filename_utf8_flag = 0x800
-        for info in infolist:
-          if info.flag_bits & zip_filename_utf8_flag == 0:
-            filename_bytes = info.filename.encode('437')
-            filename = filename_bytes.decode('utf-8', 'replace')
-            info.filename = filename
+      # In py3, instead of returning raw bytes, ZipFile.infolist() tries to
+      # guess the filenames' encoding based on file headers, and decodes using
+      # this encoding in order to return a list of strings. If the utf-8
+      # header is missing, it decodes using the DOS code page 437 encoding
+      # which is almost definitely wrong. Here we need to explicitly check
+      # for when this has occurred and change the encoding to utf-8.
+      # https://stackoverflow.com/questions/37723505/namelist-from-zipfile-returns-strings-with-an-invalid-encoding
+      zip_filename_utf8_flag = 0x800
+      for info in infolist:
+        if info.flag_bits & zip_filename_utf8_flag == 0:
+          filename_bytes = info.filename.encode('437')
+          filename = filename_bytes.decode('utf-8', 'replace')
+          info.filename = filename
 
       container_file = [x for x in infolist
                         if x.filename == 'META-INF/container.xml']
@@ -232,11 +227,6 @@ class MusicXMLDocument(object):
       if not compressed_file_name:
         raise MusicXMLParseError(
             'Unable to locate main .xml file in compressed archive.')
-      if six.PY2:
-        # In py2, the filenames in infolist are utf-8 encoded, so
-        # we encode the compressed_file_name as well in order to
-        # be able to lookup compressed_file_info below.
-        compressed_file_name = compressed_file_name.encode('utf-8')
       try:
         compressed_file_info = [x for x in infolist
                                 if x.filename == compressed_file_name][0]

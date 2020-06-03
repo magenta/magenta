@@ -14,9 +14,10 @@
 
 """Import NoteSequences from MusicNet."""
 
+import io
+
 from magenta.music.protobuf import music_pb2
 import numpy as np
-from six import BytesIO
 import tensorflow.compat.v1 as tf
 
 MUSICNET_SAMPLE_RATE = 44100
@@ -86,7 +87,7 @@ def musicnet_iterator(musicnet_file):
     # Unfortunately the gfile seek function breaks the reading of NumPy
     # archives, so we read the archive first then load as BytesIO.
     musicnet_bytes = f.read()
-    musicnet_bytesio = BytesIO(musicnet_bytes)
+    musicnet_bytesio = io.BytesIO(musicnet_bytes)
     # allow_pickle is required because the npz files contain intervaltrees.
     musicnet = np.load(musicnet_bytesio, encoding='latin1', allow_pickle=True)
 

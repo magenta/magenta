@@ -27,7 +27,6 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
 import numpy as np
-from six.moves import range  # pylint: disable=redefined-builtin
 
 MELODY_NOTE_OFF = constants.MELODY_NOTE_OFF
 MELODY_NO_EVENT = constants.MELODY_NO_EVENT

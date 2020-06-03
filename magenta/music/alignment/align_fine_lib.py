@@ -20,10 +20,6 @@ specifically intended to be used with this library. Communication between
 Python and C++ is done with a protobuf.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import subprocess
 import tempfile

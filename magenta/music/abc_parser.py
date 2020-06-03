@@ -17,17 +17,12 @@
 http://abcnotation.com/wiki/abc:standard:v2.1
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import fractions
 import re
 
+from absl import logging
 from magenta.music import constants
 from magenta.music.protobuf import music_pb2
-import six
-from six.moves import range  # pylint: disable=redefined-builtin
 import tensorflow.compat.v1 as tf
 
 
@@ -200,7 +195,7 @@ class ABCTune(object):
   }
 
   KEY_TO_SIG = {}
-  for sig, keys in six.iteritems(SIG_TO_KEYS):
+  for sig, keys in SIG_TO_KEYS.items():
     for key in keys:
       KEY_TO_SIG[key.lower()] = sig
 
@@ -370,7 +365,7 @@ class ABCTune(object):
 
     if self._ns.section_annotations:
       if self._ns.section_annotations[-1].time == time:
-        tf.logging.debug('Ignoring duplicate section at time {}'.format(time))
+        logging.debug('Ignoring duplicate section at time %f', time)
         return None
       new_id = self._ns.section_annotations[-1].section_id + 1
     else:
@@ -878,8 +873,7 @@ class ABCTune(object):
       else:
         timesig = field_content.split('/', 1)
         if len(timesig) != 2:
-          raise ABCParseError(
-              'Could not parse meter: {}'.format(field_content))
+          raise ABCParseError('Could not parse meter: {}'.format(field_content))
 
         ts = self._ns.time_signatures.add()
         ts.time = self._current_time
@@ -921,12 +915,10 @@ class ABCTune(object):
         tempo_unit = None
         tempo_rate = int(deprecated_tempo_match.group(1))
       elif tempo_string_only_match:
-        tf.logging.warning(
-            'Ignoring string-only tempo marking: {}'.format(field_content))
+        logging.warning('Ignoring string-only tempo marking: %s', field_content)
         return
       else:
-        raise ABCParseError(
-            'Could not parse tempo: {}'.format(field_content))
+        raise ABCParseError('Could not parse tempo: {}'.format(field_content))
 
       if self._in_header:
         # If we're in the header, save these until we've finished parsing the
@@ -952,8 +944,7 @@ class ABCTune(object):
       if not self._in_header:
         # TODO(fjord): Non-header titles are used to name parts of tunes, but
         # NoteSequence doesn't currently have any place to put that information.
-        tf.logging.warning(
-            'Ignoring non-header title: {}'.format(field_content))
+        logging.warning('Ignoring non-header title: %s', field_content)
         return
 
       # If there are multiple titles, separate them with semicolons.
@@ -964,8 +955,7 @@ class ABCTune(object):
     elif field_name == 'U':
       pass
     elif field_name == 'V':
-      raise MultiVoiceError(
-          'Multi-voice files are not currently supported.')
+      raise MultiVoiceError('Multi-voice files are not currently supported.')
     elif field_name == 'W':
       pass
     elif field_name == 'w':
@@ -977,6 +967,5 @@ class ABCTune(object):
     elif field_name == 'Z':
       pass
     else:
-      tf.logging.warning(
-          'Unknown field name {} with content {}'.format(
-              field_name, field_content))
+      logging.warning(
+          'Unknown field name %s with content %s', field_name, field_content)

@@ -14,8 +14,6 @@
 
 """Classes for converting between pianoroll input and model input/output."""
 
-from __future__ import division
-
 from magenta.music import encoder_decoder
 import numpy as np
 

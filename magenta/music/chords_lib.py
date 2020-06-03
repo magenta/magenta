@@ -21,10 +21,6 @@ Use ChordProgression.to_sequence to write a chord progression to a
 NoteSequence proto, encoding the chords as text annotations.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import abc
 import bisect
 
@@ -33,7 +29,6 @@ from magenta.music import constants
 from magenta.music import events_lib
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
-from six.moves import range  # pylint: disable=redefined-builtin
 
 STANDARD_PPQ = constants.STANDARD_PPQ
 NOTES_PER_OCTAVE = constants.NOTES_PER_OCTAVE

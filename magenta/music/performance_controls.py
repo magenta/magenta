@@ -14,8 +14,6 @@
 
 """Classes for computing performance control signals."""
 
-from __future__ import division
-
 import abc
 import copy
 import numbers

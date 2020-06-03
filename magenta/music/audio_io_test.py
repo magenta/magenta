@@ -14,6 +14,7 @@
 
 """Tests for audio_io.py."""
 
+import io
 import os
 import wave
 
@@ -21,7 +22,6 @@ from absl.testing import absltest
 from magenta.music import audio_io
 import numpy as np
 import scipy
-import six
 import tensorflow.compat.v1 as tf
 
 
@@ -58,7 +58,7 @@ class AudioIoTest(absltest.TestCase):
 
   def testFloatWavDataToSamples(self):
     y = audio_io.wav_data_to_samples(self.wav_data, sample_rate=16000)
-    wav_io = six.BytesIO()
+    wav_io = io.BytesIO()
     scipy.io.wavfile.write(wav_io, 16000, y)
     y_from_float = audio_io.wav_data_to_samples(
         wav_io.getvalue(), sample_rate=16000)

@@ -14,16 +14,13 @@
 
 """Audio file helper functions."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
+import io
 import math
 import tempfile
+
 import librosa
 import numpy as np
 import scipy
-import six
 
 
 class AudioIOError(BaseException):  # pylint:disable=g-bad-exception-name
@@ -73,7 +70,7 @@ def wav_data_to_samples(wav_data, sample_rate):
   """
   try:
     # Read the wav file, converting sample rate & number of channels.
-    native_sr, y = scipy.io.wavfile.read(six.BytesIO(wav_data))
+    native_sr, y = scipy.io.wavfile.read(io.BytesIO(wav_data))
   except Exception as e:  # pylint: disable=broad-except
     raise AudioIOReadError(e)
 
@@ -132,7 +129,7 @@ def wav_data_to_samples_librosa(audio_file, sample_rate):
 
 def samples_to_wav_data(samples, sample_rate):
   """Converts floating point samples to wav data."""
-  wav_io = six.BytesIO()
+  wav_io = io.BytesIO()
   scipy.io.wavfile.write(wav_io, sample_rate, float_samples_to_int16(samples))
   return wav_io.getvalue()
 
