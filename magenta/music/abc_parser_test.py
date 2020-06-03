@@ -17,6 +17,7 @@
 import copy
 import os.path
 
+from absl.testing import absltest
 from magenta.music import abc_parser
 from magenta.music import midi_io
 from magenta.music import sequences_lib
@@ -25,10 +26,7 @@ from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 
-class AbcParserTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.maxDiff = None  # pylint:disable=invalid-name
+class AbcParserTest(testing_lib.ProtoTestCase):
 
   def compare_accidentals(self, expected, accidentals):
     self.assertCountEqual(expected, accidentals.values())
@@ -1196,4 +1194,4 @@ class AbcParserTest(tf.test.TestCase):
     self.assertLen(tunes[1].notes, 26)
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

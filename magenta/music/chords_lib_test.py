@@ -16,6 +16,7 @@
 
 import copy
 
+from absl.testing import absltest
 from magenta.music import chord_symbols_lib
 from magenta.music import chords_lib
 from magenta.music import constants
@@ -23,26 +24,15 @@ from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 NO_CHORD = constants.NO_CHORD
 
 
-class ChordsLibTest(tf.test.TestCase):
+class ChordsLibTest(testing_lib.ProtoTestCase):
 
   def setUp(self):
+    super().setUp()
     self.steps_per_quarter = 1
-    self.note_sequence = testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        time_signatures: {
-          numerator: 4
-          denominator: 4
-        }
-        tempos: {
-          qpm: 60
-        }
-        """)
 
   def testTranspose(self):
     # Transpose ChordProgression with basic triads.
@@ -217,4 +207,4 @@ class ChordsLibTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

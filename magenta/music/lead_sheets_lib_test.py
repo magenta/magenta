@@ -16,34 +16,19 @@
 
 import copy
 
+from absl.testing import absltest
 from magenta.music import chords_lib
 from magenta.music import constants
 from magenta.music import lead_sheets_lib
 from magenta.music import melodies_lib
-from magenta.music import testing_lib as music_testing_lib
-from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
+from magenta.music import testing_lib
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
 NO_CHORD = constants.NO_CHORD
 
 
-class LeadSheetsLibTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.steps_per_quarter = 4
-    self.note_sequence = music_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        time_signatures: {
-          numerator: 4
-          denominator: 4
-        }
-        tempos: {
-          qpm: 60
-        }
-        """)
+class LeadSheetsLibTest(testing_lib.ProtoTestCase):
 
   def testTranspose(self):
     # LeadSheet transposition should agree with melody & chords transpositions.
@@ -131,4 +116,4 @@ class LeadSheetsLibTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

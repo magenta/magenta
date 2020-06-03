@@ -14,9 +14,13 @@
 
 """Testing support code."""
 
+from absl.testing import absltest
+
 from magenta.music import encoder_decoder
+from magenta.music.protobuf import compare
 from magenta.music.protobuf import music_pb2
 
+from google.protobuf import descriptor_pool
 from google.protobuf import text_format
 
 # Shortcut to text annotation types.
@@ -140,5 +144,67 @@ class TrivialOneHotEncoding(encoder_decoder.OneHotEncoding):
 
 def parse_test_proto(proto_type, proto_string):
   instance = proto_type()
-  text_format.Merge(proto_string, instance)
+  text_format.Parse(proto_string, instance)
   return instance
+
+
+class ProtoTestCase(absltest.TestCase):
+  """Adds assertProtoEquals from tf.test.TestCase."""
+
+  def setUp(self):
+    self.maxDiff = None  # pylint:disable=invalid-name
+    self.steps_per_quarter = 4
+    self.note_sequence = parse_test_proto(
+        music_pb2.NoteSequence,
+        """
+        time_signatures: {
+          numerator: 4
+          denominator: 4
+        }
+        tempos: {
+          qpm: 60
+        }
+        """)
+    super().setUp()
+
+  def _AssertProtoEquals(self, a, b, msg=None):  # pylint:disable=invalid-name
+    """Asserts that a and b are the same proto.
+
+    Uses ProtoEq() first, as it returns correct results
+    for floating point attributes, and then use assertProtoEqual()
+    in case of failure as it provides good error messages.
+
+    Args:
+      a: a proto.
+      b: another proto.
+      msg: Optional message to report on failure.
+    """
+    if not compare.ProtoEq(a, b):
+      compare.assertProtoEqual(self, a, b, normalize_numbers=True, msg=msg)
+
+  def assertProtoEquals(self, expected_message_maybe_ascii, message, msg=None):
+    """Asserts that message is same as parsed expected_message_ascii.
+
+    Creates another prototype of message, reads the ascii message into it and
+    then compares them using self._AssertProtoEqual().
+
+    Args:
+      expected_message_maybe_ascii: proto message in original or ascii form.
+      message: the message to validate.
+      msg: Optional message to report on failure.
+    """
+    msg = msg if msg else ''
+    if isinstance(expected_message_maybe_ascii, type(message)):
+      expected_message = expected_message_maybe_ascii
+      self._AssertProtoEquals(expected_message, message)
+    elif isinstance(expected_message_maybe_ascii, str):
+      expected_message = type(message)()
+      text_format.Parse(
+          expected_message_maybe_ascii,
+          expected_message,
+          descriptor_pool=descriptor_pool.Default())
+      self._AssertProtoEquals(expected_message, message, msg=msg)
+    else:
+      assert False, ("Can't compare protos of type %s and %s. %s" %
+                     (type(expected_message_maybe_ascii), type(message), msg))
+

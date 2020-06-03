@@ -20,6 +20,7 @@ import os.path
 import tempfile
 import zipfile
 
+from absl.testing import absltest
 from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
 from magenta.music import testing_lib
@@ -30,7 +31,7 @@ import tensorflow.compat.v1 as tf
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
-class MusicXMLParserTest(tf.test.TestCase):
+class MusicXMLParserTest(testing_lib.ProtoTestCase):
   """Class to test the MusicXML parser use cases.
 
   self.flute_scale_filename contains an F-major scale of 8 quarter notes each
@@ -139,6 +140,8 @@ class MusicXMLParserTest(tf.test.TestCase):
     self.meter_test_filename = os.path.join(
         tf.resource_loader.get_data_files_path(),
         'testdata/meter_test.xml')
+
+    super().setUp()
 
   def check_musicxml_and_sequence(self, musicxml, sequence_proto):
     """Compares MusicXMLDocument object against a sequence proto.
@@ -1836,4 +1839,4 @@ class MusicXMLParserTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

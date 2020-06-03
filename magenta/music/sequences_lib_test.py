@@ -16,32 +16,19 @@
 
 import copy
 
+from absl.testing import absltest
 from magenta.music import constants
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
 DEFAULT_FRAMES_PER_SECOND = 16000.0 / 512
 MIDI_PITCHES = constants.MAX_MIDI_PITCH - constants.MIN_MIDI_PITCH + 1
 
 
-class SequencesLibTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.maxDiff = None  # pylint:disable=invalid-name
-
-    self.steps_per_quarter = 4
-    self.note_sequence = testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        time_signatures: {
-          numerator: 4
-          denominator: 4}
-        tempos: {
-          qpm: 60}""")
+class SequencesLibTest(testing_lib.ProtoTestCase):
 
   def testTransposeNoteSequence(self):
     sequence = copy.copy(self.note_sequence)
@@ -2284,4 +2271,4 @@ class SequencesLibTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

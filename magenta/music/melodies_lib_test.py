@@ -16,32 +16,18 @@
 
 import os
 
+from absl.testing import absltest
 from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-from magenta.music.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
 
 
-class MelodiesLibTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.steps_per_quarter = 4
-    self.note_sequence = testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        time_signatures: {
-          numerator: 4
-          denominator: 4
-        }
-        tempos: {
-          qpm: 60
-        }
-        """)
+class MelodiesLibTest(testing_lib.ProtoTestCase):
 
   def testGetNoteHistogram(self):
     events = [NO_EVENT, NOTE_OFF, 12 * 2 + 1, 12 * 3, 12 * 5 + 11, 12 * 6 + 3,
@@ -450,4 +436,4 @@ class MelodiesLibTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()

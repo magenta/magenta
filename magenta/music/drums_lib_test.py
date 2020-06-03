@@ -14,34 +14,19 @@
 
 """Tests for drums_lib."""
 
+from absl.testing import absltest
 from magenta.music import drums_lib
 from magenta.music import sequences_lib
-from magenta.music import testing_lib as music_testing_lib
-from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
+from magenta.music import testing_lib
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()
 
 
-class DrumsLibTest(tf.test.TestCase):
-
-  def setUp(self):
-    self.steps_per_quarter = 4
-    self.note_sequence = music_testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
-        time_signatures: {
-          numerator: 4
-          denominator: 4
-        }
-        tempos: {
-          qpm: 60
-        }
-        """)
+class DrumsLibTest(testing_lib.ProtoTestCase):
 
   def testFromQuantizedNoteSequence(self):
-    music_testing_lib.add_track_to_sequence(
+    testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0.0, 10.0), (11, 55, 0.25, 0.50), (40, 45, 2.50, 3.50),
          (55, 120, 4.0, 4.25), (60, 100, 4.0, 5.5), (52, 99, 4.75, 5.0)],
@@ -58,15 +43,15 @@ class DrumsLibTest(tf.test.TestCase):
     self.assertEqual(16, drums.steps_per_bar)
 
   def testFromQuantizedNoteSequenceMultipleTracks(self):
-    music_testing_lib.add_track_to_sequence(
+    testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0, 10), (40, 45, 2.5, 3.5), (60, 100, 4, 5.5)],
         is_drum=True)
-    music_testing_lib.add_track_to_sequence(
+    testing_lib.add_track_to_sequence(
         self.note_sequence, 1,
         [(11, 55, .25, .5), (55, 120, 4, 4.25), (52, 99, 4.75, 5)],
         is_drum=True)
-    music_testing_lib.add_track_to_sequence(
+    testing_lib.add_track_to_sequence(
         self.note_sequence, 2,
         [(13, 100, 0, 10), (14, 45, 2.5, 3.5), (15, 100, 4, 5.5)])
     quantized_sequence = sequences_lib.quantize_note_sequence(
@@ -84,7 +69,7 @@ class DrumsLibTest(tf.test.TestCase):
     self.note_sequence.time_signatures[0].numerator = 7
     self.note_sequence.time_signatures[0].denominator = 8
 
-    music_testing_lib.add_track_to_sequence(
+    testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 0, 10), (11, 55, .25, .5), (40, 45, 2.5, 3.5),
          (30, 80, 2.5, 2.75), (55, 120, 4, 4.25), (52, 99, 4.75, 5)],
@@ -101,7 +86,7 @@ class DrumsLibTest(tf.test.TestCase):
     self.assertEqual(14, drums.steps_per_bar)
 
   def testFromNotesTrimEmptyMeasures(self):
-    music_testing_lib.add_track_to_sequence(
+    testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 1.5, 1.75), (11, 100, 2, 2.25)],
         is_drum=True)
@@ -125,7 +110,7 @@ class DrumsLibTest(tf.test.TestCase):
     self.assertEqual(42, drums.steps_per_bar)
 
   def testFromNotesStartAndEndStep(self):
-    music_testing_lib.add_track_to_sequence(
+    testing_lib.add_track_to_sequence(
         self.note_sequence, 0,
         [(12, 100, 1, 2), (11, 100, 2.25, 2.5), (13, 100, 3.25, 3.75),
          (14, 100, 8.75, 9), (15, 100, 9.25, 10.75)],
@@ -232,4 +217,4 @@ class DrumsLibTest(tf.test.TestCase):
 
 
 if __name__ == '__main__':
-  tf.test.main()
+  absltest.main()
