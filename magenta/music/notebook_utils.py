@@ -17,6 +17,7 @@
 
 import base64
 import collections
+import functools
 import io
 import os
 import urllib
@@ -28,7 +29,9 @@ from magenta.music import midi_synth
 import numpy as np
 import pandas as pd
 from scipy.io import wavfile
-import tensorflow.compat.v1 as tf
+
+makedirs = functools.partial(os.makedirs, exist_ok=True)
+
 
 _DEFAULT_SAMPLE_RATE = 44100
 _play_id = 0  # Used for ephemeral colab_play.
@@ -190,7 +193,7 @@ def download_bundle(bundle_name, target_dir, force_reload=False):
      target_dir: A string local directory in which to write the bundle.
      force_reload: A boolean that when True, reloads the bundle even if present.
   """
-  tf.gfile.MakeDirs(target_dir)
+  makedirs(target_dir)
   bundle_target = os.path.join(target_dir, bundle_name)
   if not os.path.exists(bundle_target) or force_reload:
     response = urllib.request.urlopen(

@@ -23,7 +23,6 @@ from magenta.music import midi_io
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 
 class AbcParserTest(testing_lib.ProtoTestCase):
@@ -48,7 +47,7 @@ class AbcParserTest(testing_lib.ProtoTestCase):
     expanded_test = sequences_lib.expand_section_groups(test)
 
     abc2midi = midi_io.midi_file_to_sequence_proto(
-        os.path.join(tf.resource_loader.get_data_files_path(), midi_path))
+        os.path.join(testing_lib.get_testdata_dir(), midi_path))
 
     # abc2midi adds a 1-tick delay to the start of every note, but we don't.
     tick_length = ((1 / (abc2midi.tempos[0].qpm / 60)) /
@@ -195,8 +194,7 @@ class AbcParserTest(testing_lib.ProtoTestCase):
 
   def testParseEnglishAbc(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook_file(
-        os.path.join(tf.resource_loader.get_data_files_path(),
-                     'testdata/english.abc'))
+        os.path.join(testing_lib.get_testdata_dir(), 'english.abc'))
     self.assertLen(tunes, 1)
     self.assertLen(exceptions, 2)
     self.assertIsInstance(exceptions[0], abc_parser.VariantEndingError)
@@ -295,7 +293,7 @@ class AbcParserTest(testing_lib.ProtoTestCase):
         }
         """)
     self.compare_to_abc2midi_and_metadata(
-        'testdata/english1.mid', expected_metadata1,
+        'english1.mid', expected_metadata1,
         expected_expanded_metadata1, tunes[1])
 
     # TODO(fjord): re-enable once we support variant endings.
@@ -319,7 +317,7 @@ class AbcParserTest(testing_lib.ProtoTestCase):
     #     }
     #     """)
     # self.compare_to_abc2midi_and_metadata(
-    #     'testdata/english2.mid', expected_ns2_metadata, tunes[1])
+    #     'english2.mid', expected_ns2_metadata, tunes[1])
 
     # TODO(fjord): re-enable once we support parts.
     # expected_ns3_metadata = testing_lib.parse_test_proto(
@@ -344,7 +342,7 @@ class AbcParserTest(testing_lib.ProtoTestCase):
     # # TODO(fjord): verify chord annotations
     # del tunes[3].text_annotations[:]
     # self.compare_to_abc2midi_and_metadata(
-    #     'testdata/english3.mid', expected_ns3_metadata, tunes[3])
+    #     'english3.mid', expected_ns3_metadata, tunes[3])
 
   def testParseOctaves(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook("""X:1
@@ -612,8 +610,8 @@ class AbcParserTest(testing_lib.ProtoTestCase):
 
   def testMultiVoice(self):
     tunes, exceptions = abc_parser.parse_abc_tunebook_file(
-        os.path.join(tf.resource_loader.get_data_files_path(),
-                     'testdata/zocharti_loch.abc'))
+        os.path.join(testing_lib.get_testdata_dir(),
+                     'zocharti_loch.abc'))
     self.assertEmpty(tunes)
     self.assertLen(exceptions, 1)
     self.assertIsInstance(exceptions[0], abc_parser.MultiVoiceError)

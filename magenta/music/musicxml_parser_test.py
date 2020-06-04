@@ -25,7 +25,6 @@ from magenta.music import musicxml_parser
 from magenta.music import musicxml_reader
 from magenta.music import testing_lib
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 # Shortcut to CHORD_SYMBOL annotation type.
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -82,64 +81,49 @@ class MusicXMLParserTest(testing_lib.ProtoTestCase):
     self.steps_per_quarter = 4
 
     self.flute_scale_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/flute_scale.xml')
+        testing_lib.get_testdata_dir(), 'flute_scale.xml')
 
     self.clarinet_scale_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/clarinet_scale.xml')
+        testing_lib.get_testdata_dir(), 'clarinet_scale.xml')
 
     self.band_score_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/el_capitan.xml')
+        testing_lib.get_testdata_dir(), 'el_capitan.xml')
 
     self.compressed_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/flute_scale.mxl')
+        testing_lib.get_testdata_dir(), 'flute_scale.mxl')
 
     self.multiple_rootfile_compressed_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/flute_scale_with_png.mxl')
+        testing_lib.get_testdata_dir(), 'flute_scale_with_png.mxl')
 
     self.rhythm_durations_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/rhythm_durations.xml')
+        testing_lib.get_testdata_dir(), 'rhythm_durations.xml')
 
     self.st_anne_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/st_anne.xml')
+        testing_lib.get_testdata_dir(), 'st_anne.xml')
 
     self.atonal_transposition_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/atonal_transposition_change.xml')
+        testing_lib.get_testdata_dir(), 'atonal_transposition_change.xml')
 
     self.chord_symbols_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/chord_symbols.xml')
+        testing_lib.get_testdata_dir(), 'chord_symbols.xml')
 
     self.time_signature_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/st_anne.xml')
+        testing_lib.get_testdata_dir(), 'st_anne.xml')
 
     self.unmetered_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/unmetered_example.xml')
+        testing_lib.get_testdata_dir(), 'unmetered_example.xml')
 
     self.alternating_meter_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/alternating_meter.xml')
+        testing_lib.get_testdata_dir(), 'alternating_meter.xml')
 
     self.mid_measure_meter_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/mid_measure_time_signature.xml')
+        testing_lib.get_testdata_dir(), 'mid_measure_time_signature.xml')
 
     self.whole_measure_rest_forward_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/whole_measure_rest_forward.xml')
+        testing_lib.get_testdata_dir(), 'whole_measure_rest_forward.xml')
 
     self.meter_test_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/meter_test.xml')
+        testing_lib.get_testdata_dir(), 'meter_test.xml')
 
     super().setUp()
 
@@ -319,8 +303,7 @@ class MusicXMLParserTest(testing_lib.ProtoTestCase):
     """Test an MXL file containing a unicode filename within its zip archive."""
 
     unicode_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/unicode_filename.mxl')
+        testing_lib.get_testdata_dir(), 'unicode_filename.mxl')
     sequence = musicxml_reader.musicxml_file_to_sequence_proto(unicode_filename)
     self.assertLen(sequence.notes, 8)
 
@@ -963,12 +946,10 @@ class MusicXMLParserTest(testing_lib.ProtoTestCase):
   def test_unpitched_notes(self):
     with self.assertRaises(musicxml_parser.UnpitchedNoteError):
       musicxml_parser.MusicXMLDocument(os.path.join(
-          tf.resource_loader.get_data_files_path(),
-          'testdata/unpitched.xml'))
+          testing_lib.get_testdata_dir(), 'unpitched.xml'))
     with self.assertRaises(musicxml_reader.MusicXMLConversionError):
       musicxml_reader.musicxml_file_to_sequence_proto(os.path.join(
-          tf.resource_loader.get_data_files_path(),
-          'testdata/unpitched.xml'))
+          testing_lib.get_testdata_dir(), 'unpitched.xml'))
 
   def test_empty_archive(self):
     with tempfile.NamedTemporaryFile(suffix='.mxl') as temp_file:

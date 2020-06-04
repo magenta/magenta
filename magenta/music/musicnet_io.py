@@ -18,7 +18,7 @@ import io
 
 from magenta.music.protobuf import music_pb2
 import numpy as np
-import tensorflow.compat.v1 as tf
+
 
 MUSICNET_SAMPLE_RATE = 44100
 MUSICNET_NOTE_VELOCITY = 100
@@ -83,7 +83,7 @@ def musicnet_iterator(musicnet_file):
     kHz) and the second element is a NoteSequence proto containing the
     transcription.
   """
-  with tf.gfile.GFile(musicnet_file, 'rb') as f:
+  with open(musicnet_file, 'rb') as f:
     # Unfortunately the gfile seek function breaks the reading of NumPy
     # archives, so we read the archive first then load as BytesIO.
     musicnet_bytes = f.read()

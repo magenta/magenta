@@ -18,16 +18,18 @@ Input and output wrappers for converting between MIDI and other formats.
 """
 
 import collections
+import functools
 import io
+import shutil
 import sys
 import tempfile
 
 from magenta.music import constants
 from magenta.music.protobuf import music_pb2
 import pretty_midi
-import tensorflow.compat.v1 as tf
 
-# pylint: enable=g-import-not-at-top
+copyfile = shutil.copyfile
+
 
 # Allow pretty_midi to read MIDI files with absurdly high tick rates.
 # Useful for reading the MAPS dataset.
@@ -185,7 +187,7 @@ def midi_file_to_note_sequence(midi_file):
   Raises:
     MIDIConversionError: Invalid midi_file.
   """
-  with tf.gfile.Open(midi_file, 'rb') as f:
+  with open(midi_file, 'rb') as f:
     midi_as_string = f.read()
     return midi_to_note_sequence(midi_as_string)
 
@@ -213,7 +215,7 @@ def note_sequence_to_midi_file(sequence, output_file,
     temp_file.flush()
     # And back the file position to top (not need for Copy but for certainty)
     temp_file.seek(0)
-    tf.gfile.Copy(temp_file.name, output_file, overwrite=True)
+    copyfile(temp_file.name, output_file)
 
 
 def note_sequence_to_pretty_midi(

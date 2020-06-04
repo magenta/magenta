@@ -18,18 +18,18 @@ import os
 
 from absl.testing import absltest
 from magenta.music import musicnet_io
+from magenta.music import testing_lib
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 
 class MusicNetIoTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     # This example archive contains a single file consisting of just a major
     # chord.
     self.musicnet_example_filename = os.path.join(
-        tf.resource_loader.get_data_files_path(),
-        'testdata/musicnet_example.npz')
+        testing_lib.get_testdata_dir(), 'musicnet_example.npz')
 
   def testNoteIntervalTreeToSequenceProto(self):
     # allow_pickle is required because the npz files contain intervaltrees.

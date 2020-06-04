@@ -14,6 +14,8 @@
 
 """Testing support code."""
 
+import os
+
 from absl.testing import absltest
 
 from magenta.music import encoder_decoder
@@ -146,6 +148,11 @@ def parse_test_proto(proto_type, proto_string):
   instance = proto_type()
   text_format.Parse(proto_string, instance)
   return instance
+
+
+def get_testdata_dir():
+  dir_path = 'magenta/music/testdata'
+  return os.path.join(absltest.get_default_test_srcdir(), dir_path)
 
 
 class ProtoTestCase(absltest.TestCase):

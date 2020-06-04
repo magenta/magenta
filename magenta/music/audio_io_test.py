@@ -20,18 +20,19 @@ import wave
 
 from absl.testing import absltest
 from magenta.music import audio_io
+from magenta.music import testing_lib
 import numpy as np
 import scipy
-import tensorflow.compat.v1 as tf
 
 
 class AudioIoTest(absltest.TestCase):
 
   def setUp(self):
-    self.wav_filename = os.path.join(tf.resource_loader.get_data_files_path(),
-                                     'testdata/example.wav')
+    super().setUp()
+    self.wav_filename = os.path.join(
+        testing_lib.get_testdata_dir(), 'example.wav')
     self.wav_filename_mono = os.path.join(
-        tf.resource_loader.get_data_files_path(), 'testdata/example_mono.wav')
+        testing_lib.get_testdata_dir(), 'example_mono.wav')
     self.wav_data = open(self.wav_filename, 'rb').read()
     self.wav_data_mono = open(self.wav_filename_mono, 'rb').read()
 

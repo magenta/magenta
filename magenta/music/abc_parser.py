@@ -23,7 +23,6 @@ import re
 from absl import logging
 from magenta.music import constants
 from magenta.music.protobuf import music_pb2
-import tensorflow.compat.v1 as tf
 
 
 Fraction = fractions.Fraction
@@ -81,7 +80,7 @@ def parse_abc_tunebook_file(filename):
         than once in the tunebook.
   """
   # 'r' mode will decode the file as utf-8 in py3.
-  return parse_abc_tunebook(tf.gfile.Open(filename, 'r').read())
+  return parse_abc_tunebook(open(filename, 'r').read())
 
 
 def parse_abc_tunebook(tunebook):
