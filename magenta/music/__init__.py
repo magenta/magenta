@@ -78,8 +78,6 @@ from magenta.music.midi_io import sequence_proto_to_pretty_midi
 from magenta.music.midi_synth import fluidsynth
 from magenta.music.midi_synth import synthesize
 
-from magenta.music.model import BaseModel
-
 from magenta.music.musicxml_parser import MusicXMLDocument
 from magenta.music.musicxml_parser import MusicXMLParseError
 

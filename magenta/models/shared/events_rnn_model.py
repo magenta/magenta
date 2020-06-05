@@ -22,6 +22,7 @@ from magenta.common import beam_search
 from magenta.common import state_util
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_graph
+from magenta.models.shared import model
 import magenta.music as mm
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -58,7 +59,7 @@ def _extend_control_events_default(control_events, events, state):
   return state
 
 
-class EventSequenceRnnModel(mm.BaseModel):
+class EventSequenceRnnModel(model.BaseModel):
   """Class for RNN event sequence generation models.
 
   Currently this class only supports generation, of both event sequences and
