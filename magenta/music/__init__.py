@@ -106,6 +106,8 @@ from magenta.music.pianoroll_encoder_decoder import PianorollEncoderDecoder
 
 from magenta.music.pianoroll_lib import PianorollSequence
 
+from magenta.music.protobuf import music_pb2
+
 from magenta.music.sequences_lib import apply_sustain_control_changes
 from magenta.music.sequences_lib import BadTimeSignatureError
 from magenta.music.sequences_lib import concatenate_sequences

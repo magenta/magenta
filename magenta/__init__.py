@@ -48,7 +48,6 @@ import magenta.music.midi_synth
 import magenta.music.model
 import magenta.music.musicxml_parser
 import magenta.music.musicxml_reader
-import magenta.music.note_sequence_io
 import magenta.music.notebook_utils
 import magenta.music.performance_encoder_decoder
 import magenta.music.performance_lib

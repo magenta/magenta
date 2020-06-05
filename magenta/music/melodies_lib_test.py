@@ -21,7 +21,6 @@ from magenta.music import constants
 from magenta.music import melodies_lib
 from magenta.music import sequences_lib
 from magenta.music import testing_lib
-import tensorflow.compat.v1 as tf
 
 NOTE_OFF = constants.MELODY_NOTE_OFF
 NO_EVENT = constants.MELODY_NO_EVENT
@@ -408,8 +407,7 @@ class MelodiesLibTest(testing_lib.ProtoTestCase):
         sequence)
 
   def testMidiFileToMelody(self):
-    filename = os.path.join(tf.resource_loader.get_data_files_path(),
-                            'testdata', 'melody.mid')
+    filename = os.path.join(testing_lib.get_testdata_dir(), 'melody.mid')
     melody = melodies_lib.midi_file_to_melody(filename)
     expected = melodies_lib.Melody([60, 62, 64, 66, 68, 70,
                                     72, 70, 68, 66, 64, 62])
