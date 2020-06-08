@@ -36,7 +36,7 @@ import fractions
 
 import math
 
-from magenta.music import mfcc_mel
+from magenta.models.onsets_frames_transcription import mfcc_mel
 import numpy as np
 import tensorflow.compat.v1 as tf
 

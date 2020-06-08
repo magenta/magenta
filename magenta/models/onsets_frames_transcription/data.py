@@ -21,12 +21,10 @@ Glossary (definitions may not hold outside of this particular file):
   example: An individual training example. The number of frames in an example
       is determined by the sequence length.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import functools
+import io
 import re
 import wave
 import zlib
@@ -35,12 +33,11 @@ import librosa
 from magenta.models.onsets_frames_transcription import audio_transform
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import drum_mappings
+from magenta.models.onsets_frames_transcription import melspec_input
 from magenta.music import audio_io
-from magenta.music import melspec_input
 from magenta.music import sequences_lib
 from magenta.music.protobuf import music_pb2
 import numpy as np
-import six
 import tensorflow.compat.v1 as tf
 
 
@@ -175,7 +172,7 @@ def get_spectrogram_hash_op(spectrogram):
   def get_spectrogram_hash(spectrogram):
     # Compute a hash of the spectrogram, save it as an int64.
     # Uses adler because it's fast and will fit into an int (md5 is too large).
-    spectrogram_serialized = six.BytesIO()
+    spectrogram_serialized = io.BytesIO()
     np.save(spectrogram_serialized, spectrogram)
     spectrogram_hash = np.int64(zlib.adler32(spectrogram_serialized.getvalue()))
     spectrogram_serialized.close()
@@ -188,7 +185,7 @@ def get_spectrogram_hash_op(spectrogram):
 
 def wav_to_num_frames(wav_audio, frames_per_second):
   """Transforms a wav-encoded audio string into number of frames."""
-  w = wave.open(six.BytesIO(wav_audio))
+  w = wave.open(io.BytesIO(wav_audio))
   return np.int32(w.getnframes() / w.getframerate() * frames_per_second)
 
 

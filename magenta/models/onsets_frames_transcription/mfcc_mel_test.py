@@ -15,7 +15,7 @@
 """Tests for mfcc_mel."""
 
 from absl.testing import absltest
-from magenta.music import mfcc_mel
+from magenta.models.onsets_frames_transcription import mfcc_mel
 import numpy as np
 
 

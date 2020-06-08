@@ -16,7 +16,7 @@
 
 import tempfile
 
-from magenta.music import melspec_input
+from magenta.models.onsets_frames_transcription import melspec_input
 import numpy as np
 import tensorflow.compat.v1 as tf
 
