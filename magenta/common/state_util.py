@@ -15,7 +15,7 @@
 """Utility functions for working with nested state structures."""
 
 import numpy as np
-from tensorflow.python.util import nest as tf_nest
+import tensorflow.compat.v1 as tf
 
 
 def unbatch(batched_states, batch_size=1):
@@ -45,7 +45,7 @@ def extract_state(batched_states, i):
     rnn_nade_state, but containing only the state values that represent the
     state at index i. The tensors will now have the shape (1, N).
   """
-  return tf_nest.map_structure(lambda x: x[i], batched_states)
+  return tf.nest.map_structure(lambda x: x[i], batched_states)
 
 
 def batch(states, batch_size=None):
@@ -71,4 +71,4 @@ def batch(states, batch_size=None):
     if batch_size:
       stacked.resize([batch_size] + list(stacked.shape)[1:])
     return stacked
-  return tf_nest.map_structure(stack_and_pad, *states)
+  return tf.nest.map_structure(stack_and_pad, *states)
