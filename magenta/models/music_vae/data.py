@@ -1793,7 +1793,14 @@ def get_dataset(
       raise ValueError(
           'No files were found matching examples path: %s' %  examples_path)
     files = tf.data.Dataset.list_files(examples_path)
-    dataset = files.interleave(tf_file_reader, deterministic=not is_training)
+    dataset = files.interleave(
+        tf_file_reader,
+        cycle_length=tf.data.experimental.AUTOTUNE,
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
+    # Use instead of `deterministic` kwarg for backward compatibility.
+    options = tf.data.Options()
+    options.experimental_deterministic = not is_training
+    dataset = dataset.with_options(options)
   elif config.tfds_name:
     tf.logging.info('Reading examples from TFDS: %s', config.tfds_name)
     dataset = tfds.load(
@@ -1823,7 +1830,9 @@ def get_dataset(
       return padded_seq_1, padded_seq_2, padded_seq_3, length
 
   if note_sequence_augmenter is not None:
-    dataset = dataset.map(note_sequence_augmenter.tf_augment)
+    dataset = dataset.map(
+        note_sequence_augmenter.tf_augment,
+        num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
   dataset = dataset.map(
       tf.autograph.experimental.do_not_convert(
