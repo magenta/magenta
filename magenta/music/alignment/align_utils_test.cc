@@ -5,7 +5,6 @@
 
 using testing::ElementsAre;
 
-namespace tensorflow {
 namespace magenta {
 
 class AlignUtilsTest : public ::testing::Test {
@@ -138,4 +137,3 @@ TEST_F(AlignUtilsTest, OnDemandBandRadDifferentSizes) {
 }
 
 }  // namespace magenta
-}  // namespace tensorflow

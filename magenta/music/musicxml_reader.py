@@ -14,7 +14,7 @@
 
 """MusicXML import.
 
-Input wrappers for converting MusicXML into tensorflow.magenta.NoteSequence.
+Input wrappers for converting MusicXML into NoteSequence.
 """
 
 from magenta.music import musicxml_parser
@@ -30,17 +30,16 @@ class MusicXMLConversionError(Exception):
 
 
 def musicxml_to_sequence_proto(musicxml_document):
-  """Convert MusicXML file contents to a tensorflow.magenta.NoteSequence proto.
+  """Convert MusicXML file contents to a NoteSequence proto.
 
-  Converts a MusicXML file encoded as a string into a
-  tensorflow.magenta.NoteSequence proto.
+  Converts a MusicXML file encoded as a string into a NoteSequence proto.
 
   Args:
-    musicxml_document: A parsed MusicXML file.
-        This file has been parsed by class MusicXMLDocument
+    musicxml_document: A parsed MusicXML file. This file has been parsed by
+      class MusicXMLDocument
 
   Returns:
-    A tensorflow.magenta.NoteSequence proto.
+    A NoteSequence proto.
 
   Raises:
     MusicXMLConversionError: An error occurred when parsing the MusicXML file.
@@ -128,13 +127,13 @@ def musicxml_to_sequence_proto(musicxml_document):
 
 
 def musicxml_file_to_sequence_proto(musicxml_file):
-  """Converts a MusicXML file to a tensorflow.magenta.NoteSequence proto.
+  """Converts a MusicXML file to a NoteSequence proto.
 
   Args:
     musicxml_file: A string path to a MusicXML file.
 
   Returns:
-    A tensorflow.magenta.Sequence proto.
+    A NoteSequence proto.
 
   Raises:
     MusicXMLConversionError: Invalid musicxml_file.

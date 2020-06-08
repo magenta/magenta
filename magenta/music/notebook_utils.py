@@ -104,16 +104,15 @@ def play_sequence(sequence,
     display.display(display.Audio(array_of_floats, rate=sample_rate))
 
 
-def plot_sequence(sequence,
-                  show_figure=True):
-  """Creates an interactive pianoroll for a tensorflow.magenta.NoteSequence.
+def plot_sequence(sequence, show_figure=True):
+  """Creates an interactive pianoroll for a NoteSequence.
 
   Example usage: plot a random melody.
     sequence = mm.Melody(np.random.randint(36, 72, 30)).to_sequence()
     bokeh_pianoroll(sequence)
 
   Args:
-     sequence: A tensorflow.magenta.NoteSequence.
+     sequence: A NoteSequence.
      show_figure: A boolean indicating whether or not to show the figure.
 
   Returns:

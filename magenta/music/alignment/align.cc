@@ -21,7 +21,7 @@ using std::fstream;
 using std::ios;
 using std::string;
 
-Eigen::MatrixXd readSequence(const tensorflow::magenta::Sequence& sequence) {
+Eigen::MatrixXd readSequence(const magenta::Sequence& sequence) {
   cout << "Creating matrix of size: " << sequence.x() << ", "
        << sequence.y() << endl;
   assert(sequence.content_size() == sequence.x() * sequence.y());
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
   }
   auto alignment_file = string(argv[1]);
 
-  tensorflow::magenta::AlignmentTask alignment_task;
+  magenta::AlignmentTask alignment_task;
   fstream input(alignment_file, ios::in | ios::binary);
   if (!input) {
     cerr << alignment_file << ": File not found." << endl;
@@ -60,12 +60,12 @@ int main(int argc, char** argv) {
 
   std::vector<int> i_indices;
   std::vector<int> j_indices;
-  double score = tensorflow::magenta::AlignWithDynamicTimeWarpingOnDemand(
+  double score = magenta::AlignWithDynamicTimeWarpingOnDemand(
       sequence_1, sequence_2, alignment_task.band_radius(),
-      alignment_task.penalty_mul(), alignment_task.penalty(),
-      &i_indices, &j_indices);
+      alignment_task.penalty_mul(), alignment_task.penalty(), &i_indices,
+      &j_indices);
 
-  tensorflow::magenta::AlignmentResult result;
+  magenta::AlignmentResult result;
   result.set_score(score);
   std::copy(i_indices.begin(), i_indices.end(),
             google::protobuf::RepeatedFieldBackInserter(result.mutable_i()));

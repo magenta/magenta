@@ -4,7 +4,6 @@
 #include <vector>
 #include "Eigen/Core"
 
-namespace tensorflow {
 namespace magenta {
 
 // Aligns two sequences using Dynamic Time Warping given their distance matrix,
@@ -40,6 +39,5 @@ double AlignWithDynamicTimeWarpingOnDemand(const Eigen::MatrixXd& sequence_1,
                                            std::vector<int>* j_indices,
                                            int distance_samples = 100000);
 }  // namespace magenta
-}  // namespace tensorflow
 
 #endif  // MAGENTA_MUSIC_ALIGNMENT_ALIGN_UTILS_H_

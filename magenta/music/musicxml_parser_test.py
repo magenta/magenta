@@ -132,7 +132,7 @@ class MusicXMLParserTest(testing_lib.ProtoTestCase):
 
     Args:
       musicxml: A MusicXMLDocument object.
-      sequence_proto: A tensorflow.magenta.Sequence proto.
+      sequence_proto: A NoteSequence proto.
     """
     # Test time signature changes.
     self.assertEqual(len(musicxml.get_time_signatures()),

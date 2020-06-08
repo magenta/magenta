@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package tensorflow.magenta;
+package magenta;
 
 // Details about a Generator.
 message GeneratorDetails {

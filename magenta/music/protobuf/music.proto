@@ -16,7 +16,7 @@
 
 syntax = "proto3";
 
-package tensorflow.magenta;
+package magenta;
 
 // A message containing a symbolic music sequence. The design is largely
 // based on MIDI but it should be able to represent any music sequence.

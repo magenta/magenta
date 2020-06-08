@@ -14,8 +14,7 @@
 
 """MusicXML parser.
 
-Simple MusicXML parser used to convert MusicXML
-into tensorflow.magenta.NoteSequence.
+Simple MusicXML parser used to convert MusicXML into NoteSequence.
 """
 
 import fractions

@@ -70,7 +70,7 @@ class MidiIoTest(absltest.TestCase):
 
     Args:
       midi: A pretty_midi.PrettyMIDI object.
-      sequence_proto: A tensorflow.magenta.Sequence proto.
+      sequence_proto: A NoteSequence proto.
     """
     # Test time signature changes.
     self.assertEqual(len(midi.time_signature_changes),

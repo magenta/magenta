@@ -11,7 +11,6 @@ using std::cerr;
 using std::cout;
 using std::endl;
 
-namespace tensorflow {
 namespace magenta {
 
 namespace {
@@ -364,4 +363,3 @@ Eigen::MatrixXd GetCosineDistanceMatrix(const Eigen::MatrixXd& sequence_1,
 }
 
 }  // namespace magenta
-}  // namespace tensorflow
