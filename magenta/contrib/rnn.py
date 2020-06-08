@@ -17,6 +17,8 @@
 import tensorflow.compat.v1 as tf
 import tf_slim
 
+from tensorflow.python.ops import gen_nn_ops  # pylint:disable=g-direct-tensorflow-import
+
 rnn_cell = tf.nn.rnn_cell
 
 _BIAS_VARIABLE_NAME = "bias"
@@ -615,6 +617,65 @@ class LayerRNNCell(rnn_cell.RNNCell):
     # method.  See the class docstring for more details.
     return tf.layers.Layer.__call__(
         self, inputs, state, scope=scope, *args, **kwargs)
+
+
+@tf.RegisterGradient("LSTMBlockCell")
+def _LSTMBlockCellGrad(op, *grad):  # pylint:disable=invalid-name
+  """Gradient for LSTMBlockCell."""
+  (x, cs_prev, h_prev, w, wci, wcf, wco, b) = op.inputs
+  (i, cs, f, o, ci, co, _) = op.outputs
+  (_, cs_grad, _, _, _, _, h_grad) = grad
+
+  batch_size = x.get_shape().with_rank(2).dims[0].value
+  if batch_size is None:
+    batch_size = -1
+  input_size = x.get_shape().with_rank(2).dims[1].value
+  if input_size is None:
+    raise ValueError("input_size from `x` should not be None.")
+  cell_size = cs_prev.get_shape().with_rank(2).dims[1].value
+  if cell_size is None:
+    raise ValueError("cell_size from `cs_prev` should not be None.")
+
+  (cs_prev_grad, dgates, wci_grad, wcf_grad,
+   wco_grad) = tf.raw_ops.LSTMBlockCellGrad(
+       x=x,
+       cs_prev=cs_prev,
+       h_prev=h_prev,
+       w=w,
+       wci=wci,
+       wcf=wcf,
+       wco=wco,
+       b=b,
+       i=i,
+       cs=cs,
+       f=f,
+       o=o,
+       ci=ci,
+       co=co,
+       cs_grad=cs_grad,
+       h_grad=h_grad,
+       use_peephole=op.get_attr("use_peephole"))
+
+  # Backprop from dgates to xh.
+  xh_grad = tf.matmul(dgates, w, transpose_b=True)
+
+  x_grad = tf.slice(xh_grad, (0, 0), (batch_size, input_size))
+  x_grad.get_shape().merge_with(x.get_shape())
+
+  h_prev_grad = tf.slice(xh_grad, (0, input_size), (batch_size, cell_size))
+  h_prev_grad.get_shape().merge_with(h_prev.get_shape())
+
+  # Backprop from dgates to w.
+  xh = tf.concat([x, h_prev], 1)
+  w_grad = tf.matmul(xh, dgates, transpose_a=True)
+  w_grad.get_shape().merge_with(w.get_shape())
+
+  # Backprop from dgates to b.
+  b_grad = gen_nn_ops.bias_add_grad(dgates)
+  b_grad.get_shape().merge_with(b.get_shape())
+
+  return (x_grad, cs_prev_grad, h_prev_grad, w_grad, wci_grad, wcf_grad,
+          wco_grad, b_grad)
 
 
 class LSTMBlockCell(LayerRNNCell):
