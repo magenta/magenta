@@ -21,6 +21,7 @@ from magenta.models.melody_rnn import melody_rnn_pipeline
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import note_sequence_pipelines
+from magenta.pipelines import pipelines_common
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -67,7 +68,8 @@ class MelodyRNNPipelineTest(tf.test.TestCase):
         self.config.min_note,
         self.config.max_note,
         self.config.transpose_to_key)
-    one_hot = one_hot_encoding.encode(melody)
+    one_hot = pipelines_common.make_sequence_example(
+        *one_hot_encoding.encode(melody))
     expected_result = {'training_melodies': [one_hot], 'eval_melodies': []}
 
     pipeline_inst = melody_rnn_pipeline.get_pipeline(

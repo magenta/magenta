@@ -23,9 +23,8 @@ _sequences_, i.e. how to convert event sequences to input vectors and output
 labels to be fed into a model, and how to convert from output labels back to
 events.
 
-Use EventSequenceEncoderDecoder.encode to convert an event sequence to a
-tf.train.SequenceExample of inputs and labels. These SequenceExamples are fed
-into the model during training and evaluation.
+Use EventSequenceEncoderDecoder.encode to convert an event sequence to inputs
+and labels that can be fed into the model during training and evaluation.
 
 During generation, use EventSequenceEncoderDecoder.get_inputs_batch to convert a
 list of event sequences into an inputs batch which can be fed into the model to
@@ -49,7 +48,6 @@ import numbers
 
 from magenta.music import constants
 import numpy as np
-import tensorflow.compat.v1 as tf
 
 DEFAULT_STEPS_PER_BAR = constants.DEFAULT_STEPS_PER_BAR
 DEFAULT_LOOKBACK_DISTANCES = [DEFAULT_STEPS_PER_BAR, DEFAULT_STEPS_PER_BAR * 2]
@@ -121,8 +119,8 @@ class EventSequenceEncoderDecoder(object):
   """An abstract class for translating between events and model data.
 
   When building your dataset, the `encode` method takes in an event sequence
-  and returns a SequenceExample of inputs and labels. These SequenceExamples
-  are fed into the model during training and evaluation.
+  and returns inputs and labels that can be fed into the model during training
+  and evaluation.
 
   During generation, the `get_inputs_batch` method takes in a list of the
   current event sequences and returns an inputs batch which is fed into the
@@ -232,20 +230,20 @@ class EventSequenceEncoderDecoder(object):
     return len(labels)
 
   def encode(self, events):
-    """Returns a SequenceExample for the given event sequence.
+    """Returns inputs and labels for the given event sequence.
 
     Args:
       events: A list-like sequence of events.
 
     Returns:
-      A tf.train.SequenceExample containing inputs and labels.
+      The inputs and labels.
     """
     inputs = []
     labels = []
     for i in range(len(events) - 1):
       inputs.append(self.events_to_input(events, i))
       labels.append(self.events_to_label(events, i + 1))
-    return make_sequence_example(inputs, labels)
+    return inputs, labels
 
   def get_inputs_batch(self, event_sequences, full_length=False):
     """Returns an inputs batch for the given event sequences.
@@ -789,7 +787,7 @@ class ConditionalEventSequenceEncoderDecoder(object):
     return self._target_encoder_decoder.labels_to_num_steps(labels)
 
   def encode(self, control_events, target_events):
-    """Returns a SequenceExample for the given event sequence pair.
+    """Returns inputs and labels for the given event sequence pair.
 
     Args:
       control_events: A list-like sequence of control events.
@@ -797,7 +795,7 @@ class ConditionalEventSequenceEncoderDecoder(object):
           `control_events`.
 
     Returns:
-      A tf.train.SequenceExample containing inputs and labels.
+      Inputs and labels.
 
     Raises:
       ValueError: If the control and target event sequences have different
@@ -813,7 +811,7 @@ class ConditionalEventSequenceEncoderDecoder(object):
     for i in range(len(target_events) - 1):
       inputs.append(self.events_to_input(control_events, target_events, i))
       labels.append(self.events_to_label(target_events, i + 1))
-    return make_sequence_example(inputs, labels)
+    return inputs, labels
 
   def get_inputs_batch(self, control_event_sequences, target_event_sequences,
                        full_length=False):
@@ -1003,30 +1001,3 @@ class MultipleEventSequenceEncoder(EventSequenceEncoderDecoder):
 
   def class_index_to_event(self, class_index, events):
     raise NotImplementedError
-
-
-def make_sequence_example(inputs, labels):
-  """Returns a SequenceExample for the given inputs and labels.
-
-  Args:
-    inputs: A list of input vectors. Each input vector is a list of floats.
-    labels: A list of ints.
-
-  Returns:
-    A tf.train.SequenceExample containing inputs and labels.
-  """
-  input_features = [
-      tf.train.Feature(float_list=tf.train.FloatList(value=input_))
-      for input_ in inputs]
-  label_features = []
-  for label in labels:
-    if isinstance(label, numbers.Number):
-      label = [label]
-    label_features.append(
-        tf.train.Feature(int64_list=tf.train.Int64List(value=label)))
-  feature_list = {
-      'inputs': tf.train.FeatureList(feature=input_features),
-      'labels': tf.train.FeatureList(feature=label_features)
-  }
-  feature_lists = tf.train.FeatureLists(feature_list=feature_list)
-  return tf.train.SequenceExample(feature_lists=feature_lists)

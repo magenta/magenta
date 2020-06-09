@@ -21,6 +21,7 @@ from magenta.models.shared import events_rnn_model
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import note_sequence_pipelines
+from magenta.pipelines import pipelines_common
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -31,6 +32,7 @@ FLAGS = tf.app.flags.FLAGS
 class DrumsRNNPipelineTest(tf.test.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.config = events_rnn_model.EventSequenceRnnConfig(
         None,
         magenta.music.OneHotEventSequenceEncoderDecoder(
@@ -60,7 +62,8 @@ class DrumsRNNPipelineTest(tf.test.TestCase):
         magenta.music.MultiDrumOneHotEncoding())
     quantized = quantizer.transform(note_sequence)[0]
     drums = drums_extractor.transform(quantized)[0]
-    one_hot = one_hot_encoding.encode(drums)
+    one_hot = pipelines_common.make_sequence_example(
+        *one_hot_encoding.encode(drums))
     expected_result = {'training_drum_tracks': [one_hot],
                        'eval_drum_tracks': []}
 

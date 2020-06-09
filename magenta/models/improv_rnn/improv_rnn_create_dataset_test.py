@@ -21,6 +21,7 @@ from magenta.models.improv_rnn import improv_rnn_pipeline
 from magenta.music.protobuf import music_pb2
 from magenta.pipelines import lead_sheet_pipelines
 from magenta.pipelines import note_sequence_pipelines
+from magenta.pipelines import pipelines_common
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -31,6 +32,7 @@ FLAGS = tf.app.flags.FLAGS
 class ImprovRNNPipelineTest(tf.test.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.config = improv_rnn_model.ImprovRnnConfig(
         None,
         magenta.music.ConditionalEventSequenceEncoderDecoder(
@@ -76,7 +78,8 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
         self.config.min_note,
         self.config.max_note,
         self.config.transpose_to_key)
-    encoded = conditional_encoding.encode(lead_sheet.chords, lead_sheet.melody)
+    encoded = pipelines_common.make_sequence_example(
+        *conditional_encoding.encode(lead_sheet.chords, lead_sheet.melody))
     expected_result = {'training_lead_sheets': [encoded],
                        'eval_lead_sheets': []}
 

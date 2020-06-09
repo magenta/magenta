@@ -49,7 +49,8 @@ class EncoderPipeline(pipeline.Pipeline):
         self._min_note,
         self._max_note,
         self._transpose_to_key)
-    encoded = self._melody_encoder_decoder.encode(melody)
+    encoded = pipelines_common.make_sequence_example(
+        *self._melody_encoder_decoder.encode(melody))
     return [encoded]
 
 

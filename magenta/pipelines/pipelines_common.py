@@ -14,11 +14,13 @@
 
 """Common data processing pipelines."""
 
+import numbers
 import random
 
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
 import numpy as np
+import tensorflow.compat.v1 as tf
 
 
 class RandomPartition(pipeline.Pipeline):
@@ -57,3 +59,30 @@ class RandomPartition(pipeline.Pipeline):
 
   def _make_stats(self, increment_partition=None):
     return [statistics.Counter(increment_partition + '_count', 1)]
+
+
+def make_sequence_example(inputs, labels):
+  """Returns a SequenceExample for the given inputs and labels.
+
+  Args:
+    inputs: A list of input vectors. Each input vector is a list of floats.
+    labels: A list of ints.
+
+  Returns:
+    A tf.train.SequenceExample containing inputs and labels.
+  """
+  input_features = [
+      tf.train.Feature(float_list=tf.train.FloatList(value=input_))
+      for input_ in inputs]
+  label_features = []
+  for label in labels:
+    if isinstance(label, numbers.Number):
+      label = [label]
+    label_features.append(
+        tf.train.Feature(int64_list=tf.train.Int64List(value=label)))
+  feature_list = {
+      'inputs': tf.train.FeatureList(feature=input_features),
+      'labels': tf.train.FeatureList(feature=label_features)
+  }
+  feature_lists = tf.train.FeatureLists(feature_list=feature_list)
+  return tf.train.SequenceExample(feature_lists=feature_lists)

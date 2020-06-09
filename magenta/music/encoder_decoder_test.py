@@ -23,6 +23,7 @@ import numpy as np
 class OneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.enc = encoder_decoder.OneHotEventSequenceEncoderDecoder(
         testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)))
 
@@ -60,15 +61,14 @@ class OneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def testEncode(self):
     events = [0, 1, 0, 2, 0]
-    sequence_example = self.enc.encode(events)
+    inputs, labels = self.enc.encode(events)
     expected_inputs = [[1.0, 0.0, 0.0],
                        [0.0, 1.0, 0.0],
                        [1.0, 0.0, 0.0],
                        [0.0, 0.0, 1.0]]
     expected_labels = [1, 0, 2, 0]
-    expected_sequence_example = encoder_decoder.make_sequence_example(
-        expected_inputs, expected_labels)
-    self.assertEqual(sequence_example, expected_sequence_example)
+    self.assertEqual(inputs, expected_inputs)
+    self.assertEqual(labels, expected_labels)
 
   def testGetInputsBatch(self):
     event_sequences = [[0, 1, 0, 2, 0], [0, 1, 2]]
@@ -115,6 +115,7 @@ class OneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
 class OneHotIndexEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.enc = encoder_decoder.OneHotIndexEventSequenceEncoderDecoder(
         testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)))
 
@@ -134,12 +135,11 @@ class OneHotIndexEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def testEncode(self):
     events = [0, 1, 0, 2, 0]
-    sequence_example = self.enc.encode(events)
+    inputs, labels = self.enc.encode(events)
     expected_inputs = [[0], [1], [0], [2]]
     expected_labels = [1, 0, 2, 0]
-    expected_sequence_example = encoder_decoder.make_sequence_example(
-        expected_inputs, expected_labels)
-    self.assertEqual(sequence_example, expected_sequence_example)
+    self.assertEqual(inputs, expected_inputs)
+    self.assertEqual(labels, expected_labels)
 
   def testGetInputsBatch(self):
     event_sequences = [[0, 1, 0, 2, 0], [0, 1, 2]]
@@ -159,6 +159,7 @@ class OneHotIndexEventSequenceEncoderDecoderTest(absltest.TestCase):
 class LookbackEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.enc = encoder_decoder.LookbackEventSequenceEncoderDecoder(
         testing_lib.TrivialOneHotEncoding(3, num_steps=range(3)), [1, 2], 2)
 
@@ -274,6 +275,7 @@ class LookbackEventSequenceEncoderDecoderTest(absltest.TestCase):
 class ConditionalEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.enc = encoder_decoder.ConditionalEventSequenceEncoderDecoder(
         encoder_decoder.OneHotEventSequenceEncoderDecoder(
             testing_lib.TrivialOneHotEncoding(2)),
@@ -319,15 +321,14 @@ class ConditionalEventSequenceEncoderDecoderTest(absltest.TestCase):
   def testEncode(self):
     control_events = [1, 1, 1, 0, 0]
     target_events = [0, 1, 0, 2, 0]
-    sequence_example = self.enc.encode(control_events, target_events)
+    inputs, labels = self.enc.encode(control_events, target_events)
     expected_inputs = [[0.0, 1.0, 1.0, 0.0, 0.0],
                        [0.0, 1.0, 0.0, 1.0, 0.0],
                        [1.0, 0.0, 1.0, 0.0, 0.0],
                        [1.0, 0.0, 0.0, 0.0, 1.0]]
     expected_labels = [1, 0, 2, 0]
-    expected_sequence_example = encoder_decoder.make_sequence_example(
-        expected_inputs, expected_labels)
-    self.assertEqual(sequence_example, expected_sequence_example)
+    self.assertEqual(inputs, expected_inputs)
+    self.assertEqual(labels, expected_labels)
 
   def testGetInputsBatch(self):
     control_event_sequences = [[1, 1, 1, 0, 0], [1, 1, 1, 0, 0]]
@@ -376,6 +377,7 @@ class ConditionalEventSequenceEncoderDecoderTest(absltest.TestCase):
 class OptionalEventSequenceEncoderTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.enc = encoder_decoder.OptionalEventSequenceEncoder(
         encoder_decoder.OneHotEventSequenceEncoderDecoder(
             testing_lib.TrivialOneHotEncoding(3)))
@@ -405,6 +407,7 @@ class OptionalEventSequenceEncoderTest(absltest.TestCase):
 class MultipleEventSequenceEncoderTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.enc = encoder_decoder.MultipleEventSequenceEncoder([
         encoder_decoder.OneHotEventSequenceEncoderDecoder(
             testing_lib.TrivialOneHotEncoding(2)),

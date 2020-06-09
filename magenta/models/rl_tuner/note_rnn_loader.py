@@ -311,9 +311,7 @@ class NoteRNNLoader(object):
               min_note=rl_tuner_ops.MIN_NOTE,
               max_note=rl_tuner_ops.MAX_NOTE))
 
-      seq = encoder.encode(self.primer)
-      features = seq.feature_lists.feature_list['inputs'].feature
-      primer_input = [list(i.float_list.value) for i in features]
+      primer_input, _ = encoder.encode(self.primer)
 
       # Run model over primer sequence.
       primer_input_batch = np.tile([primer_input], (self.batch_size, 1, 1))

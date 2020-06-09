@@ -63,7 +63,7 @@ class EncoderPipeline(pipeline.Pipeline):
       encoded = []
       stats = [statistics.Counter('chord_symbol_exception', 1)]
     self._set_stats(stats)
-    return encoded
+    return [pipelines_common.make_sequence_example(*enc) for enc in encoded]
 
   def get_stats(self):
     return {}

@@ -73,6 +73,7 @@ class MelodyOneHotEncodingTest(absltest.TestCase):
 class MelodyOneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
 
   def setUp(self):
+    super().setUp()
     self.min_note = 60
     self.max_note = 72
     self.transpose_to_key = 0
@@ -92,7 +93,7 @@ class MelodyOneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
         self.min_note,
         self.max_note,
         self.transpose_to_key)
-    sequence_example = self.med.encode(melody)
+    inputs, labels = self.med.encode(melody)
     expected_inputs = [
         [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -103,9 +104,8 @@ class MelodyOneHotEventSequenceEncoderDecoderTest(absltest.TestCase):
         [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         [0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]]
     expected_labels = [2, 9, 13, 0, 13, 2, 1, 0]
-    expected_sequence_example = encoder_decoder.make_sequence_example(
-        expected_inputs, expected_labels)
-    self.assertEqual(sequence_example, expected_sequence_example)
+    self.assertEqual(inputs, expected_inputs)
+    self.assertEqual(labels, expected_labels)
 
   def testGetInputsBatch(self):
     events1 = [100, 100, 107, 111, NO_EVENT, 99, 112, NOTE_OFF, NO_EVENT]

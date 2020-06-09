@@ -51,6 +51,7 @@ class EncoderPipeline(pipeline.Pipeline):
     self._optional_conditioning = config.optional_conditioning
 
   def transform(self, performance):
+
     if self._control_signals:
       # Encode conditional on control signals.
       control_sequences = []
@@ -72,7 +73,7 @@ class EncoderPipeline(pipeline.Pipeline):
     else:
       # Encode unconditional.
       encoded = [self._encoder_decoder.encode(performance)]
-    return encoded
+    return [pipelines_common.make_sequence_example(*enc) for enc in encoded]
 
 
 class PerformanceExtractor(pipeline.Pipeline):
