@@ -38,6 +38,7 @@ REQUIRED_PACKAGES = [
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
     'mir_eval >= 0.4',
+    'numba < 0.50',  # temporary fix for librosa import
     'numpy',
     'pandas >= 0.18.1',
     'Pillow >= 3.4.2',
