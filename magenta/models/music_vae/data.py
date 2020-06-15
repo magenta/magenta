@@ -458,21 +458,21 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     # be mapped to identical tensors by the encoder_decoder (e.g., Drums).
 
     if self._dedupe_event_lists:
-      unique_multievent_tuples = list(set(tuple(l)
+      multievent_tuples = list(set(tuple(l)
                                           for l in sliced_multievent_lists))
     else:
-      unique_multievent_tuples = list(sliced_multievent_lists)
-    unique_multievent_tuples = maybe_sample_items(
-        unique_multievent_tuples,
+      multievent_tuples = [tuple(l) for l in sliced_multievent_lists]
+    multievent_tuples = maybe_sample_items(
+        multievent_tuples,
         self.max_tensors_per_notesequence,
         self.is_training)
 
-    # Now unique_multievent_tuples is structured like sliced_multievent_lists
-    # above, with duplicates removed and optionally sampled.
+    # Now multievent_tuples is structured like sliced_multievent_lists
+    # above, with duplicates optionally removed and sampled.
 
-    if unique_multievent_tuples:
+    if multievent_tuples:
       # Return lists structured like input all_sliced_lists.
-      return list(zip(*[zip(*t) for t in unique_multievent_tuples if t]))
+      return list(zip(*[zip(*t) for t in multievent_tuples if t]))
     else:
       return []
 
