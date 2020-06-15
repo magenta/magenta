@@ -370,6 +370,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       chords on which to condition, or None if not conditioning on chords.
     condition_on_key: If True, condition on key; key is represented as a
       depth-12 one-hot encoding.
+    dedupe_event_lists: If True, only keep unique events in the extracted 
+      event list.
   """
 
   def __init__(self, event_list_fn, event_extractor_fn,
@@ -378,7 +380,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
                quarters_per_bar=4, pad_to_total_time=False,
                max_tensors_per_notesequence=None,
                presplit_on_time_changes=True, chord_encoding=None,
-               condition_on_key=False):
+               condition_on_key=False, dedupe_event_lists=True):
     if (steps_per_quarter, steps_per_second).count(None) != 1:
       raise ValueError(
           'Exactly one of `steps_per_quarter` and `steps_per_second` should be '
@@ -400,6 +402,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     else:
       self._slice_steps = slice_steps
     self._pad_to_total_time = pad_to_total_time
+    self._dedupe_event_lists = dedupe_event_lists
 
     depth = legacy_encoder_decoder.num_classes + add_end_token
     control_depth = (
@@ -454,8 +457,11 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     # TODO(adarob): Consider handling the fact that different event lists can
     # be mapped to identical tensors by the encoder_decoder (e.g., Drums).
 
-    unique_multievent_tuples = list(set(tuple(l)
-                                        for l in sliced_multievent_lists))
+    if self._dedupe_event_lists:
+      unique_multievent_tuples = list(set(tuple(l)
+                                          for l in sliced_multievent_lists))
+    else:
+      unique_multievent_tuples = list(sliced_multievent_lists)
     unique_multievent_tuples = maybe_sample_items(
         unique_multievent_tuples,
         self.max_tensors_per_notesequence,
@@ -659,7 +665,7 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
                gap_bars=1.0, steps_per_quarter=4, quarters_per_bar=4,
                add_end_token=False, pad_to_total_time=False,
                max_tensors_per_notesequence=5, presplit_on_time_changes=True,
-               chord_encoding=None, condition_on_key=False):
+               chord_encoding=None, condition_on_key=False, dedupe_event_lists=True):
     """Initialize a OneHotMelodyConverter object.
 
     Args:
@@ -689,6 +695,8 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
           chords on which to condition, or None if not conditioning on chords.
       condition_on_key: If True, condition on key; key is represented as a
           depth-12 one-hot encoding.
+      dedupe_event_lists: If True, only keep unique events in the extracted 
+          event list.
     """
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
@@ -723,7 +731,8 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
         max_tensors_per_notesequence=max_tensors_per_notesequence,
         presplit_on_time_changes=presplit_on_time_changes,
         chord_encoding=chord_encoding,
-        condition_on_key=condition_on_key)
+        condition_on_key=condition_on_key,
+        dedupe_event_lists=dedupe_event_lists)
 
   @property
   def melody_fn(self):
