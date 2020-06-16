@@ -20,6 +20,7 @@ from magenta.models.arbitrary_image_stylization import nza_model as transformer_
 from magenta.models.image_stylization import ops
 import tensorflow.compat.v1 as tf
 import tf_slim as slim
+from tf_slim.nets import inception_v3
 
 
 def build_model(content_input_,
@@ -137,7 +138,7 @@ def style_prediction(style_input_,
           trainable=trainable):
         with slim.arg_scope(
             [slim.batch_norm, slim.dropout], is_training=is_training):
-          _, end_points = slim.nets.inception_v3.inception_v3_base(
+          _, end_points = inception_v3.inception_v3_base(
               style_input_,
               scope='InceptionV3',
               final_endpoint=inception_end_point)
