@@ -459,7 +459,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 
     if self._dedupe_event_lists:
       multievent_tuples = list(
-                        set(tuple(l) for l in sliced_multievent_lists))
+          set(tuple(l) for l in sliced_multievent_lists))
     else:
       multievent_tuples = [tuple(l) for l in sliced_multievent_lists]
     multievent_tuples = maybe_sample_items(
