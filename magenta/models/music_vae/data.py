@@ -458,8 +458,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     # be mapped to identical tensors by the encoder_decoder (e.g., Drums).
 
     if self._dedupe_event_lists:
-      multievent_tuples = list(set(tuple(l)
-                                          for l in sliced_multievent_lists))
+      multievent_tuples = list(
+                        set(tuple(l) for l in sliced_multievent_lists))
     else:
       multievent_tuples = [tuple(l) for l in sliced_multievent_lists]
     multievent_tuples = maybe_sample_items(
