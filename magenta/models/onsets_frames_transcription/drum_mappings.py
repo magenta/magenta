@@ -16,7 +16,7 @@
 """Drum hit mappings."""
 
 from magenta.models.onsets_frames_transcription import constants
-from magenta.music.protobuf import music_pb2
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 # Names for pitches in the Groove MIDI Dataset and Expanded Groove MIDI Dataset.

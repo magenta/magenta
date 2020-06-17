@@ -16,10 +16,11 @@
 
 import tempfile
 
-import magenta
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import events_rnn_model
+import note_seq
+from note_seq import testing_lib
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -33,8 +34,8 @@ class EventSequenceRNNGraphTest(tf.test.TestCase):
 
     self.config = events_rnn_model.EventSequenceRnnConfig(
         None,
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.testing_lib.TrivialOneHotEncoding(12)),
+        note_seq.OneHotEventSequenceEncoderDecoder(
+            testing_lib.TrivialOneHotEncoding(12)),
         contrib_training.HParams(
             batch_size=128,
             rnn_layer_sizes=[128, 128],

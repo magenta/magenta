@@ -55,7 +55,7 @@ This will generate a polyphonic sequence using a C Major chord as a primer.
 There are several command line options for controlling the generation process:
 
 * **primer_pitches**: A string representation of a Python list of pitches that will be used as a starting chord with a quarter note duration. For example: ```"[60, 64, 67]"```.
-* **primer_melody**: A string representation of a Python list of `magenta.music.Melody` event values (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
+* **primer_melody**: A string representation of a Python list of `note_seq.Melody` event values (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
 * **primer_midi**: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
 * **condition_on_primer**: If set, the RNN will receive the primer as its input before it begins generating a new sequence. You most likely want this to be true if you're using **primer_pitches** to start the sequence with a chord to establish a certain key. If you're using **primer_melody** because you want to inject a melody into the output using **inject_primer_during_generation**, you likely want this to be false, otherwise the model will see a monophonic melody before being asked to produce a polyphonic sequence. However, it may be interesting to experiment with this being on or off for each of those cases.
 * **inject_primer_during_generation**: If set, the primer will be injected as a part of the generated sequence. This option is useful if you want the model to harmonize an existing melody. This option will most likely be used with **primer_melody** and `--condition_on_primer=false`.
@@ -157,7 +157,7 @@ polyphony_rnn_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](/magenta/music/protobuf/generator.proto)
+The [bundle format](https://github.com/magenta/note-seq/blob/master/note_seq/protobuf/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 

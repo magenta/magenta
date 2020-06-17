@@ -63,7 +63,7 @@ This will generate a performance starting with an ascending C major scale.
 There are several command-line options for controlling the generation process:
 
 * **primer_pitches**: A string representation of a Python list of pitches that will be used as a starting chord with a short duration. For example: ```"[60, 64, 67]"```.
-* **primer_melody**: A string representation of a Python list of `magenta.music.Melody` event values (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
+* **primer_melody**: A string representation of a Python list of `note_seq.Melody` event values (-2 = no event, -1 = note-off event, values 0 through 127 = note-on event for that MIDI pitch). For example: `"[60, -2, 60, -2, 67, -2, 67, -2]"`.
 * **primer_midi**: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
 
 If you're using one of the conditional models, there are additional command-line options you can use:
@@ -152,7 +152,7 @@ performance_rnn_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](/magenta/music/protobuf/generator.proto)
+The [bundle format](https://github.com/magenta/note-seq/blob/master/note_seq/protobuf/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 

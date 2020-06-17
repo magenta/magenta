@@ -25,11 +25,10 @@ import apache_beam as beam
 from apache_beam import typehints
 from apache_beam.metrics import Metrics
 from magenta.models.score2perf import music_encoders
-import magenta.music as mm
-from magenta.music import chord_inference
-from magenta.music import melody_inference
-from magenta.music import sequences_lib
-from magenta.music.protobuf import music_pb2
+import note_seq
+from note_seq import chord_inference
+from note_seq import melody_inference
+from note_seq import sequences_lib
 import numpy as np
 from tensor2tensor.data_generators import generator_utils
 import tensorflow.compat.v1 as tf
@@ -38,7 +37,7 @@ import tensorflow.compat.v1 as tf
 SCORE_BPM = 120.0
 
 # Shortcut to beat annotation.
-BEAT = music_pb2.NoteSequence.TextAnnotation.BEAT
+BEAT = note_seq.NoteSequence.TextAnnotation.BEAT
 
 FLAGS = tf.app.flags.FLAGS
 flags = tf.app.flags
@@ -64,7 +63,7 @@ class ReadNoteSequencesFromTFRecord(beam.PTransform):
     pcoll |= beam.Create([self._tfrecord_path])
     pcoll |= beam.io.tfrecordio.ReadAllFromTFRecord()
     pcoll |= beam.Map(
-        lambda ns_str: (music_pb2.NoteSequence.FromString(ns_str).id, ns_str))
+        lambda ns_str: (note_seq.NoteSequence.FromString(ns_str).id, ns_str))
     return pcoll
 
 
@@ -83,7 +82,7 @@ def select_split(cumulative_splits, kv, unused_num_partitions):
 def filter_invalid_notes(min_pitch, max_pitch, kv):
   """Filter notes with out-of-range pitch from NoteSequence protos."""
   key, ns_str = kv
-  ns = music_pb2.NoteSequence.FromString(ns_str)
+  ns = note_seq.NoteSequence.FromString(ns_str)
   valid_notes = [note for note in ns.notes
                  if min_pitch <= note.pitch <= max_pitch]
   if len(valid_notes) < len(ns.notes):
@@ -166,7 +165,7 @@ class ExtractExamplesDoFn(beam.DoFn):
     random.seed(int(m.hexdigest(), 16))
 
     # Deserialize NoteSequence proto.
-    ns = music_pb2.NoteSequence.FromString(ns_str)
+    ns = note_seq.NoteSequence.FromString(ns_str)
 
     # Apply sustain pedal.
     ns = sequences_lib.apply_sustain_control_changes(ns)
@@ -508,7 +507,7 @@ class ConditionalExtractExamplesDoFn(beam.DoFn):
     random.seed(int(m.hexdigest(), 16))
 
     # Deserialize NoteSequence proto.
-    ns = music_pb2.NoteSequence.FromString(ns_str)
+    ns = note_seq.NoteSequence.FromString(ns_str)
 
     # Apply sustain pedal.
     ns = sequences_lib.apply_sustain_control_changes(ns)
@@ -542,7 +541,8 @@ class ConditionalExtractExamplesDoFn(beam.DoFn):
           if self._melody:
             # decode truncated performance sequence for melody inference
             decoded_midi = self._decode_performance_fn(cropped_seq)
-            decoded_ns = mm.midi_io.midi_file_to_note_sequence(decoded_midi)
+            decoded_ns = note_seq.midi_io.midi_file_to_note_sequence(
+                decoded_midi)
 
             # extract melody from cropped performance sequence
             melody_instrument = melody_inference.infer_melody_for_sequence(

@@ -14,7 +14,7 @@ This configuration acts as a baseline for melody generation with an LSTM model. 
 
 ### Lookback
 
-Lookback RNN introduces custom inputs and labels. The custom inputs allow the model to more easily recognize patterns that occur across 1 and 2 bars. They also help the model recognize patterns related to an events position within the measure. The custom labels reduce the amount of information that the RNN’s cell state has to remember by allowing the model to more easily repeat events from 1 and 2 bars ago. This results in melodies that wander less and have a more musical structure. For more information about the custom inputs and labels, and to hear some generated sample melodies, check out the [blog post](https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn/). You can also read through the `events_to_input` and `events_to_label` methods in `magenta/music/encoder_decoder.py` and `magenta/music/melody_encoder_decoder.py` to see how the custom inputs and labels are actually being encoded.
+Lookback RNN introduces custom inputs and labels. The custom inputs allow the model to more easily recognize patterns that occur across 1 and 2 bars. They also help the model recognize patterns related to an events position within the measure. The custom labels reduce the amount of information that the RNN’s cell state has to remember by allowing the model to more easily repeat events from 1 and 2 bars ago. This results in melodies that wander less and have a more musical structure. For more information about the custom inputs and labels, and to hear some generated sample melodies, check out the [blog post](https://magenta.tensorflow.org/2016/07/15/lookback-rnn-attention-rnn/). You can also read through the `events_to_input` and `events_to_label` methods in `note_seq/encoder_decoder.py` and `note_seq/melody_encoder_decoder.py` to see how the custom inputs and labels are actually being encoded.
 
 ### Attention
 
@@ -128,7 +128,7 @@ melody_rnn_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](/magenta/music/protobuf/generator.proto)
+The [bundle format](https://github.com/magenta/note-seq/blob/master/note_seq/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 

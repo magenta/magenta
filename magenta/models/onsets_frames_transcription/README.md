@@ -22,7 +22,7 @@ Note that while we provide commits for code used in papers, we can provide suppo
 
 You may also be interested in a [PyTorch Onsets and Frames](https://github.com/jongwook/onsets-and-frames) implementation by [Jong Wook Kim](https://github.com/jongwook) (not supported by the Magenta team).
 
-Finally, we have also open sourced the [align_fine](/magenta/music/alignment) tool for high performance fine alignment of sequences that are already coarsely aligned, as described in the "Fine Alignment" section of the Appendix in the [MAESTRO paper](https://goo.gl/magenta/maestro-paper).
+Finally, we have also open sourced the [align_fine](https://github.com/magenta/note-seq/blob/master/note_seq/alignment) tool for high performance fine alignment of sequences that are already coarsely aligned, as described in the "Fine Alignment" section of the Appendix in the [MAESTRO paper](https://goo.gl/magenta/maestro-paper).
 
 ## JavaScript App
 

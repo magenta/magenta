@@ -21,7 +21,7 @@ from __future__ import print_function
 import collections
 
 from magenta.models.onsets_frames_transcription import data
-from magenta.music import sequences_lib
+from note_seq import sequences_lib
 import numpy as np
 
 

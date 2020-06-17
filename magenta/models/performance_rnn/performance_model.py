@@ -17,10 +17,10 @@
 import collections
 import functools
 
-import magenta
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
-from magenta.music.performance_lib import PerformanceEvent
+import note_seq
+from note_seq.protobuf import generator_pb2
 
 # State for constructing a time-varying control sequence. Keeps track of the
 # current event position and time step in the generated performance, to allow
@@ -139,7 +139,7 @@ def _extend_control_events(control_signal_fns, disable_conditioning_fn,
   step = control_state.current_perf_step
 
   while idx < len(performance):
-    if performance[idx].event_type == PerformanceEvent.TIME_SHIFT:
+    if performance[idx].event_type == note_seq.PerformanceEvent.TIME_SHIFT:
       step += performance[idx].event_value
     idx += 1
 
@@ -168,12 +168,11 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
                control_signals=None, optional_conditioning=False,
                note_performance=False):
     if control_signals is not None:
-      control_encoder = magenta.music.MultipleEventSequenceEncoder(
+      control_encoder = note_seq.MultipleEventSequenceEncoder(
           [control.encoder for control in control_signals])
       if optional_conditioning:
-        control_encoder = magenta.music.OptionalEventSequenceEncoder(
-            control_encoder)
-      encoder_decoder = magenta.music.ConditionalEventSequenceEncoderDecoder(
+        control_encoder = note_seq.OptionalEventSequenceEncoder(control_encoder)
+      encoder_decoder = note_seq.ConditionalEventSequenceEncoderDecoder(
           control_encoder, encoder_decoder)
 
     super(PerformanceRnnConfig, self).__init__(
@@ -187,10 +186,10 @@ class PerformanceRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 default_configs = {
     'performance':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='performance', description='Performance RNN'),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding()),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.PerformanceOneHotEncoding()),
             contrib_training.HParams(
                 batch_size=64,
                 rnn_layer_sizes=[512, 512, 512],
@@ -199,11 +198,11 @@ default_configs = {
                 learning_rate=0.001)),
     'performance_with_dynamics':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='performance_with_dynamics',
                 description='Performance RNN with dynamics'),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(num_velocity_bins=32)),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.PerformanceOneHotEncoding(num_velocity_bins=32)),
             contrib_training.HParams(
                 batch_size=64,
                 rnn_layer_sizes=[512, 512, 512],
@@ -213,11 +212,11 @@ default_configs = {
             num_velocity_bins=32),
     'performance_with_dynamics_compact':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='performance_with_dynamics',
                 description='Performance RNN with dynamics (compact input)'),
-            magenta.music.OneHotIndexEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(num_velocity_bins=32)),
+            note_seq.OneHotIndexEventSequenceEncoderDecoder(
+                note_seq.PerformanceOneHotEncoding(num_velocity_bins=32)),
             contrib_training.HParams(
                 batch_size=64,
                 rnn_layer_sizes=[512, 512, 512],
@@ -227,11 +226,11 @@ default_configs = {
             num_velocity_bins=32),
     'performance_with_dynamics_and_modulo_encoding':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='performance_with_dynamics_and_modulo_encoding',
                 description='Performance RNN with dynamics and modulo encoding'
             ),
-            magenta.music.ModuloPerformanceEventSequenceEncoderDecoder(
+            note_seq.ModuloPerformanceEventSequenceEncoderDecoder(
                 num_velocity_bins=32),
             contrib_training.HParams(
                 batch_size=64,
@@ -242,10 +241,10 @@ default_configs = {
             num_velocity_bins=32),
     'performance_with_dynamics_and_note_encoding':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='performance_with_dynamics_and_note_encoding',
                 description='Performance RNN with dynamics and note encoding'),
-            magenta.music.NotePerformanceEventSequenceEncoderDecoder(
+            note_seq.NotePerformanceEventSequenceEncoderDecoder(
                 num_velocity_bins=32),
             contrib_training.HParams(
                 batch_size=64,
@@ -257,12 +256,12 @@ default_configs = {
             note_performance=True),
     'density_conditioned_performance_with_dynamics':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='density_conditioned_performance_with_dynamics',
                 description='Note-density-conditioned Performance RNN + dynamics'
             ),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(num_velocity_bins=32)),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.PerformanceOneHotEncoding(num_velocity_bins=32)),
             contrib_training.HParams(
                 batch_size=64,
                 rnn_layer_sizes=[512, 512, 512],
@@ -271,17 +270,17 @@ default_configs = {
                 learning_rate=0.001),
             num_velocity_bins=32,
             control_signals=[
-                magenta.music.NoteDensityPerformanceControlSignal(
+                note_seq.NoteDensityPerformanceControlSignal(
                     window_size_seconds=3.0,
                     density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0])
             ]),
     'pitch_conditioned_performance_with_dynamics':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='pitch_conditioned_performance_with_dynamics',
                 description='Pitch-histogram-conditioned Performance RNN'),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(num_velocity_bins=32)),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.PerformanceOneHotEncoding(num_velocity_bins=32)),
             contrib_training.HParams(
                 batch_size=64,
                 rnn_layer_sizes=[512, 512, 512],
@@ -290,16 +289,16 @@ default_configs = {
                 learning_rate=0.001),
             num_velocity_bins=32,
             control_signals=[
-                magenta.music.PitchHistogramPerformanceControlSignal(
+                note_seq.PitchHistogramPerformanceControlSignal(
                     window_size_seconds=5.0)
             ]),
     'multiconditioned_performance_with_dynamics':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='multiconditioned_performance_with_dynamics',
                 description='Density- and pitch-conditioned Performance RNN'),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(num_velocity_bins=32)),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.PerformanceOneHotEncoding(num_velocity_bins=32)),
             contrib_training.HParams(
                 batch_size=64,
                 rnn_layer_sizes=[512, 512, 512],
@@ -308,19 +307,19 @@ default_configs = {
                 learning_rate=0.001),
             num_velocity_bins=32,
             control_signals=[
-                magenta.music.NoteDensityPerformanceControlSignal(
+                note_seq.NoteDensityPerformanceControlSignal(
                     window_size_seconds=3.0,
                     density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
-                magenta.music.PitchHistogramPerformanceControlSignal(
+                note_seq.PitchHistogramPerformanceControlSignal(
                     window_size_seconds=5.0)
             ]),
     'optional_multiconditioned_performance_with_dynamics':
         PerformanceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='optional_multiconditioned_performance_with_dynamics',
                 description='Optionally multiconditioned Performance RNN'),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.PerformanceOneHotEncoding(num_velocity_bins=32)),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.PerformanceOneHotEncoding(num_velocity_bins=32)),
             contrib_training.HParams(
                 batch_size=64,
                 rnn_layer_sizes=[512, 512, 512],
@@ -329,10 +328,10 @@ default_configs = {
                 learning_rate=0.001),
             num_velocity_bins=32,
             control_signals=[
-                magenta.music.NoteDensityPerformanceControlSignal(
+                note_seq.NoteDensityPerformanceControlSignal(
                     window_size_seconds=3.0,
                     density_bin_ranges=[1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0]),
-                magenta.music.PitchHistogramPerformanceControlSignal(
+                note_seq.PitchHistogramPerformanceControlSignal(
                     window_size_seconds=5.0)
             ],
             optional_conditioning=True)

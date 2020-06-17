@@ -27,9 +27,9 @@ Example usage:
 import hashlib
 import os
 
-from magenta.music import abc_parser
-from magenta.music import midi_io
-from magenta.music import musicxml_reader
+from note_seq import abc_parser
+from note_seq import midi_io
+from note_seq import musicxml_reader
 import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS

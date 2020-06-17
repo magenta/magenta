@@ -14,13 +14,12 @@
 
 """Pipeline to create MelodyRNN dataset."""
 
-import magenta
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import melody_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
+import note_seq
 import tensorflow.compat.v1 as tf
 
 
@@ -36,7 +35,7 @@ class EncoderPipeline(pipeline.Pipeline):
       name: A unique pipeline name.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.Melody,
+        input_type=note_seq.Melody,
         output_type=tf.train.SequenceExample,
         name=name)
     self._melody_encoder_decoder = config.encoder_decoder
@@ -66,10 +65,10 @@ def get_pipeline(config, transposition_range=(0,), eval_ratio=0.0):
     A pipeline.Pipeline instance.
   """
   partitioner = pipelines_common.RandomPartition(
-      music_pb2.NoteSequence,
+      note_seq.NoteSequence,
       ['eval_melodies', 'training_melodies'],
       [eval_ratio])
-  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
+  dag = {partitioner: dag_pipeline.DagInput(note_seq.NoteSequence)}
 
   for mode in ['eval', 'training']:
     time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(

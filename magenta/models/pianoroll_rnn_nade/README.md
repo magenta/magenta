@@ -54,7 +54,7 @@ This will generate a polyphonic pianoroll sequence using a C Major chord as a pr
 There are several command line options for controlling the generation process:
 
 * **primer_pitches**: A string representation of a Python list of pitches that will be used as a starting chord with a quarter note duration. For example: ```"[60, 64, 67]"```.
-* **primer_pianoroll**: A string representation of a Python list of `magenta.music.PianorollSequence` event values (tuples of active MIDI pitches for a sequence of steps). For example: `"[(55,), (54,), (55, 53), (50,), (62, 52), (), (63, 55)]"`.
+* **primer_pianoroll**: A string representation of a Python list of `note_seq.PianorollSequence` event values (tuples of active MIDI pitches for a sequence of steps). For example: `"[(55,), (54,), (55, 53), (50,), (62, 52), (), (63, 55)]"`.
 * **primer_midi**: The path to a MIDI file containing a polyphonic track that will be used as a priming track.
 
 For a full list of command line options, run `pianoroll_rnn_nade_generate --help`.
@@ -148,7 +148,7 @@ pianoroll_rnn_nade_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](/magenta/music/protobuf/generator.proto)
+The [bundle format](https://github.com/magenta/note-seq/blob/master/note_seq/protobuf/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 

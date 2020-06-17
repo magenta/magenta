@@ -15,10 +15,9 @@
 """Tests for Score2Perf music encoders."""
 import tempfile
 
-import magenta
 from magenta.models.score2perf import music_encoders
-from magenta.music import testing_lib
-from magenta.music.protobuf import music_pb2
+import note_seq
+from note_seq import testing_lib
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -34,21 +33,21 @@ class MidiPerformanceEncoderTest(tf.test.TestCase):
   def testEncodeEmptyNoteSequence(self):
     encoder = music_encoders.MidiPerformanceEncoder(
         steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108)
-    ids = encoder.encode_note_sequence(music_pb2.NoteSequence())
+    ids = encoder.encode_note_sequence(note_seq.NoteSequence())
     self.assertEqual([], ids)
 
   def testEncodeEmptyNoteSequenceAddEos(self):
     encoder = music_encoders.MidiPerformanceEncoder(
         steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108,
         add_eos=True)
-    ids = encoder.encode_note_sequence(music_pb2.NoteSequence())
+    ids = encoder.encode_note_sequence(note_seq.NoteSequence())
     self.assertEqual([1], ids)
 
   def testEncodeNoteSequence(self):
     encoder = music_encoders.MidiPerformanceEncoder(
         steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108)
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     testing_lib.add_track_to_sequence(
         ns, 0, [(60, 100, 0.0, 4.0), (64, 100, 0.0, 3.0), (67, 127, 1.0, 2.0)])
     ids = encoder.encode_note_sequence(ns)
@@ -75,7 +74,7 @@ class MidiPerformanceEncoderTest(tf.test.TestCase):
         steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108,
         add_eos=True)
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     testing_lib.add_track_to_sequence(
         ns, 0, [(60, 100, 0.0, 4.0), (64, 100, 0.0, 3.0), (67, 127, 1.0, 2.0)])
     ids = encoder.encode_note_sequence(ns)
@@ -103,7 +102,7 @@ class MidiPerformanceEncoderTest(tf.test.TestCase):
         steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108,
         ngrams=[(41, 45), (277, 309, 300), (309, 48), (277, 129, 130)])
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     testing_lib.add_track_to_sequence(
         ns, 0, [(60, 100, 0.0, 4.0), (64, 100, 0.0, 3.0), (67, 127, 1.0, 2.0)])
     ids = encoder.encode_note_sequence(ns)
@@ -128,12 +127,12 @@ class MidiPerformanceEncoderTest(tf.test.TestCase):
         steps_per_second=100, num_velocity_bins=32, min_pitch=21, max_pitch=108,
         ngrams=[(277, 129)])
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     testing_lib.add_track_to_sequence(ns, 0, [(60, 97, 0.0, 1.0)])
 
     # Write NoteSequence to MIDI file as encoder takes in filename.
     with tempfile.NamedTemporaryFile(suffix='.mid') as f:
-      magenta.music.sequence_proto_to_midi_file(ns, f.name)
+      note_seq.sequence_proto_to_midi_file(ns, f.name)
       ids = encoder.encode(f.name)
 
     expected_ids = [
@@ -157,20 +156,20 @@ class MidiPerformanceEncoderTest(tf.test.TestCase):
 
     # Decode method returns MIDI filename, read and convert to NoteSequence.
     filename = encoder.decode(ids)
-    ns = magenta.music.midi_file_to_sequence_proto(filename)
+    ns = note_seq.midi_file_to_sequence_proto(filename)
 
     # Remove default tempo & time signature.
     del ns.tempos[:]
     del ns.time_signatures[:]
 
-    expected_ns = music_pb2.NoteSequence(ticks_per_quarter=220)
+    expected_ns = note_seq.NoteSequence(ticks_per_quarter=220)
     testing_lib.add_track_to_sequence(expected_ns, 0, [(60, 97, 0.0, 1.0)])
 
     # Add source info fields.
     expected_ns.source_info.encoding_type = (
-        music_pb2.NoteSequence.SourceInfo.MIDI)
+        note_seq.NoteSequence.SourceInfo.MIDI)
     expected_ns.source_info.parser = (
-        music_pb2.NoteSequence.SourceInfo.PRETTY_MIDI)
+        note_seq.NoteSequence.SourceInfo.PRETTY_MIDI)
 
     self.assertEqual(expected_ns, ns)
 
@@ -191,7 +190,7 @@ class TextChordsEncoderTest(tf.test.TestCase):
   def testEncodeNoteSequence(self):
     encoder = music_encoders.TextChordsEncoder(steps_per_quarter=1)
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     ns.tempos.add(qpm=60)
     testing_lib.add_chords_to_sequence(
         ns, [('C', 1), ('Dm', 3), ('Bdim', 4)])
@@ -234,7 +233,7 @@ class TextMelodyEncoderTest(tf.test.TestCase):
     encoder_absolute = music_encoders.TextMelodyEncoderAbsolute(
         steps_per_second=4, min_pitch=21, max_pitch=108)
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     ns.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         ns, 0,
@@ -284,7 +283,7 @@ class FlattenedTextMelodyEncoderTest(tf.test.TestCase):
     encoder = music_encoders.FlattenedTextMelodyEncoderAbsolute(
         steps_per_second=4, num_velocity_bins=127)
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     ns.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         ns, 0,
@@ -320,7 +319,7 @@ class CompositeScoreEncoderTest(tf.test.TestCase):
             steps_per_quarter=4, min_pitch=21, max_pitch=108)
     ])
 
-    ns = music_pb2.NoteSequence()
+    ns = note_seq.NoteSequence()
     ns.tempos.add(qpm=60)
     testing_lib.add_chords_to_sequence(ns, [('C', 0.5), ('Dm', 1.0)])
     testing_lib.add_track_to_sequence(

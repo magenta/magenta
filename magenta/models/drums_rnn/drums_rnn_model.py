@@ -15,14 +15,10 @@
 # Lint as: python3
 """Drums RNN model."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import magenta
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
-import magenta.music as mm
+import note_seq
+from note_seq.protobuf import generator_pb2
 
 
 class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
@@ -68,13 +64,13 @@ class DrumsRnnModel(events_rnn_model.EventSequenceRnnModel):
 default_configs = {
     'one_drum':
         events_rnn_model.EventSequenceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='one_drum', description='Drums RNN with 2-state encoding.'),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.MultiDrumOneHotEncoding(
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.MultiDrumOneHotEncoding(
                     [[39] +  # use hand clap as default when decoding
-                     list(range(mm.MIN_MIDI_PITCH, 39)) +
-                     list(range(39, mm.MAX_MIDI_PITCH + 1))])),
+                     list(range(note_seq.MIN_MIDI_PITCH, 39)) +
+                     list(range(39, note_seq.MAX_MIDI_PITCH + 1))])),
             contrib_training.HParams(
                 batch_size=128,
                 rnn_layer_sizes=[128, 128],
@@ -84,12 +80,12 @@ default_configs = {
             steps_per_quarter=2),
     'drum_kit':
         events_rnn_model.EventSequenceRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='drum_kit',
                 description='Drums RNN with multiple drums and binary counters.'
             ),
-            magenta.music.LookbackEventSequenceEncoderDecoder(
-                magenta.music.MultiDrumOneHotEncoding(),
+            note_seq.LookbackEventSequenceEncoderDecoder(
+                note_seq.MultiDrumOneHotEncoding(),
                 lookback_distances=[],
                 binary_counter_bits=6),
             contrib_training.HParams(

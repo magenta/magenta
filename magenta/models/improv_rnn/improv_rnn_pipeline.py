@@ -14,14 +14,13 @@
 
 """Pipeline to create ImprovRNN dataset."""
 
-import magenta
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import lead_sheet_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.pipelines import statistics
+import note_seq
 import tensorflow.compat.v1 as tf
 
 
@@ -37,7 +36,7 @@ class EncoderPipeline(pipeline.Pipeline):
       name: A unique pipeline name.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.LeadSheet,
+        input_type=note_seq.LeadSheet,
         output_type=tf.train.SequenceExample,
         name=name)
     self._conditional_encoder_decoder = config.encoder_decoder
@@ -54,11 +53,11 @@ class EncoderPipeline(pipeline.Pipeline):
       encoded = [self._conditional_encoder_decoder.encode(
           lead_sheet.chords, lead_sheet.melody)]
       stats = []
-    except magenta.music.ChordEncodingError as e:
+    except note_seq.ChordEncodingError as e:
       tf.logging.warning('Skipped lead sheet: %s', e)
       encoded = []
       stats = [statistics.Counter('chord_encoding_exception', 1)]
-    except magenta.music.ChordSymbolError as e:
+    except note_seq.ChordSymbolError as e:
       tf.logging.warning('Skipped lead sheet: %s', e)
       encoded = []
       stats = [statistics.Counter('chord_symbol_exception', 1)]
@@ -81,10 +80,10 @@ def get_pipeline(config, eval_ratio):
   """
   all_transpositions = config.transpose_to_key is None
   partitioner = pipelines_common.RandomPartition(
-      music_pb2.NoteSequence,
+      note_seq.NoteSequence,
       ['eval_lead_sheets', 'training_lead_sheets'],
       [eval_ratio])
-  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
+  dag = {partitioner: dag_pipeline.DagInput(note_seq.NoteSequence)}
 
   for mode in ['eval', 'training']:
     time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(

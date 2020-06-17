@@ -15,16 +15,15 @@
 # Lint as: python3
 """Pipeline to create Pianoroll dataset."""
 
-import magenta.music as mm
-from magenta.music import PianorollSequence
-from magenta.music import sequences_lib
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.pipelines import statistics
+from note_seq import PianorollSequence
+from note_seq import sequences_lib
+from note_seq.protobuf import music_pb2
 
 
 class PianorollSequenceExtractor(pipeline.Pipeline):
@@ -33,7 +32,7 @@ class PianorollSequenceExtractor(pipeline.Pipeline):
   def __init__(self, min_steps, max_steps, name=None):
     super(PianorollSequenceExtractor, self).__init__(
         input_type=music_pb2.NoteSequence,
-        output_type=mm.PianorollSequence,
+        output_type=PianorollSequence,
         name=name)
     self._min_steps = min_steps
     self._max_steps = max_steps
@@ -79,7 +78,8 @@ def get_pipeline(config, min_steps, max_steps, eval_ratio):
         min_steps=min_steps, max_steps=max_steps,
         name='PianorollExtractor_' + mode)
     encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
-        mm.PianorollSequence, config.encoder_decoder,
+        PianorollSequence,
+        config.encoder_decoder,
         name='EncoderPipeline_' + mode)
 
     dag[time_change_splitter] = partitioner[mode + '_pianoroll_tracks']

@@ -21,9 +21,9 @@ import time
 
 from magenta.common import concurrency
 from magenta.interfaces.midi import midi_hub
-from magenta.music import testing_lib
-from magenta.music.protobuf import music_pb2
 import mido
+from note_seq import testing_lib
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 Note = collections.namedtuple('Note', ['pitch', 'velocity', 'start', 'end'])

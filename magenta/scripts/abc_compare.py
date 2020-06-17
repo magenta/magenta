@@ -26,9 +26,9 @@ import os
 import pdb
 import re
 
-from magenta.music import abc_parser
-from magenta.music import midi_io
-from magenta.music import sequences_lib
+from note_seq import abc_parser
+from note_seq import midi_io
+from note_seq import sequences_lib
 import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS

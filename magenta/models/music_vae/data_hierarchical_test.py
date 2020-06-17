@@ -21,9 +21,8 @@ from __future__ import print_function
 import copy
 
 from magenta.models.music_vae import data_hierarchical
-import magenta.music as mm
-from magenta.music import testing_lib
-from magenta.music.protobuf import music_pb2
+import note_seq
+from note_seq import testing_lib
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -32,8 +31,8 @@ tf.disable_v2_behavior()
 class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
 
   def setUp(self):
-    super(MultiInstrumentPerformanceConverterTest, self).setUp()
-    self.sequence = music_pb2.NoteSequence()
+    super().setUp()
+    self.sequence = note_seq.NoteSequence()
     self.sequence.ticks_per_quarter = 220
     self.sequence.tempos.add().qpm = 120.0
 
@@ -91,8 +90,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 0), ('G', 4)])
     converter = data_hierarchical.MultiInstrumentPerformanceConverter(
-        hop_size_bars=2, chunk_size_bars=2,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        hop_size_bars=2,
+        chunk_size_bars=2,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
     self.assertEqual(2, len(tensors.outputs))
     sequences = converter.from_tensors(tensors.outputs, tensors.controls)
@@ -157,8 +157,9 @@ class MultiInstrumentPerformanceConverterTest(tf.test.TestCase):
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 0), ('G', 4)])
     converter = data_hierarchical.MultiInstrumentPerformanceConverter(
-        hop_size_bars=4, chunk_size_bars=2,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        hop_size_bars=4,
+        chunk_size_bars=2,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(sequence)
     self.assertEqual(1, len(tensors.outputs))
     sequences = converter.from_tensors(tensors.outputs, tensors.controls)

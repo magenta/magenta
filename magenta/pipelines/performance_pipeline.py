@@ -15,19 +15,19 @@
 # Lint as: python3
 """Pipeline to create Performance dataset."""
 
-import magenta
-from magenta.music import MetricPerformance
-from magenta.music import Performance
-from magenta.music import sequences_lib
-from magenta.music.performance_lib import NotePerformance
-from magenta.music.performance_lib import TooManyDurationStepsError
-from magenta.music.performance_lib import TooManyTimeShiftStepsError
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipeline
 from magenta.pipelines import pipelines_common
 from magenta.pipelines import statistics
+from note_seq import MetricPerformance
+from note_seq import Performance
+from note_seq import sequences_lib
+from note_seq.performance_lib import BasePerformance
+from note_seq.performance_lib import NotePerformance
+from note_seq.performance_lib import TooManyDurationStepsError
+from note_seq.performance_lib import TooManyTimeShiftStepsError
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 
@@ -43,7 +43,7 @@ class EncoderPipeline(pipeline.Pipeline):
       name: A unique pipeline name.
     """
     super(EncoderPipeline, self).__init__(
-        input_type=magenta.music.performance_lib.BasePerformance,
+        input_type=BasePerformance,
         output_type=tf.train.SequenceExample,
         name=name)
     self._encoder_decoder = config.encoder_decoder
@@ -83,7 +83,7 @@ class PerformanceExtractor(pipeline.Pipeline):
                note_performance, name=None):
     super(PerformanceExtractor, self).__init__(
         input_type=music_pb2.NoteSequence,
-        output_type=magenta.music.performance_lib.BasePerformance,
+        output_type=BasePerformance,
         name=name)
     self._min_events = min_events
     self._max_events = max_events

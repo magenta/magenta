@@ -23,7 +23,7 @@ from magenta.common import state_util
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_graph
 from magenta.models.shared import model
-import magenta.music as mm
+import note_seq
 import numpy as np
 import tensorflow.compat.v1 as tf
 
@@ -312,7 +312,7 @@ class EventSequenceRnnModel(model.BaseModel):
     """
     if (control_events is not None and
         not isinstance(self._config.encoder_decoder,
-                       mm.ConditionalEventSequenceEncoderDecoder)):
+                       note_seq.ConditionalEventSequenceEncoderDecoder)):
       raise EventSequenceRnnModelError(
           'control sequence provided but encoder/decoder is not a '
           'ConditionalEventSequenceEncoderDecoder')

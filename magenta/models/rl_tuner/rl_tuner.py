@@ -36,9 +36,9 @@ import urllib
 from magenta.models.rl_tuner import note_rnn_loader
 from magenta.models.rl_tuner import rl_tuner_eval_metrics
 from magenta.models.rl_tuner import rl_tuner_ops
-from magenta.music import melodies_lib as mlib
-from magenta.music import midi_io
 import matplotlib.pyplot as plt
+from note_seq import melodies_lib as mlib
+from note_seq import midi_io
 import numpy as np
 import scipy.special
 from six.moves import range  # pylint: disable=redefined-builtin

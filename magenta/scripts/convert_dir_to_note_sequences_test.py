@@ -18,8 +18,8 @@
 import os
 import tempfile
 
-from magenta.music import music_pb2
 from magenta.scripts import convert_dir_to_note_sequences
+from note_seq import music_pb2
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()

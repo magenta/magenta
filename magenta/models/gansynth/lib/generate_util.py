@@ -16,8 +16,8 @@
 """Helper functions for generating sounds.
 """
 
-from magenta import music as mm
 from magenta.models.gansynth.lib import util
+import note_seq
 import numpy as np
 import scipy.io.wavfile as wavfile
 
@@ -36,7 +36,7 @@ def slerp(p0, p1, t):
 def load_midi(midi_path, min_pitch=36, max_pitch=84):
   """Load midi as a notesequence."""
   midi_path = util.expand_path(midi_path)
-  ns = mm.midi_file_to_sequence_proto(midi_path)
+  ns = note_seq.midi_file_to_sequence_proto(midi_path)
   pitches = np.array([n.pitch for n in ns.notes])
   velocities = np.array([n.velocity for n in ns.notes])
   start_times = np.array([n.start_time for n in ns.notes])

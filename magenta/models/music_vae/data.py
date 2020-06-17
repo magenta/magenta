@@ -19,13 +19,12 @@ import copy
 import functools
 import itertools
 
-import magenta.music as mm
-from magenta.music import chords_lib
-from magenta.music import drums_encoder_decoder
-from magenta.music import sequences_lib
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import melody_pipelines
+import note_seq
+from note_seq import chords_lib
+from note_seq import drums_encoder_decoder
+from note_seq import sequences_lib
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tensorflow_datasets as tfds
@@ -76,7 +75,7 @@ ROLAND_DRUM_PITCH_CLASSES = [
 
 OUTPUT_VELOCITY = 80
 
-CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+CHORD_SYMBOL = note_seq.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 def _maybe_pad_seqs(seqs, dtype, depth):
@@ -173,7 +172,7 @@ class NoteSequenceAugmenter(object):
   def tf_augment(self, note_sequence_scalar):
     """TF op that augments the NoteSequence."""
     def _augment_str(note_sequence_str):
-      note_sequence = music_pb2.NoteSequence.FromString(
+      note_sequence = note_seq.NoteSequence.FromString(
           note_sequence_str.numpy())
       augmented_ns = self.augment(note_sequence)
       return [augmented_ns.SerializeToString()]
@@ -258,7 +257,7 @@ class BaseNoteSequenceConverter(object):
     self._control_dtype = control_dtype
     self._end_token = end_token
     self._max_tensors_per_input = max_tensors_per_notesequence
-    self._str_to_item_fn = music_pb2.NoteSequence.FromString
+    self._str_to_item_fn = note_seq.NoteSequence.FromString
     self._mode = None
     self._length_shape = length_shape
     self._presplit_on_time_changes = presplit_on_time_changes
@@ -491,8 +490,8 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
               chord_tokens.append(chord_tokens[-1])
             else:
               chord_tokens.append(
-                  self._chord_encoding.encode_event(mm.NO_CHORD))
-        except (mm.ChordSymbolError, mm.ChordEncodingError):
+                  self._chord_encoding.encode_event(note_seq.NO_CHORD))
+        except (note_seq.ChordSymbolError, note_seq.ChordEncodingError):
           return []
         controls.append(np_onehot(
             chord_tokens, self._chord_encoding.num_classes,
@@ -520,16 +519,16 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
     """Converts NoteSequence to unique, one-hot tensor sequences."""
     try:
       if self._steps_per_quarter:
-        quantized_sequence = mm.quantize_note_sequence(
+        quantized_sequence = note_seq.quantize_note_sequence(
             note_sequence, self._steps_per_quarter)
-        if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
+        if (note_seq.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
             self._steps_per_bar):
           return ConverterTensors()
       else:
-        quantized_sequence = mm.quantize_note_sequence_absolute(
+        quantized_sequence = note_seq.quantize_note_sequence_absolute(
             note_sequence, self._steps_per_second)
-    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
-            mm.NegativeTimeError) as e:
+    except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
+            note_seq.NegativeTimeError) as e:
       return ConverterTensors()
 
     if (self._chord_encoding and not any(
@@ -539,9 +538,9 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
       # We are conditioning on chords and/or key but sequence does not have
       # them. Try to infer chords and optionally key.
       try:
-        mm.infer_chords_for_sequence(quantized_sequence,
-                                     add_key_signatures=self._condition_on_key)
-      except mm.ChordInferenceError:
+        note_seq.infer_chords_for_sequence(
+            quantized_sequence, add_key_signatures=self._condition_on_key)
+      except note_seq.ChordInferenceError:
         return ConverterTensors()
 
     event_lists, unused_stats = self._event_extractor_fn(quantized_sequence)
@@ -625,7 +624,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         assert e != self.end_token
         event_list.append(self._legacy_encoder_decoder.decode_event(e))
       if self._steps_per_quarter:
-        qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
+        qpm = note_seq.DEFAULT_QUARTERS_PER_MINUTE
         seconds_per_step = 60.0 / (self._steps_per_quarter * qpm)
         sequence = event_list.to_sequence(velocity=OUTPUT_VELOCITY, qpm=qpm)
       else:
@@ -697,11 +696,12 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
     max_steps_truncate = steps_per_bar * max_bars if max_bars else None
 
     def melody_fn():
-      return mm.Melody(
+      return note_seq.Melody(
           steps_per_bar=steps_per_bar, steps_per_quarter=steps_per_quarter)
 
     self._melody_fn = melody_fn
-    self._melody_encoding = mm.MelodyOneHotEncoding(min_pitch, max_pitch + 1)
+    self._melody_encoding = note_seq.MelodyOneHotEncoding(
+        min_pitch, max_pitch + 1)
 
     melody_extractor_fn = functools.partial(
         melody_pipelines.extract_melodies,
@@ -811,11 +811,11 @@ class DrumsConverter(BaseNoteSequenceConverter):
 
     num_classes = len(self._pitch_classes)
 
-    self._pr_encoder_decoder = mm.PianorollEncoderDecoder(
+    self._pr_encoder_decoder = note_seq.PianorollEncoderDecoder(
         input_size=num_classes + add_end_token)
     # Use pitch classes as `drum_type_pitches` since we have already done the
     # mapping.
-    self._oh_encoder_decoder = mm.MultiDrumOneHotEncoding(
+    self._oh_encoder_decoder = note_seq.MultiDrumOneHotEncoding(
         drum_type_pitches=[(i,) for i in range(num_classes)])
 
     if self._roll_output:
@@ -840,13 +840,13 @@ class DrumsConverter(BaseNoteSequenceConverter):
   def _to_tensors_fn(self, note_sequence):
     """Converts NoteSequence to unique sequences."""
     try:
-      quantized_sequence = mm.quantize_note_sequence(
+      quantized_sequence = note_seq.quantize_note_sequence(
           note_sequence, self._steps_per_quarter)
-      if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
+      if (note_seq.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
           self._steps_per_bar):
         return ConverterTensors()
-    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
-            mm.NegativeTimeError) as e:
+    except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
+            note_seq.NegativeTimeError) as e:
       return ConverterTensors()
 
     new_notes = []
@@ -933,8 +933,9 @@ class DrumsConverter(BaseNoteSequenceConverter):
       # Map classes to exemplars.
       events_list = [
           frozenset(self._pitch_classes[c][0] for c in e) for e in events_list]
-      track = mm.DrumTrack(
-          events=events_list, steps_per_bar=self._steps_per_bar,
+      track = note_seq.DrumTrack(
+          events=events_list,
+          steps_per_bar=self._steps_per_bar,
           steps_per_quarter=self._steps_per_quarter)
       output_sequences.append(track.to_sequence(velocity=OUTPUT_VELOCITY))
     return output_sequences
@@ -1012,13 +1013,13 @@ class TrioConverter(BaseNoteSequenceConverter):
   def _to_tensors_fn(self, note_sequence):
     """Converts a `NoteSequence` to `ConverterTensors` obj."""
     try:
-      quantized_sequence = mm.quantize_note_sequence(
+      quantized_sequence = note_seq.quantize_note_sequence(
           note_sequence, self._steps_per_quarter)
-      if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
+      if (note_seq.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
           self._steps_per_bar):
         return ConverterTensors()
-    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
-            mm.NegativeTimeError):
+    except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
+            note_seq.NegativeTimeError):
       return ConverterTensors()
 
     if self._chord_encoding and not any(
@@ -1027,8 +1028,8 @@ class TrioConverter(BaseNoteSequenceConverter):
       # We are conditioning on chords but sequence does not have chords. Try to
       # infer them.
       try:
-        mm.infer_chords_for_sequence(quantized_sequence)
-      except mm.ChordInferenceError:
+        note_seq.infer_chords_for_sequence(quantized_sequence)
+      except note_seq.ChordInferenceError:
         return ConverterTensors()
 
       # The trio parts get extracted from the original NoteSequence, so copy the
@@ -1391,7 +1392,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
       Raises:
         ValueError: If the sequence is not quantized
       """
-      if not mm.sequences_lib.is_quantized_sequence(note_sequence):
+      if not note_seq.sequences_lib.is_quantized_sequence(note_sequence):
         raise ValueError('NoteSequence must be quantized')
 
       h = collections.defaultdict(lambda: collections.defaultdict(list))
@@ -1424,14 +1425,14 @@ class GrooveConverter(BaseNoteSequenceConverter):
     try:
       quantized_sequence = sequences_lib.quantize_note_sequence(
           note_sequence, self._steps_per_quarter)
-      if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
+      if (note_seq.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
           self._steps_per_bar):
         return ConverterTensors()
       if not quantized_sequence.time_signatures:
         quantized_sequence.time_signatures.add(numerator=4, denominator=4)
-    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
-            mm.NegativeTimeError, mm.MultipleTimeSignatureError,
-            mm.MultipleTempoError):
+    except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
+            note_seq.NegativeTimeError, note_seq.MultipleTimeSignatureError,
+            note_seq.MultipleTempoError):
       return ConverterTensors()
 
     beat_length = 60. / quantized_sequence.tempos[0].qpm
@@ -1596,7 +1597,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
       n_timesteps = (sample.shape[0] // (
           self._num_drums if self._categorical_outputs else 1))
 
-      note_sequence = music_pb2.NoteSequence()
+      note_sequence = note_seq.NoteSequence()
       note_sequence.tempos.add(qpm=120)
       beat_length = 60. / note_sequence.tempos[0].qpm
       step_length = beat_length / self._steps_per_quarter
@@ -1667,7 +1668,7 @@ def count_examples(examples_path, tfds_name, data_converter,
         tfds.load(tfds_name, split=tfds.Split.VALIDATION, try_gcs=True))
     # TODO(adarob): Generalize to other data types if needed.
     for ex in ds:
-      yield mm.midi_to_note_sequence(ex['midi'])
+      yield note_seq.midi_to_note_sequence(ex['midi'])
 
   num_examples = 0
 
@@ -1810,7 +1811,8 @@ def get_dataset(
         try_gcs=True)
     def _tf_midi_to_note_sequence(ex):
       return tf.py_function(
-          lambda x: [mm.midi_to_note_sequence(x.numpy()).SerializeToString()],
+          lambda x:  # pylint:disable=g-long-lambda
+          [note_seq.midi_to_note_sequence(x.numpy()).SerializeToString()],
           inp=[ex['midi']],
           Tout=tf.string,
           name='midi_to_note_sequence')
@@ -1852,4 +1854,3 @@ def get_dataset(
       drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)
 
   return dataset
-

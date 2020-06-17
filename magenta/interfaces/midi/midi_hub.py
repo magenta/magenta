@@ -24,8 +24,8 @@ import threading
 import time
 
 from magenta.common import concurrency
-from magenta.music.protobuf import music_pb2
 import mido
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 _DEFAULT_METRONOME_TICK_DURATION = 0.05

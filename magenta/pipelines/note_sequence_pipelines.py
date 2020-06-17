@@ -16,11 +16,11 @@
 
 import copy
 
-from magenta.music import constants
-from magenta.music import sequences_lib
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import pipeline
 from magenta.pipelines import statistics
+from note_seq import constants
+from note_seq import sequences_lib
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 # Shortcut to chord symbol text annotation type.

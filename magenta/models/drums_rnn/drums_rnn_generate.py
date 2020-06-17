@@ -17,23 +17,18 @@
 
 Uses flags to define operation.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import ast
 import os
 import time
 
-import magenta
 from magenta.models.drums_rnn import drums_rnn_config_flags
 from magenta.models.drums_rnn import drums_rnn_model
 from magenta.models.drums_rnn import drums_rnn_sequence_generator
 from magenta.models.shared import sequence_generator
 from magenta.models.shared import sequence_generator_bundle
-from magenta.music.protobuf import generator_pb2
-from magenta.music.protobuf import music_pb2
+import note_seq
+from note_seq.protobuf import generator_pb2
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 FLAGS = tf.app.flags.FLAGS
@@ -156,20 +151,20 @@ def run_with_flags(generator):
     tf.gfile.MakeDirs(FLAGS.output_dir)
 
   primer_sequence = None
-  qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
+  qpm = FLAGS.qpm if FLAGS.qpm else note_seq.DEFAULT_QUARTERS_PER_MINUTE
   if FLAGS.primer_drums:
-    primer_drums = magenta.music.DrumTrack(
-        [frozenset(pitches)
-         for pitches in ast.literal_eval(FLAGS.primer_drums)])
+    primer_drums = note_seq.DrumTrack([
+        frozenset(pitches) for pitches in ast.literal_eval(FLAGS.primer_drums)
+    ])
     primer_sequence = primer_drums.to_sequence(qpm=qpm)
   elif primer_midi:
-    primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
+    primer_sequence = note_seq.midi_file_to_sequence_proto(primer_midi)
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
       qpm = primer_sequence.tempos[0].qpm
   else:
     tf.logging.warning(
         'No priming sequence specified. Defaulting to a single bass drum hit.')
-    primer_drums = magenta.music.DrumTrack([frozenset([36])])
+    primer_drums = note_seq.DrumTrack([frozenset([36])])
     primer_sequence = primer_drums.to_sequence(qpm=qpm)
 
   # Derive the total number of seconds to generate based on the QPM of the
@@ -222,7 +217,7 @@ def run_with_flags(generator):
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)
-    magenta.music.sequence_proto_to_midi_file(generated_sequence, midi_path)
+    note_seq.sequence_proto_to_midi_file(generated_sequence, midi_path)
 
   tf.logging.info('Wrote %d MIDI files to %s',
                   FLAGS.num_outputs, FLAGS.output_dir)

@@ -23,14 +23,14 @@ import ast
 import os
 import time
 
-import magenta
 from magenta.models.improv_rnn import improv_rnn_config_flags
 from magenta.models.improv_rnn import improv_rnn_model
 from magenta.models.improv_rnn import improv_rnn_sequence_generator
 from magenta.models.shared import sequence_generator
 from magenta.models.shared import sequence_generator_bundle
-from magenta.music.protobuf import generator_pb2
-from magenta.music.protobuf import music_pb2
+import note_seq
+from note_seq.protobuf import generator_pb2
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
@@ -68,9 +68,8 @@ tf.app.flags.DEFINE_integer(
     'of a bar, so if backing_chords = "C G Am F" and steps_per_chord = 16, '
     'four bars will be generated.')
 tf.app.flags.DEFINE_string(
-    'primer_melody', '',
-    'A string representation of a Python list of '
-    'magenta.music.Melody event values. For example: '
+    'primer_melody', '', 'A string representation of a Python list of '
+    'note_seq.Melody event values. For example: '
     '"[60, -2, 60, -2, 67, -2, 67, -2]". If specified, this melody will be '
     'used as the priming melody. If a priming melody is not specified, '
     'melodies will be generated from scratch.')
@@ -161,25 +160,25 @@ def run_with_flags(generator):
     tf.gfile.MakeDirs(FLAGS.output_dir)
 
   primer_sequence = None
-  qpm = FLAGS.qpm if FLAGS.qpm else magenta.music.DEFAULT_QUARTERS_PER_MINUTE
+  qpm = FLAGS.qpm if FLAGS.qpm else note_seq.DEFAULT_QUARTERS_PER_MINUTE
   if FLAGS.primer_melody:
-    primer_melody = magenta.music.Melody(ast.literal_eval(FLAGS.primer_melody))
+    primer_melody = note_seq.Melody(ast.literal_eval(FLAGS.primer_melody))
     primer_sequence = primer_melody.to_sequence(qpm=qpm)
   elif primer_midi:
-    primer_sequence = magenta.music.midi_file_to_sequence_proto(primer_midi)
+    primer_sequence = note_seq.midi_file_to_sequence_proto(primer_midi)
     if primer_sequence.tempos and primer_sequence.tempos[0].qpm:
       qpm = primer_sequence.tempos[0].qpm
   else:
     tf.logging.warning(
         'No priming sequence specified. Defaulting to a single middle C.')
-    primer_melody = magenta.music.Melody([60])
+    primer_melody = note_seq.Melody([60])
     primer_sequence = primer_melody.to_sequence(qpm=qpm)
 
   # Create backing chord progression from flags.
   raw_chords = FLAGS.backing_chords.split()
   repeated_chords = [chord for chord in raw_chords
                      for _ in range(FLAGS.steps_per_chord)]
-  backing_chords = magenta.music.ChordProgression(repeated_chords)
+  backing_chords = note_seq.ChordProgression(repeated_chords)
 
   # Derive the total number of seconds to generate based on the QPM of the
   # priming sequence and the length of the backing chord progression.
@@ -239,12 +238,12 @@ def run_with_flags(generator):
     generated_sequence = generator.generate(input_sequence, generator_options)
 
     if FLAGS.render_chords:
-      renderer = magenta.music.BasicChordRenderer(velocity=CHORD_VELOCITY)
+      renderer = note_seq.BasicChordRenderer(velocity=CHORD_VELOCITY)
       renderer.render(generated_sequence)
 
     midi_filename = '%s_%s.mid' % (date_and_time, str(i + 1).zfill(digits))
     midi_path = os.path.join(FLAGS.output_dir, midi_filename)
-    magenta.music.sequence_proto_to_midi_file(generated_sequence, midi_path)
+    note_seq.sequence_proto_to_midi_file(generated_sequence, midi_path)
 
   tf.logging.info('Wrote %d MIDI files to %s',
                   FLAGS.num_outputs, FLAGS.output_dir)

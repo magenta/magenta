@@ -14,13 +14,12 @@
 
 """Pipeline to create DrumsRNN dataset."""
 
-import magenta
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import dag_pipeline
 from magenta.pipelines import drum_pipelines
 from magenta.pipelines import event_sequence_pipeline
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipelines_common
+import note_seq
 
 
 def get_pipeline(config, eval_ratio):
@@ -34,10 +33,10 @@ def get_pipeline(config, eval_ratio):
     A pipeline.Pipeline instance.
   """
   partitioner = pipelines_common.RandomPartition(
-      music_pb2.NoteSequence,
+      note_seq.NoteSequence,
       ['eval_drum_tracks', 'training_drum_tracks'],
       [eval_ratio])
-  dag = {partitioner: dag_pipeline.DagInput(music_pb2.NoteSequence)}
+  dag = {partitioner: dag_pipeline.DagInput(note_seq.NoteSequence)}
 
   for mode in ['eval', 'training']:
     time_change_splitter = note_sequence_pipelines.TimeChangeSplitter(
@@ -47,7 +46,8 @@ def get_pipeline(config, eval_ratio):
     drums_extractor = drum_pipelines.DrumsExtractor(
         min_bars=7, max_steps=512, gap_bars=1.0, name='DrumsExtractor_' + mode)
     encoder_pipeline = event_sequence_pipeline.EncoderPipeline(
-        magenta.music.DrumTrack, config.encoder_decoder,
+        note_seq.DrumTrack,
+        config.encoder_decoder,
         name='EncoderPipeline_' + mode)
 
     dag[time_change_splitter] = partitioner[mode + '_drum_tracks']

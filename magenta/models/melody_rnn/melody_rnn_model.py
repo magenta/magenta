@@ -16,11 +16,10 @@
 
 import copy
 
-import magenta
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
-import magenta.music as mm
-from magenta.music.protobuf import generator_pb2
+import note_seq
+from note_seq.protobuf import generator_pb2
 
 DEFAULT_MIN_NOTE = 48
 DEFAULT_MAX_NOTE = 84
@@ -112,16 +111,17 @@ class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
                transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
     super(MelodyRnnConfig, self).__init__(details, encoder_decoder, hparams)
 
-    if min_note < mm.MIN_MIDI_PITCH:
+    if min_note < note_seq.MIN_MIDI_PITCH:
       raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
-    if max_note > mm.MAX_MIDI_PITCH + 1:
+    if max_note > note_seq.MAX_MIDI_PITCH + 1:
       raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
-    if max_note - min_note < mm.NOTES_PER_OCTAVE:
+    if max_note - min_note < note_seq.NOTES_PER_OCTAVE:
       raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
                        'max_note is %d. max_note - min_note is %d.' %
                        (min_note, max_note, max_note - min_note))
     if (transpose_to_key is not None and
-        (transpose_to_key < 0 or transpose_to_key > mm.NOTES_PER_OCTAVE - 1)):
+        (transpose_to_key < 0 or
+         transpose_to_key > note_seq.NOTES_PER_OCTAVE - 1)):
       raise ValueError('transpose_to_key must be >= 0 and <= 11. '
                        'transpose_to_key is %d.' % transpose_to_key)
 
@@ -132,66 +132,62 @@ class MelodyRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 
 # Default configurations.
 default_configs = {
-    'basic_rnn': MelodyRnnConfig(
-        generator_pb2.GeneratorDetails(
-            id='basic_rnn',
-            description='Melody RNN with one-hot encoding.'),
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(
-                min_note=DEFAULT_MIN_NOTE,
-                max_note=DEFAULT_MAX_NOTE)),
-        contrib_training.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[128, 128],
-            dropout_keep_prob=0.5,
-            clip_norm=5,
-            learning_rate=0.001)),
-
-    'mono_rnn': MelodyRnnConfig(
-        generator_pb2.GeneratorDetails(
-            id='mono_rnn',
-            description='Monophonic RNN with one-hot encoding.'),
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(
-                min_note=0,
-                max_note=128)),
-        contrib_training.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[128, 128],
-            dropout_keep_prob=0.5,
-            clip_norm=5,
-            learning_rate=0.001),
-        min_note=0,
-        max_note=128,
-        transpose_to_key=None),
-
-    'lookback_rnn': MelodyRnnConfig(
-        generator_pb2.GeneratorDetails(
-            id='lookback_rnn',
-            description='Melody RNN with lookback encoding.'),
-        magenta.music.LookbackEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(
-                min_note=DEFAULT_MIN_NOTE,
-                max_note=DEFAULT_MAX_NOTE)),
-        contrib_training.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[128, 128],
-            dropout_keep_prob=0.5,
-            clip_norm=5,
-            learning_rate=0.001)),
-
-    'attention_rnn': MelodyRnnConfig(
-        generator_pb2.GeneratorDetails(
-            id='attention_rnn',
-            description='Melody RNN with lookback encoding and attention.'),
-        magenta.music.KeyMelodyEncoderDecoder(
-            min_note=DEFAULT_MIN_NOTE,
-            max_note=DEFAULT_MAX_NOTE),
-        contrib_training.HParams(
-            batch_size=128,
-            rnn_layer_sizes=[128, 128],
-            dropout_keep_prob=0.5,
-            attn_length=40,
-            clip_norm=3,
-            learning_rate=0.001))
+    'basic_rnn':
+        MelodyRnnConfig(
+            generator_pb2.GeneratorDetails(
+                id='basic_rnn',
+                description='Melody RNN with one-hot encoding.'),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.MelodyOneHotEncoding(
+                    min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE)),
+            contrib_training.HParams(
+                batch_size=128,
+                rnn_layer_sizes=[128, 128],
+                dropout_keep_prob=0.5,
+                clip_norm=5,
+                learning_rate=0.001)),
+    'mono_rnn':
+        MelodyRnnConfig(
+            generator_pb2.GeneratorDetails(
+                id='mono_rnn',
+                description='Monophonic RNN with one-hot encoding.'),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.MelodyOneHotEncoding(min_note=0, max_note=128)),
+            contrib_training.HParams(
+                batch_size=128,
+                rnn_layer_sizes=[128, 128],
+                dropout_keep_prob=0.5,
+                clip_norm=5,
+                learning_rate=0.001),
+            min_note=0,
+            max_note=128,
+            transpose_to_key=None),
+    'lookback_rnn':
+        MelodyRnnConfig(
+            generator_pb2.GeneratorDetails(
+                id='lookback_rnn',
+                description='Melody RNN with lookback encoding.'),
+            note_seq.LookbackEventSequenceEncoderDecoder(
+                note_seq.MelodyOneHotEncoding(
+                    min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE)),
+            contrib_training.HParams(
+                batch_size=128,
+                rnn_layer_sizes=[128, 128],
+                dropout_keep_prob=0.5,
+                clip_norm=5,
+                learning_rate=0.001)),
+    'attention_rnn':
+        MelodyRnnConfig(
+            generator_pb2.GeneratorDetails(
+                id='attention_rnn',
+                description='Melody RNN with lookback encoding and attention.'),
+            note_seq.KeyMelodyEncoderDecoder(
+                min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE),
+            contrib_training.HParams(
+                batch_size=128,
+                rnn_layer_sizes=[128, 128],
+                dropout_keep_prob=0.5,
+                attn_length=40,
+                clip_norm=3,
+                learning_rate=0.001))
 }

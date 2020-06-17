@@ -16,16 +16,14 @@
 import abc
 
 from magenta.models.music_vae import data
-import magenta.music as mm
-from magenta.music import chords_lib
-from magenta.music import performance_lib
-from magenta.music import sequences_lib
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import performance_pipeline
+import note_seq
+from note_seq import chords_lib
+from note_seq import performance_lib
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-CHORD_SYMBOL = music_pb2.NoteSequence.TextAnnotation.CHORD_SYMBOL
+CHORD_SYMBOL = note_seq.NoteSequence.TextAnnotation.CHORD_SYMBOL
 
 
 def split_performance(performance, steps_per_segment, new_performance_fn,
@@ -103,11 +101,11 @@ def split_performance(performance, steps_per_segment, new_performance_fn,
       sequence = segments[i].to_sequence()
       if isinstance(segments[i], performance_lib.MetricPerformance):
         # Performance is quantized relative to meter.
-        quantized_sequence = sequences_lib.quantize_note_sequence(
+        quantized_sequence = note_seq.quantize_note_sequence(
             sequence, steps_per_quarter=segments[i].steps_per_quarter)
       else:
         # Performance is quantized with absolute timing.
-        quantized_sequence = sequences_lib.quantize_note_sequence_absolute(
+        quantized_sequence = note_seq.quantize_note_sequence_absolute(
             sequence, steps_per_second=segments[i].steps_per_second)
       segments[i] = new_performance_fn(
           quantized_sequence=quantized_sequence,
@@ -327,9 +325,11 @@ class MultiInstrumentPerformanceConverter(
     max_shift_steps = (performance_lib.DEFAULT_MAX_SHIFT_QUARTERS *
                        steps_per_quarter)
 
-    self._performance_encoding = mm.PerformanceOneHotEncoding(
-        num_velocity_bins=num_velocity_bins, max_shift_steps=max_shift_steps,
-        min_pitch=min_pitch, max_pitch=max_pitch)
+    self._performance_encoding = note_seq.PerformanceOneHotEncoding(
+        num_velocity_bins=num_velocity_bins,
+        max_shift_steps=max_shift_steps,
+        min_pitch=min_pitch,
+        max_pitch=max_pitch)
     self._chord_encoding = chord_encoding
 
     self._num_velocity_bins = num_velocity_bins
@@ -351,7 +351,7 @@ class MultiInstrumentPerformanceConverter(
 
     # Each encoded track will begin with a program specification token
     # (with one extra program for drums).
-    num_program_tokens = mm.MAX_MIDI_PROGRAM - mm.MIN_MIDI_PROGRAM + 2
+    num_program_tokens = note_seq.MAX_MIDI_PROGRAM - note_seq.MIN_MIDI_PROGRAM + 2
     end_token = self._performance_encoding.num_classes + num_program_tokens
     depth = end_token + 1
 
@@ -362,7 +362,7 @@ class MultiInstrumentPerformanceConverter(
       control_pad_token = None
     else:
       control_depth = chord_encoding.num_classes
-      control_pad_token = chord_encoding.encode_event(mm.NO_CHORD)
+      control_pad_token = chord_encoding.encode_event(note_seq.NO_CHORD)
 
     super(MultiInstrumentPerformanceConverter, self).__init__(
         input_depth=depth,
@@ -426,8 +426,10 @@ class MultiInstrumentPerformanceConverter(
       if not all(l <= self._max_events_per_instrument - 2
                  for l in track_chunk_lengths):
         return [], []
-      if not all(mm.MIN_MIDI_PROGRAM <= t.program <= mm.MAX_MIDI_PROGRAM
-                 for t in track_chunks if not t.is_drum):
+      if not all(
+          note_seq.MIN_MIDI_PROGRAM <= t.program <= note_seq.MAX_MIDI_PROGRAM
+          for t in track_chunks
+          if not t.is_drum):
         return [], []
 
       total_length += sum(track_chunk_lengths)
@@ -440,7 +442,7 @@ class MultiInstrumentPerformanceConverter(
     if total_length < self._min_total_events:
       return [], []
 
-    num_programs = mm.MAX_MIDI_PROGRAM - mm.MIN_MIDI_PROGRAM + 1
+    num_programs = note_seq.MAX_MIDI_PROGRAM - note_seq.MIN_MIDI_PROGRAM + 1
 
     chunk_tensors = []
     chunk_chord_tensors = []
@@ -493,7 +495,7 @@ class MultiInstrumentPerformanceConverter(
                 track_chord_tokens, self.control_depth, self.control_dtype)
             track_chord_tensors.append(encoded_track_chords)
 
-        except (mm.ChordSymbolError, mm.ChordEncodingError):
+        except (note_seq.ChordSymbolError, note_seq.ChordEncodingError):
           return [], []
 
         chunk_chord_tensors.append(track_chord_tensors)
@@ -504,7 +506,7 @@ class MultiInstrumentPerformanceConverter(
 
   def _to_tensors_fn(self, note_sequence):
     # Performance sequences require sustain to be correctly interpreted.
-    note_sequence = sequences_lib.apply_sustain_control_changes(note_sequence)
+    note_sequence = note_seq.apply_sustain_control_changes(note_sequence)
 
     if self._chord_encoding and not any(
         ta.annotation_type == CHORD_SYMBOL
@@ -512,17 +514,18 @@ class MultiInstrumentPerformanceConverter(
       try:
         # Quantize just for the purpose of chord inference.
         # TODO(iansimon): Allow chord inference in unquantized sequences.
-        quantized_sequence = mm.quantize_note_sequence(
+        quantized_sequence = note_seq.quantize_note_sequence(
             note_sequence, self._steps_per_quarter)
-        if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
+        if (note_seq.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
             self._steps_per_bar):
           return data.ConverterTensors()
 
         # Infer chords in quantized sequence.
-        mm.infer_chords_for_sequence(quantized_sequence)
+        note_seq.infer_chords_for_sequence(quantized_sequence)
 
-      except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
-              mm.NegativeTimeError, mm.ChordInferenceError):
+      except (note_seq.BadTimeSignatureError,
+              note_seq.NonIntegerStepsPerBarError, note_seq.NegativeTimeError,
+              note_seq.ChordInferenceError):
         return data.ConverterTensors()
 
       # Copy inferred chords back to original sequence.
@@ -536,14 +539,13 @@ class MultiInstrumentPerformanceConverter(
     if note_sequence.tempos:
       quarters_per_minute = note_sequence.tempos[0].qpm
     else:
-      quarters_per_minute = mm.DEFAULT_QUARTERS_PER_MINUTE
+      quarters_per_minute = note_seq.DEFAULT_QUARTERS_PER_MINUTE
     quarters_per_bar = self._steps_per_bar / self._steps_per_quarter
     hop_size_quarters = quarters_per_bar * self._hop_size_bars
     hop_size_seconds = 60.0 * hop_size_quarters / quarters_per_minute
 
     # Split note sequence by bar hop size (in seconds).
-    subsequences = sequences_lib.split_note_sequence(
-        note_sequence, hop_size_seconds)
+    subsequences = note_seq.split_note_sequence(note_sequence, hop_size_seconds)
 
     if self._first_subsequence_only and len(subsequences) > 1:
       return data.ConverterTensors()
@@ -554,13 +556,13 @@ class MultiInstrumentPerformanceConverter(
     for subsequence in subsequences:
       # Quantize this subsequence.
       try:
-        quantized_subsequence = mm.quantize_note_sequence(
+        quantized_subsequence = note_seq.quantize_note_sequence(
             subsequence, self._steps_per_quarter)
-        if (mm.steps_per_bar_in_quantized_sequence(quantized_subsequence) !=
-            self._steps_per_bar):
+        if (note_seq.steps_per_bar_in_quantized_sequence(quantized_subsequence)
+            != self._steps_per_bar):
           return data.ConverterTensors()
-      except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
-              mm.NegativeTimeError):
+      except (note_seq.BadTimeSignatureError,
+              note_seq.NonIntegerStepsPerBarError, note_seq.NegativeTimeError):
         return data.ConverterTensors()
 
       # Convert the quantized subsequence to tensors.
@@ -587,13 +589,13 @@ class MultiInstrumentPerformanceConverter(
                                           self.is_training, self._to_tensors_fn)
 
   def _to_single_notesequence(self, samples, controls):
-    qpm = mm.DEFAULT_QUARTERS_PER_MINUTE
+    qpm = note_seq.DEFAULT_QUARTERS_PER_MINUTE
     seconds_per_step = 60.0 / (self._steps_per_quarter * qpm)
     chunk_size_steps = self._steps_per_bar * self._chunk_size_bars
 
-    seq = music_pb2.NoteSequence()
+    seq = note_seq.NoteSequence()
     seq.tempos.add().qpm = qpm
-    seq.ticks_per_quarter = mm.STANDARD_PPQ
+    seq.ticks_per_quarter = note_seq.STANDARD_PPQ
 
     tracks = [[] for _ in range(self._max_num_instruments)]
     all_timed_chords = []
@@ -624,7 +626,7 @@ class MultiInstrumentPerformanceConverter(
           is_drum = False
         else:
           program = program_tokens[0] - self._performance_encoding.num_classes
-          if program == mm.MAX_MIDI_PROGRAM + 1:
+          if program == note_seq.MAX_MIDI_PROGRAM + 1:
             # This is the drum program.
             program = 0
             is_drum = True

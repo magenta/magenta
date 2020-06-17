@@ -16,10 +16,10 @@
 
 import copy
 
-import magenta
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
-import magenta.music as mm
+import note_seq
+from note_seq.protobuf import generator_pb2
 
 DEFAULT_MIN_NOTE = 48
 DEFAULT_MAX_NOTE = 84
@@ -125,16 +125,17 @@ class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
                transpose_to_key=DEFAULT_TRANSPOSE_TO_KEY):
     super(ImprovRnnConfig, self).__init__(details, encoder_decoder, hparams)
 
-    if min_note < mm.MIN_MIDI_PITCH:
+    if min_note < note_seq.MIN_MIDI_PITCH:
       raise ValueError('min_note must be >= 0. min_note is %d.' % min_note)
-    if max_note > mm.MAX_MIDI_PITCH + 1:
+    if max_note > note_seq.MAX_MIDI_PITCH + 1:
       raise ValueError('max_note must be <= 128. max_note is %d.' % max_note)
-    if max_note - min_note < mm.NOTES_PER_OCTAVE:
+    if max_note - min_note < note_seq.NOTES_PER_OCTAVE:
       raise ValueError('max_note - min_note must be >= 12. min_note is %d. '
                        'max_note is %d. max_note - min_note is %d.' %
                        (min_note, max_note, max_note - min_note))
     if (transpose_to_key is not None and
-        (transpose_to_key < 0 or transpose_to_key > mm.NOTES_PER_OCTAVE - 1)):
+        (transpose_to_key < 0 or
+         transpose_to_key > note_seq.NOTES_PER_OCTAVE - 1)):
       raise ValueError('transpose_to_key must be >= 0 and <= 11. '
                        'transpose_to_key is %d.' % transpose_to_key)
 
@@ -147,15 +148,15 @@ class ImprovRnnConfig(events_rnn_model.EventSequenceRnnConfig):
 default_configs = {
     'basic_improv':
         ImprovRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='basic_improv',
                 description='Basic melody-given-chords RNN with one-hot triad '
                 'encoding for chords.'),
-            magenta.music.ConditionalEventSequenceEncoderDecoder(
-                magenta.music.OneHotEventSequenceEncoderDecoder(
-                    magenta.music.TriadChordOneHotEncoding()),
-                magenta.music.OneHotEventSequenceEncoderDecoder(
-                    magenta.music.MelodyOneHotEncoding(
+            note_seq.ConditionalEventSequenceEncoderDecoder(
+                note_seq.OneHotEventSequenceEncoderDecoder(
+                    note_seq.TriadChordOneHotEncoding()),
+                note_seq.OneHotEventSequenceEncoderDecoder(
+                    note_seq.MelodyOneHotEncoding(
                         min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE))),
             contrib_training.HParams(
                 batch_size=128,
@@ -165,14 +166,14 @@ default_configs = {
                 learning_rate=0.001)),
     'attention_improv':
         ImprovRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='attention_improv',
                 description='Melody-given-chords RNN with one-hot triad encoding '
                 'for chords, attention, and binary counters.'),
-            magenta.music.ConditionalEventSequenceEncoderDecoder(
-                magenta.music.OneHotEventSequenceEncoderDecoder(
-                    magenta.music.TriadChordOneHotEncoding()),
-                magenta.music.KeyMelodyEncoderDecoder(
+            note_seq.ConditionalEventSequenceEncoderDecoder(
+                note_seq.OneHotEventSequenceEncoderDecoder(
+                    note_seq.TriadChordOneHotEncoding()),
+                note_seq.KeyMelodyEncoderDecoder(
                     min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE)),
             contrib_training.HParams(
                 batch_size=128,
@@ -183,14 +184,14 @@ default_configs = {
                 learning_rate=0.001)),
     'chord_pitches_improv':
         ImprovRnnConfig(
-            magenta.music.protobuf.generator_pb2.GeneratorDetails(
+            generator_pb2.GeneratorDetails(
                 id='chord_pitches_improv',
                 description='Melody-given-chords RNN with chord pitches encoding.'
             ),
-            magenta.music.ConditionalEventSequenceEncoderDecoder(
-                magenta.music.PitchChordsEncoderDecoder(),
-                magenta.music.OneHotEventSequenceEncoderDecoder(
-                    magenta.music.MelodyOneHotEncoding(
+            note_seq.ConditionalEventSequenceEncoderDecoder(
+                note_seq.PitchChordsEncoderDecoder(),
+                note_seq.OneHotEventSequenceEncoderDecoder(
+                    note_seq.MelodyOneHotEncoding(
                         min_note=DEFAULT_MIN_NOTE, max_note=DEFAULT_MAX_NOTE))),
             contrib_training.HParams(
                 batch_size=128,

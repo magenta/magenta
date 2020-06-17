@@ -18,10 +18,11 @@ import magenta
 from magenta.contrib import training as contrib_training
 from magenta.models.improv_rnn import improv_rnn_model
 from magenta.models.improv_rnn import improv_rnn_pipeline
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import lead_sheet_pipelines
 from magenta.pipelines import note_sequence_pipelines
 from magenta.pipelines import pipelines_common
+import note_seq
+import note_seq.testing_lib
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -35,11 +36,11 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
     super().setUp()
     self.config = improv_rnn_model.ImprovRnnConfig(
         None,
-        magenta.music.ConditionalEventSequenceEncoderDecoder(
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.MajorMinorChordOneHotEncoding()),
-            magenta.music.OneHotEventSequenceEncoderDecoder(
-                magenta.music.MelodyOneHotEncoding(0, 127))),
+        note_seq.ConditionalEventSequenceEncoderDecoder(
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.MajorMinorChordOneHotEncoding()),
+            note_seq.OneHotEventSequenceEncoderDecoder(
+                note_seq.MelodyOneHotEncoding(0, 127))),
         contrib_training.HParams(),
         min_note=0,
         max_note=127,
@@ -47,31 +48,33 @@ class ImprovRNNPipelineTest(tf.test.TestCase):
 
   def testMelodyRNNPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
+        note_seq.NoteSequence,
         """
         time_signatures: {
           numerator: 4
           denominator: 4}
         tempos: {
           qpm: 120}""")
-    magenta.music.testing_lib.add_track_to_sequence(
-        note_sequence, 0,
-        [(12, 100, 0.00, 2.0), (11, 55, 2.1, 5.0), (40, 45, 5.1, 8.0),
-         (55, 120, 8.1, 11.0), (53, 99, 11.1, 14.1)])
-    magenta.music.testing_lib.add_chords_to_sequence(
-        note_sequence,
-        [('N.C.', 0.0), ('Am9', 5.0), ('D7', 10.0)])
+    note_seq.testing_lib.add_track_to_sequence(note_sequence, 0,
+                                               [(12, 100, 0.00, 2.0),
+                                                (11, 55, 2.1, 5.0),
+                                                (40, 45, 5.1, 8.0),
+                                                (55, 120, 8.1, 11.0),
+                                                (53, 99, 11.1, 14.1)])
+    note_seq.testing_lib.add_chords_to_sequence(note_sequence, [('N.C.', 0.0),
+                                                                ('Am9', 5.0),
+                                                                ('D7', 10.0)])
 
     quantizer = note_sequence_pipelines.Quantizer(steps_per_quarter=4)
     lead_sheet_extractor = lead_sheet_pipelines.LeadSheetExtractor(
         min_bars=7, min_unique_pitches=5, gap_bars=1.0,
         ignore_polyphonic_notes=False, all_transpositions=False)
-    conditional_encoding = magenta.music.ConditionalEventSequenceEncoderDecoder(
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MajorMinorChordOneHotEncoding()),
-        magenta.music.OneHotEventSequenceEncoderDecoder(
-            magenta.music.MelodyOneHotEncoding(
-                self.config.min_note, self.config.max_note)))
+    conditional_encoding = note_seq.ConditionalEventSequenceEncoderDecoder(
+        note_seq.OneHotEventSequenceEncoderDecoder(
+            note_seq.MajorMinorChordOneHotEncoding()),
+        note_seq.OneHotEventSequenceEncoderDecoder(
+            note_seq.MelodyOneHotEncoding(self.config.min_note,
+                                          self.config.max_note)))
     quantized = quantizer.transform(note_sequence)[0]
     lead_sheet = lead_sheet_extractor.transform(quantized)[0]
     lead_sheet.squash(

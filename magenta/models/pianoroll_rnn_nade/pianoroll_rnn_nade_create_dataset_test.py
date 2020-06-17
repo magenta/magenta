@@ -17,9 +17,9 @@
 import magenta
 from magenta.contrib import training as contrib_training
 from magenta.models.shared import events_rnn_model
-import magenta.music as mm
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import pianoroll_pipeline
+import note_seq
+import note_seq.testing_lib
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
@@ -32,23 +32,29 @@ class PianorollPipelineTest(tf.test.TestCase):
   def setUp(self):
     super(PianorollPipelineTest, self).setUp()
     self.config = events_rnn_model.EventSequenceRnnConfig(
-        None, mm.PianorollEncoderDecoder(88), contrib_training.HParams())
+        None, note_seq.PianorollEncoderDecoder(88), contrib_training.HParams())
 
   def testPianorollPipeline(self):
     note_sequence = magenta.common.testing_lib.parse_test_proto(
-        music_pb2.NoteSequence,
-        """
+        note_seq.NoteSequence, """
         time_signatures: {
           numerator: 4
           denominator: 4}
         tempos: {
           qpm: 120}""")
-    magenta.music.testing_lib.add_track_to_sequence(
-        note_sequence, 0,
-        [(36, 100, 0.00, 2.0), (40, 55, 2.1, 5.0), (44, 80, 3.6, 5.0),
-         (41, 45, 5.1, 8.0), (64, 100, 6.6, 10.0), (55, 120, 8.1, 11.0),
-         (39, 110, 9.6, 9.7), (53, 99, 11.1, 14.1), (51, 40, 12.6, 13.0),
-         (55, 100, 14.1, 15.0), (54, 90, 15.6, 17.0), (60, 100, 17.1, 18.0)])
+    note_seq.testing_lib.add_track_to_sequence(note_sequence, 0,
+                                               [(36, 100, 0.00, 2.0),
+                                                (40, 55, 2.1, 5.0),
+                                                (44, 80, 3.6, 5.0),
+                                                (41, 45, 5.1, 8.0),
+                                                (64, 100, 6.6, 10.0),
+                                                (55, 120, 8.1, 11.0),
+                                                (39, 110, 9.6, 9.7),
+                                                (53, 99, 11.1, 14.1),
+                                                (51, 40, 12.6, 13.0),
+                                                (55, 100, 14.1, 15.0),
+                                                (54, 90, 15.6, 17.0),
+                                                (60, 100, 17.1, 18.0)])
 
     pipeline_inst = pianoroll_pipeline.get_pipeline(
         min_steps=80,  # 5 measures

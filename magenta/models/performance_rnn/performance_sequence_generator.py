@@ -22,9 +22,9 @@ import math
 
 from magenta.models.performance_rnn import performance_model
 from magenta.models.shared import sequence_generator
-import magenta.music as mm
-from magenta.music import performance_controls
 from magenta.pipelines import performance_pipeline
+import note_seq
+from note_seq import performance_controls
 import tensorflow.compat.v1 as tf
 
 # This model can leave hanging notes. To avoid cacophony we turn off any note
@@ -39,12 +39,17 @@ DEFAULT_NOTE_DENSITY = performance_controls.DEFAULT_NOTE_DENSITY
 class PerformanceRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
   """Performance RNN generation code as a SequenceGenerator interface."""
 
-  def __init__(self, model, details,
-               steps_per_second=mm.DEFAULT_STEPS_PER_SECOND,
+  def __init__(self,
+               model,
+               details,
+               steps_per_second=note_seq.DEFAULT_STEPS_PER_SECOND,
                num_velocity_bins=0,
-               control_signals=None, optional_conditioning=False,
+               control_signals=None,
+               optional_conditioning=False,
                max_note_duration=MAX_NOTE_DURATION_SECONDS,
-               fill_generate_section=True, checkpoint=None, bundle=None,
+               fill_generate_section=True,
+               checkpoint=None,
+               bundle=None,
                note_performance=False):
     """Creates a PerformanceRnnSequenceGenerator.
 
@@ -93,9 +98,10 @@ class PerformanceRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     generate_section = generator_options.generate_sections[0]
     if generator_options.input_sections:
       input_section = generator_options.input_sections[0]
-      primer_sequence = mm.trim_note_sequence(
-          input_sequence, input_section.start_time, input_section.end_time)
-      input_start_step = mm.quantize_to_step(
+      primer_sequence = note_seq.trim_note_sequence(input_sequence,
+                                                    input_section.start_time,
+                                                    input_section.end_time)
+      input_start_step = note_seq.quantize_to_step(
           input_section.start_time, self.steps_per_second, quantize_cutoff=0.0)
     else:
       primer_sequence = input_sequence
@@ -112,7 +118,7 @@ class PerformanceRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
           (generate_section.start_time, last_end_time))
 
     # Quantize the priming sequence.
-    quantized_primer_sequence = mm.quantize_note_sequence_absolute(
+    quantized_primer_sequence = note_seq.quantize_note_sequence_absolute(
         primer_sequence, self.steps_per_second)
 
     extracted_perfs, _ = performance_pipeline.extract_performances(
@@ -121,12 +127,12 @@ class PerformanceRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
         note_performance=self._note_performance)
     assert len(extracted_perfs) <= 1
 
-    generate_start_step = mm.quantize_to_step(
+    generate_start_step = note_seq.quantize_to_step(
         generate_section.start_time, self.steps_per_second, quantize_cutoff=0.0)
     # Note that when quantizing end_step, we set quantize_cutoff to 1.0 so it
     # always rounds down. This avoids generating a sequence that ends at 5.0
     # seconds when the requested end time is 4.99.
-    generate_end_step = mm.quantize_to_step(
+    generate_end_step = note_seq.quantize_to_step(
         generate_section.end_time, self.steps_per_second, quantize_cutoff=1.0)
 
     if extracted_perfs and extracted_perfs[0]:
@@ -134,7 +140,7 @@ class PerformanceRnnSequenceGenerator(sequence_generator.BaseSequenceGenerator):
     else:
       # If no track could be extracted, create an empty track that starts at the
       # requested generate_start_step.
-      performance = mm.Performance(
+      performance = note_seq.Performance(
           steps_per_second=(
               quantized_primer_sequence.quantization_info.steps_per_second),
           start_step=generate_start_step,

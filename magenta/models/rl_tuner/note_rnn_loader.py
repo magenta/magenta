@@ -33,13 +33,13 @@ These functions are necessary for use with the RL Tuner class.
 
 import os
 
-import magenta
 from magenta.common import sequence_example_lib
 from magenta.models.rl_tuner import rl_tuner_ops
 from magenta.models.shared import events_rnn_graph
-from magenta.music import midi_io
-from magenta.music import sequences_lib
 from magenta.pipelines import melody_pipelines
+import note_seq
+from note_seq import midi_io
+from note_seq import sequences_lib
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tf_slim
@@ -306,10 +306,9 @@ class NoteRNNLoader(object):
       tf.logging.debug('Priming the model with MIDI file %s', self.midi_primer)
 
       # Convert primer Melody to model inputs.
-      encoder = magenta.music.OneHotEventSequenceEncoderDecoder(
-          magenta.music.MelodyOneHotEncoding(
-              min_note=rl_tuner_ops.MIN_NOTE,
-              max_note=rl_tuner_ops.MAX_NOTE))
+      encoder = note_seq.OneHotEventSequenceEncoderDecoder(
+          note_seq.MelodyOneHotEncoding(
+              min_note=rl_tuner_ops.MIN_NOTE, max_note=rl_tuner_ops.MAX_NOTE))
 
       primer_input, _ = encoder.encode(self.primer)
 

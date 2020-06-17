@@ -23,24 +23,22 @@ import functools
 from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
-import magenta.music as mm
-from magenta.music import constants
-from magenta.music import testing_lib
-from magenta.music.protobuf import music_pb2
 import mock
+import note_seq
+from note_seq import testing_lib
 import numpy as np
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
 
-NO_EVENT = constants.MELODY_NO_EVENT
-NOTE_OFF = constants.MELODY_NOTE_OFF
+NO_EVENT = note_seq.MELODY_NO_EVENT
+NOTE_OFF = note_seq.MELODY_NOTE_OFF
 NO_DRUMS = 0
-NO_CHORD = constants.NO_CHORD
+NO_CHORD = note_seq.NO_CHORD
 
 
 def filter_instrument(sequence, instrument):
-  filtered_sequence = music_pb2.NoteSequence()
+  filtered_sequence = note_seq.NoteSequence()
   filtered_sequence.CopyFrom(sequence)
   del filtered_sequence.notes[:]
   filtered_sequence.notes.extend(
@@ -52,7 +50,7 @@ class NoteSequenceAugmenterTest(tf.test.TestCase):
 
   def setUp(self):
     super(NoteSequenceAugmenterTest, self).setUp()
-    sequence = music_pb2.NoteSequence()
+    sequence = note_seq.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         sequence, 0,
@@ -68,7 +66,7 @@ class NoteSequenceAugmenterTest(tf.test.TestCase):
     augmenter = data.NoteSequenceAugmenter(transpose_range=(2, 2))
     augmented_sequence = augmenter.augment(self.sequence)
 
-    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence = note_seq.NoteSequence()
     expected_sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
@@ -86,7 +84,7 @@ class NoteSequenceAugmenterTest(tf.test.TestCase):
     augmenter = data.NoteSequenceAugmenter(stretch_range=(0.5, 0.5))
     augmented_sequence = augmenter.augment(self.sequence)
 
-    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence = note_seq.NoteSequence()
     expected_sequence.tempos.add(qpm=120)
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
@@ -110,10 +108,10 @@ class NoteSequenceAugmenterTest(tf.test.TestCase):
       augmented_sequence_str = sess.run(
           [augmented_sequence_str_],
           feed_dict={sequence_str: self.sequence.SerializeToString()})
-    augmented_sequence = music_pb2.NoteSequence.FromString(
+    augmented_sequence = note_seq.NoteSequence.FromString(
         augmented_sequence_str[0])
 
-    expected_sequence = music_pb2.NoteSequence()
+    expected_sequence = note_seq.NoteSequence()
     expected_sequence.tempos.add(qpm=30)
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
@@ -241,8 +239,9 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testUnslicedChordConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        steps_per_quarter=1,
+        slice_bars=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(self.sequence)
     actual_unsliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
     actual_unsliced_chord_labels = [
@@ -257,8 +256,9 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testTfUnslicedChordConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        steps_per_quarter=1,
+        slice_bars=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, control_tensors_, lengths_ = (
@@ -282,8 +282,10 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testSlicedChordConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        steps_per_quarter=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(self.sequence)
     actual_sliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
     actual_sliced_chord_labels = [
@@ -298,8 +300,10 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testTfSlicedChordConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        steps_per_quarter=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
       input_tensors_, output_tensors_, control_tensors_, lengths_ = (
@@ -401,8 +405,9 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testUnslicedChordAndKeyConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        steps_per_quarter=1,
+        slice_bars=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding(),
         condition_on_key=True)
     tensors = converter.to_tensors(self.sequence)
     actual_unsliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
@@ -422,8 +427,9 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testTfUnslicedChordAndKeyConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        steps_per_quarter=1,
+        slice_bars=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding(),
         condition_on_key=True)
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
@@ -454,8 +460,10 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testSlicedChordAndKeyConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        steps_per_quarter=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding(),
         condition_on_key=True)
     tensors = converter.to_tensors(self.sequence)
     actual_sliced_labels = [np.argmax(t, axis=-1) for t in tensors.outputs]
@@ -475,8 +483,10 @@ class BaseConditionedOneHotDataTest(BaseOneHotDataTest):
 
   def testTfSlicedChordAndKeyConditioned(self):
     converter = self.converter_class(
-        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding(),
+        steps_per_quarter=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding(),
         condition_on_key=True)
     with self.test_session() as sess:
       sequence = tf.placeholder(tf.string)
@@ -509,7 +519,7 @@ class OneHotMelodyConverterTest(BaseConditionedOneHotDataTest,
 
   def setUp(self):
     super(OneHotMelodyConverterTest, self).setUp()
-    sequence = music_pb2.NoteSequence()
+    sequence = note_seq.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         sequence, 0,
@@ -561,7 +571,7 @@ class OneHotMelodyConverterTest(BaseConditionedOneHotDataTest,
     self.expected_sliced_labels = [
         np.array(es) + 2 for es in expected_sliced_events]
 
-    chord_encoding = mm.MajorMinorChordOneHotEncoding()
+    chord_encoding = note_seq.MajorMinorChordOneHotEncoding()
 
     expected_unsliced_chord_events = [
         (NO_CHORD, NO_CHORD, 'F', 'F',
@@ -634,7 +644,7 @@ class OneHotMelodyConverterTest(BaseConditionedOneHotDataTest,
     sequences = converter.from_tensors(tensors.outputs)
 
     self.assertEqual(1, len(sequences))
-    expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    expected_sequence = note_seq.NoteSequence(ticks_per_quarter=220)
     expected_sequence.tempos.add(qpm=120)
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
@@ -643,14 +653,16 @@ class OneHotMelodyConverterTest(BaseConditionedOneHotDataTest,
 
   def testToNoteSequenceChordConditioned(self):
     converter = data.OneHotMelodyConverter(
-        steps_per_quarter=1, slice_bars=4, max_tensors_per_notesequence=1,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        steps_per_quarter=1,
+        slice_bars=4,
+        max_tensors_per_notesequence=1,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(
         filter_instrument(self.sequence, 0))
     sequences = converter.from_tensors(tensors.outputs, tensors.controls)
 
     self.assertEqual(1, len(sequences))
-    expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    expected_sequence = note_seq.NoteSequence(ticks_per_quarter=220)
     expected_sequence.tempos.add(qpm=120)
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
@@ -664,7 +676,7 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
 
   def setUp(self):
     super(OneHotDrumsConverterTest, self).setUp()
-    sequence = music_pb2.NoteSequence()
+    sequence = note_seq.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         sequence, 0,
@@ -732,7 +744,7 @@ class OneHotDrumsConverterTest(BaseOneHotDataTest, tf.test.TestCase):
     sequences = converter.from_tensors(tensors.outputs)
 
     self.assertEqual(1, len(sequences))
-    expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    expected_sequence = note_seq.NoteSequence(ticks_per_quarter=220)
     expected_sequence.tempos.add(qpm=120)
     testing_lib.add_track_to_sequence(
         expected_sequence, 9,
@@ -775,7 +787,7 @@ class RollOutputsDrumsConverterTest(BaseDataTest, tf.test.TestCase):
 
   def setUp(self):
     super(RollOutputsDrumsConverterTest, self).setUp()
-    sequence = music_pb2.NoteSequence()
+    sequence = note_seq.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         sequence, 0,
@@ -849,7 +861,7 @@ class RollOutputsDrumsConverterTest(BaseDataTest, tf.test.TestCase):
     sequences = converter.from_tensors(tensors.outputs)
 
     self.assertEqual(1, len(sequences))
-    expected_sequence = music_pb2.NoteSequence(ticks_per_quarter=220)
+    expected_sequence = note_seq.NoteSequence(ticks_per_quarter=220)
     expected_sequence.tempos.add(qpm=120)
     testing_lib.add_track_to_sequence(
         expected_sequence, 0,
@@ -870,7 +882,7 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
 
   def setUp(self):
     super(TrioConverterTest, self).setUp()
-    sequence = music_pb2.NoteSequence()
+    sequence = note_seq.NoteSequence()
     sequence.tempos.add(qpm=60)
     # Mel 1, coverage bars: [3, 9] / [2, 9]
     testing_lib.add_track_to_sequence(
@@ -942,7 +954,7 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     self.expected_sliced_labels = [
         np.stack([l[i*4:j*4] for l in x]) for (i, j), x in expected_sliced_sets]
 
-    chord_encoding = mm.MajorMinorChordOneHotEncoding()
+    chord_encoding = note_seq.MajorMinorChordOneHotEncoding()
     expected_sliced_chord_events = [
         c[i*4:j*4] for (i, j), _ in expected_sliced_sets]
     self.expected_sliced_chord_labels = [
@@ -963,9 +975,11 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
 
   def testSlicedChordConditioned(self):
     converter = data.TrioConverter(
-        steps_per_quarter=1, gap_bars=1, slice_bars=2,
+        steps_per_quarter=1,
+        gap_bars=1,
+        slice_bars=2,
         max_tensors_per_notesequence=None,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
     tensors = converter.to_tensors(self.sequence)
     self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
     actual_sliced_labels = [
@@ -1016,8 +1030,10 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
 
   def testToNoteSequenceChordConditioned(self):
     converter = data.TrioConverter(
-        steps_per_quarter=1, slice_bars=2, max_tensors_per_notesequence=1,
-        chord_encoding=mm.MajorMinorChordOneHotEncoding())
+        steps_per_quarter=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=1,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding())
 
     mel_oh = data.np_onehot(self.expected_sliced_labels[3][0], 90)
     bass_oh = data.np_onehot(self.expected_sliced_labels[3][1], 90)
@@ -1063,7 +1079,7 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
 class GrooveConverterTest(tf.test.TestCase):
 
   def initialize_sequence(self):
-    sequence = music_pb2.NoteSequence()
+    sequence = note_seq.NoteSequence()
     sequence.ticks_per_quarter = 240
     sequence.tempos.add(qpm=120)
     sequence.time_signatures.add(numerator=4, denominator=4)
@@ -1559,7 +1575,7 @@ class GrooveConverterTest(tf.test.TestCase):
     # Test in default mode.
     default_tensors = converter.to_tensors(test_seq)
     default_sequences = converter.from_tensors(default_tensors.outputs)
-    expected_default_sequence = music_pb2.NoteSequence()
+    expected_default_sequence = note_seq.NoteSequence()
     expected_default_sequence.CopyFrom(test_seq)
     expected_default_sequence.notes[1].pitch = 0
     expected_default_sequence.notes[3].pitch = 2
@@ -1575,7 +1591,7 @@ class GrooveConverterTest(tf.test.TestCase):
     converter.set_mode('infer')
     infer_tensors = converter.to_tensors(test_seq)
     infer_sequences = converter.from_tensors(infer_tensors.outputs)
-    expected_infer_sequence = music_pb2.NoteSequence()
+    expected_infer_sequence = note_seq.NoteSequence()
     expected_infer_sequence.CopyFrom(test_seq)
     expected_infer_sequence.notes[0].pitch = 3
     expected_infer_sequence.notes[2].pitch = 1
@@ -1589,7 +1605,7 @@ class GetDatasetTest(tf.test.TestCase):
   @mock.patch.object(tf.gfile, 'Glob')
   def testGetDatasetBasic(self, mock_glob, mock_list, mock_interleave):
     # Create NoteSequence
-    sequence = music_pb2.NoteSequence()
+    sequence = note_seq.NoteSequence()
     sequence.tempos.add(qpm=60)
     testing_lib.add_track_to_sequence(
         sequence, 0,

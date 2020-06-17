@@ -18,9 +18,9 @@ import abc
 import threading
 import time
 
-import magenta
-from magenta.music.protobuf import generator_pb2
-from magenta.music.protobuf import music_pb2
+import note_seq
+from note_seq.protobuf import generator_pb2
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 
@@ -344,8 +344,9 @@ class CallAndResponseMidiInteraction(MidiInteraction):
     tf.logging.debug('Generator Options: %s', generator_options)
     response_sequence = self._sequence_generator.generate(
         adjust_sequence_times(input_sequence, -zero_time), generator_options)
-    response_sequence = magenta.music.trim_note_sequence(
-        response_sequence, response_start_time, response_end_time)
+    response_sequence = note_seq.trim_note_sequence(response_sequence,
+                                                    response_start_time,
+                                                    response_end_time)
     return adjust_sequence_times(response_sequence, zero_time)
 
   def run(self):

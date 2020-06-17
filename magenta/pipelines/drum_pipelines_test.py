@@ -16,11 +16,11 @@
 
 from absl.testing import absltest
 from magenta.common import testing_lib as common_testing_lib
-from magenta.music import drums_lib
-from magenta.music import sequences_lib
-from magenta.music import testing_lib as music_testing_lib
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import drum_pipelines
+from note_seq import drums_lib
+from note_seq import sequences_lib
+from note_seq import testing_lib as music_testing_lib
+from note_seq.protobuf import music_pb2
 
 DRUMS = lambda *args: frozenset(args)
 NO_DRUMS = frozenset()

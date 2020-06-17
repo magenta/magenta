@@ -15,10 +15,10 @@
 """Tests for performance_pipeline."""
 
 from absl.testing import absltest
-from magenta.music import sequences_lib
-from magenta.music import testing_lib as music_testing_lib
-from magenta.music.protobuf import music_pb2
 from magenta.pipelines import performance_pipeline
+from note_seq import sequences_lib
+from note_seq import testing_lib as music_testing_lib
+from note_seq.protobuf import music_pb2
 
 
 class PerformancePipelineTest(absltest.TestCase):

@@ -15,8 +15,9 @@
 """Provides function to build an event sequence RNN model's graph."""
 import numbers
 
-import magenta
+import magenta.common
 from magenta.contrib import rnn as contrib_rnn
+import note_seq
 import numpy as np
 import tensorflow.compat.v1 as tf
 import tf_slim
@@ -116,7 +117,7 @@ def get_build_graph_fn(mode, config, sequence_example_file_paths=None):
                                            input_size])
 
     if isinstance(encoder_decoder,
-                  magenta.music.OneHotIndexEventSequenceEncoderDecoder):
+                  note_seq.OneHotIndexEventSequenceEncoderDecoder):
       expanded_inputs = tf.one_hot(
           tf.cast(tf.squeeze(inputs, axis=-1), tf.int64),
           encoder_decoder.input_depth)

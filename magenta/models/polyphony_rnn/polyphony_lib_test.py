@@ -18,9 +18,9 @@ import copy
 
 from magenta.common import testing_lib as common_testing_lib
 from magenta.models.polyphony_rnn import polyphony_lib
-from magenta.music import sequences_lib
-from magenta.music import testing_lib
-from magenta.music.protobuf import music_pb2
+from note_seq import sequences_lib
+from note_seq import testing_lib
+from note_seq.protobuf import music_pb2
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()

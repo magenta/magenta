@@ -24,10 +24,9 @@ import functools
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import data
 from magenta.models.onsets_frames_transcription import infer_util
-from magenta.music import sequences_lib
-from magenta.music.protobuf import music_pb2
-
 import mir_eval
+from note_seq import sequences_lib
+from note_seq.protobuf import music_pb2
 import numpy as np
 import pretty_midi
 import tensorflow.compat.v1 as tf

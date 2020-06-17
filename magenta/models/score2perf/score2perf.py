@@ -24,8 +24,8 @@ import itertools
 from magenta.models.score2perf import datagen_beam
 from magenta.models.score2perf import modalities
 from magenta.models.score2perf import music_encoders
-from magenta.music import chord_symbols_lib
-from magenta.music import sequences_lib
+from note_seq import chord_symbols_lib
+from note_seq import sequences_lib
 from tensor2tensor.data_generators import problem
 from tensor2tensor.layers import modalities as t2t_modalities
 from tensor2tensor.models import transformer

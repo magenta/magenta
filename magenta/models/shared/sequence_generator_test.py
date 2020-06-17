@@ -16,7 +16,7 @@
 
 from magenta.models.shared import model
 from magenta.models.shared import sequence_generator
-from magenta.music.protobuf import generator_pb2
+from note_seq.protobuf import generator_pb2
 import tensorflow.compat.v1 as tf
 
 tf.disable_v2_behavior()
