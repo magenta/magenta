@@ -903,7 +903,8 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
             hparams.dec_rnn_size,
             dropout_keep_prob=hparams.dropout_keep_prob,
             residual=hparams.residual_decoder)
-        for _ in range(len(self._level_lengths))]
+        # Subtract 1 for the core decoder level
+        for _ in range(len(self._level_lengths) - 1)]
 
     with tf.variable_scope('core_decoder', reuse=tf.AUTO_REUSE):
       self._core_decoder.build(hparams, output_depth, is_training)
