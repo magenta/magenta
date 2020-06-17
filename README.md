@@ -1,7 +1,7 @@
 
 <img src="magenta-logo-bg.png" height="75">
 
-[![Build Status](https://travis-ci.org/tensorflow/magenta.svg?branch=master)](https://travis-ci.org/tensorflow/magenta)
+[![Build Status](https://travis-ci.org/magenta/magenta.svg?branch=master)](https://travis-ci.org/magenta/magenta)
  [![PyPI version](https://badge.fury.io/py/magenta.svg)](https://badge.fury.io/py/magenta)
 
 **Magenta** is a research project exploring the role of machine learning
