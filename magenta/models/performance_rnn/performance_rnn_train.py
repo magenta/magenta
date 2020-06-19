@@ -37,6 +37,9 @@ tf.app.flags.DEFINE_string('sequence_example_file', '',
                            'Path to TFRecord file containing '
                            'tf.SequenceExample records for training or '
                            'evaluation.')
+tf.app.flags.DEFINE_string('warm_start_bundle_file', None,
+                           'Path to a bundle file that will be used to '
+                           'initialize the model weights for fine-tuning.')
 tf.app.flags.DEFINE_integer('num_training_steps', 0,
                             'The the number of global training steps your '
                             'model should take before exiting training. '
@@ -102,10 +105,11 @@ def main(unused_argv):
     events_rnn_train.run_eval(build_graph_fn, train_dir, eval_dir, num_batches)
 
   else:
-    events_rnn_train.run_training(build_graph_fn, train_dir,
-                                  FLAGS.num_training_steps,
-                                  FLAGS.summary_frequency,
-                                  checkpoints_to_keep=FLAGS.num_checkpoints)
+    events_rnn_train.run_training(
+        build_graph_fn, train_dir,
+        FLAGS.num_training_steps,FLAGS.summary_frequency,
+        checkpoints_to_keep=FLAGS.num_checkpoints,
+        warm_start_bundle_file=FLAGS.warm_start_bundle_file)
 
 
 def console_entry_point():
