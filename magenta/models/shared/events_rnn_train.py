@@ -14,6 +14,10 @@
 
 """Train and evaluate an event sequence RNN model."""
 
+import os
+import tempfile
+
+from magenta.models.shared import sequence_generator_bundle
 import tensorflow.compat.v1 as tf
 import tf_slim
 
@@ -21,7 +25,8 @@ import tf_slim
 def run_training(build_graph_fn, train_dir, num_training_steps=None,
                  summary_frequency=10, save_checkpoint_secs=60,
                  checkpoints_to_keep=10, keep_checkpoint_every_n_hours=1,
-                 master='', task=0, num_ps_tasks=0):
+                 master='', task=0, num_ps_tasks=0,
+                 warm_start_bundle_file=None):
   """Runs the training loop.
 
   Args:
@@ -41,6 +46,8 @@ def run_training(build_graph_fn, train_dir, num_training_steps=None,
     master: URL of the Tensorflow master.
     task: Task number for this worker.
     num_ps_tasks: Number of parameter server tasks.
+    warm_start_bundle_file: Path to a sequence generator bundle file that will
+        be used to initialize the model weights for fine-tuning.
   """
   with tf.Graph().as_default():
     with tf.device(tf.train.replica_device_setter(num_ps_tasks)):
@@ -68,22 +75,42 @@ def run_training(build_graph_fn, train_dir, num_training_steps=None,
       if num_training_steps:
         hooks.append(tf.train.StopAtStepHook(num_training_steps))
 
-      scaffold = tf.train.Scaffold(
-          saver=tf.train.Saver(
-              max_to_keep=checkpoints_to_keep,
-              keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+      with tempfile.TemporaryDirectory() as tempdir:
+        if warm_start_bundle_file:
+          # We are fine-tuning from a pretrained bundle. Unpack the bundle and
+          # save its checkpoint to a temporary directory.
+          warm_start_bundle_file = os.path.expanduser(warm_start_bundle_file)
+          bundle = sequence_generator_bundle.read_bundle_file(
+              warm_start_bundle_file)
+          checkpoint_filename = os.path.join(tempdir, 'model.ckpt')
+          with tf.gfile.Open(checkpoint_filename, 'wb') as f:
+            # For now, we support only 1 checkpoint file.
+            f.write(bundle.checkpoint_file[0])
+          variables_to_restore = tf_slim.get_variables_to_restore(
+              exclude=['global_step', '.*Adam.*', 'beta.*_power'])
+          init_op, init_feed_dict = tf_slim.assign_from_checkpoint(
+              checkpoint_filename, variables_to_restore)
+          init_fn = lambda scaffold, sess: sess.run(init_op, init_feed_dict)
+        else:
+          init_fn = None
 
-      tf.logging.info('Starting training loop...')
-      tf_slim.training.train(
-          train_op=train_op,
-          logdir=train_dir,
-          scaffold=scaffold,
-          hooks=hooks,
-          save_checkpoint_secs=save_checkpoint_secs,
-          save_summaries_steps=summary_frequency,
-          master=master,
-          is_chief=task == 0)
-      tf.logging.info('Training complete.')
+        scaffold = tf.train.Scaffold(
+            init_fn=init_fn,
+            saver=tf.train.Saver(
+                max_to_keep=checkpoints_to_keep,
+                keep_checkpoint_every_n_hours=keep_checkpoint_every_n_hours))
+
+        tf.logging.info('Starting training loop...')
+        tf_slim.training.train(
+            train_op=train_op,
+            logdir=train_dir,
+            scaffold=scaffold,
+            hooks=hooks,
+            save_checkpoint_secs=save_checkpoint_secs,
+            save_summaries_steps=summary_frequency,
+            master=master,
+            is_chief=task == 0)
+        tf.logging.info('Training complete.')
 
 
 # TODO(adarob): Limit to a single epoch each evaluation step.
