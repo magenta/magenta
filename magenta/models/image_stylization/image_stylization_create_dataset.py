@@ -24,7 +24,7 @@ import os
 
 from magenta.models.image_stylization import image_utils
 from magenta.models.image_stylization import learning
-import scipy
+import skimage.io
 import tensorflow.compat.v1 as tf
 
 flags = tf.app.flags
@@ -70,7 +70,7 @@ def main(unused_argv):
 
       style_image = image_utils.load_np_image(style_file)
       buf = io.BytesIO()
-      scipy.misc.imsave(buf, style_image, format='JPEG')
+      skimage.io.imsave(buf, style_image, format='JPEG')
       buf.seek(0)
       feature['image_raw'] = _bytes_feature(buf.getvalue())
 

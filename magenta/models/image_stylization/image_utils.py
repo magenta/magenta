@@ -20,8 +20,7 @@ import tempfile
 
 from magenta.models.image_stylization import imagenet_data
 import numpy as np
-import scipy
-import scipy.misc
+import skimage.io
 import tensorflow.compat.v1 as tf
 
 
@@ -396,7 +395,7 @@ def load_np_image_uint8(image_file):
   with tempfile.NamedTemporaryFile() as f:
     f.write(tf.gfile.GFile(image_file, 'rb').read())
     f.flush()
-    image = scipy.misc.imread(f.name)
+    image = skimage.io.imread(f.name)
     # Workaround for black-and-white images
     if image.ndim == 2:
       image = np.tile(image[:, :, None], (1, 1, 3))
@@ -414,7 +413,7 @@ def save_np_image(image, output_file, save_format='jpeg'):
   """
   image = np.uint8(image * 255.0)
   buf = io.BytesIO()
-  scipy.misc.imsave(buf, np.squeeze(image, 0), format=save_format)
+  skimage.io.imsave(buf, np.squeeze(image, 0), format=save_format)
   buf.seek(0)
   f = tf.gfile.GFile(output_file, 'w')
   f.write(buf.getvalue())
