@@ -56,14 +56,15 @@ confidence=
 # --enable=similarities". If you want to run only the classes checker, but have
 # no Warning level messages displayed, use"--disable=all --enable=classes
 # --disable=W"
-disable=abstract-method,  # added
+disable=abstract-method,
         apply-builtin,
-        arguments-differ,  # added
-        attribute-defined-outside-init,  # added
+        arguments-differ,
+        attribute-defined-outside-init,
         backtick,
         bad-option-value,
         buffer-builtin,
         c-extension-no-member,
+        consider-using-enumerate,
         cmp-builtin,
         cmp-method,
         coerce-builtin,
@@ -84,6 +85,7 @@ disable=abstract-method,  # added
         import-error,
         import-self,
         import-star-module-level,
+        inconsistent-return-statements,
         input-builtin,
         intern-builtin,
         invalid-str-codec,
@@ -91,7 +93,8 @@ disable=abstract-method,  # added
         long-builtin,
         long-suffix,
         map-builtin-not-iterating,
-        missing-function-docstring,  # added
+        misplaced-comparison-constant,
+        missing-function-docstring,
         metaclass-assignment,
         next-method-called,
         next-method-defined,
@@ -102,7 +105,7 @@ disable=abstract-method,  # added
         no-else-return,
         no-init,  # added
         no-member,
-        no-name-in-module,  # added
+        no-name-in-module,
         no-self-use,
         nonzero-method,
         oct-method,
@@ -132,19 +135,20 @@ disable=abstract-method,  # added
         too-many-branches,
         too-many-instance-attributes,
         too-many-locals,
+        too-many-nested-blocks,
         too-many-public-methods,
         too-many-return-statements,
         too-many-statements,
         trailing-newlines,
         unichr-builtin,
         unicode-builtin,
+        unnecessary-pass,
         unpacking-in-except,
-        unscriptable-object,  # added
         useless-else-on-loop,
-        useless-object-inheritance,  # added
+        useless-object-inheritance,
         useless-suppression,
         using-cmp-argument,
-        wrong-import-order,  # added
+        wrong-import-order,
         xrange-builtin,
         zip-builtin-not-iterating,
 
