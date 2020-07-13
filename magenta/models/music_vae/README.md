@@ -142,9 +142,18 @@ Learn more about the API in its [repo](https://goo.gl/magenta/musicvae-js).
 ### Training Your Own MusicVAE
 
 If you'd like to train a model on your own data, you will first need to set up
-your [Magenta environment](/README.md). Next, convert a collection of MIDI files
-into NoteSequences following the instructions in
-[Building your Dataset](/magenta/scripts/README.md). You can then choose one of
+your [Magenta environment](/README.md).
+
+Next, convert a collection of MIDI files
+into a TFRecord of NoteSequences following the instructions in
+[Building your Dataset](/magenta/scripts/README.md). If you have a large
+dataset, you may want to further preprocess the resulting TFRecord offline with
+[preprocess_tfrecord.py](preprocess_tfrecord.py). Otherwise, the NoteSequences
+will be preprocessed on the fly during training, which can often be a
+bottleneck. If your dataset is extremely large, consider running the script on
+a distributed platform like [Google Cloud DataFlow](https://beam.apache.org/documentation/runners/dataflow/).
+
+You can then choose one of
 the pre-defined Configurations in [configs.py](configs.py) or define your own.
 Finally, you must execute the [training script](train.py). Below is an example
 command, training the `cat-mel_2bar_small` configuration and assuming your
