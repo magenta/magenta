@@ -620,7 +620,7 @@ class LayerRNNCell(rnn_cell.RNNCell):
 
 
 @tf.RegisterGradient("LSTMBlockCell")
-def _LSTMBlockCellGrad(op, *grad):  # pylint:disable=invalid-name
+def _LSTMBlockCellGrad(op, *grad):  # pylint:disable=invalid-name,g-wrong-blank-lines
   """Gradient for LSTMBlockCell."""
   (x, cs_prev, h_prev, w, wci, wcf, wco, b) = op.inputs
   (i, cs, f, o, ci, co, _) = op.outputs
