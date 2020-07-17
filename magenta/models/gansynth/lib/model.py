@@ -40,7 +40,7 @@ def set_flags(flags):
   flags.set_if_empty('train_data_path', '/tmp/gansynth/nsynth-train.tfrecord')
 
   ### Dataset ###
-  flags.set_if_empty('dataset_name', 'nsynth_tfrecord')
+  flags.set_if_empty('dataset_name', 'nsynth_tfds')
   flags.set_if_empty('data_type', 'mel')  # linear, phase, mel
   flags.set_if_empty('audio_length', 64000)
   flags.set_if_empty('sample_rate', 16000)

@@ -20,9 +20,9 @@ from __future__ import print_function
 
 import collections
 from magenta.models.gansynth.lib import spectral_ops
-from magenta.models.gansynth.lib import util
 import numpy as np
 import tensorflow.compat.v1 as tf
+import tensorflow_datasets as tfds
 
 Counter = collections.Counter
 
@@ -31,7 +31,7 @@ class BaseDataset(object):
   """A base class for reading data from disk."""
 
   def __init__(self, config):
-    self._train_data_path = util.expand_path(config['train_data_path'])
+    self._config = config
 
   def provide_one_hot_labels(self, batch_size):
     """Provides one-hot labels."""
@@ -56,14 +56,28 @@ class BaseDataset(object):
     return pitch_counter
 
 
-class NSynthTFRecordDataset(BaseDataset):
-  """A dataset for reading NSynth from a TFRecord file."""
+class NSynthTfdsDataset(BaseDataset):
+  """A dataset for reading NSynth from Tensorflow Datasets (TFDS)."""
 
-  def _get_dataset_from_path(self):
-    dataset = tf.data.Dataset.list_files(self._train_data_path)
+  def _get_dataset_from_tfds(self):
+    """Loads GANsynth subset of NSynth dataset from TFDS."""
+    try:
+      dataset = tfds.load(
+          'nsynth/gansynth_subset:2.3.*',
+          data_dir=self._config['tfds_data_dir'],
+          split=tfds.Split.TRAIN,
+          download=False)
+    except AssertionError as e:
+      tf.logging.warning(
+          "To train with the NSynth dataset, you must either set the "
+          "'tfds_data_dir' hparam to 'gs://tfds-data/datasets' (recommended if "
+          "running on GCP) or to a local directory where the dataset has been "
+          "downloaded. You can download the dataset with the command `python "
+          "-m tensorflow_datasets.scripts.download_and_prepare "
+          "--datasets=nsynth/gansynth_subset --data_dir=/path/to/local/dir`.")
+      raise e
     dataset = dataset.shuffle(buffer_size=1000)
     dataset = dataset.repeat()
-    dataset = dataset.interleave(tf.data.TFRecordDataset, deterministic=False)
     return dataset
 
   def provide_one_hot_labels(self, batch_size):
@@ -91,104 +105,88 @@ class NSynthTFRecordDataset(BaseDataset):
             value_dtype=tf.int64),
         num_oov_buckets=1)
 
-    def _parse_nsynth(record):
+    def _parse_nsynth(example):
       """Parsing function for NSynth dataset."""
-      features = {
-          'pitch': tf.FixedLenFeature([1], dtype=tf.int64),
-          'audio': tf.FixedLenFeature([length], dtype=tf.float32),
-          'qualities': tf.FixedLenFeature([10], dtype=tf.int64),
-          'instrument_source': tf.FixedLenFeature([1], dtype=tf.int64),
-          'instrument_family': tf.FixedLenFeature([1], dtype=tf.int64),
-      }
-
-      example = tf.parse_single_example(record, features)
       wave, label = example['audio'], example['pitch']
       wave = spectral_ops.crop_or_pad(wave[tf.newaxis, :, tf.newaxis],
                                       length,
                                       channels)[0]
       one_hot_label = tf.one_hot(
           label_index_table.lookup(label), depth=len(pitches))[0]
-      return wave, one_hot_label, label, example['instrument_source']
+      return wave, one_hot_label, label, example['instrument']['source']
 
-    dataset = self._get_dataset_from_path()
-    dataset = dataset.map(_parse_nsynth, num_parallel_calls=4)
-
-    # Filter just acoustic instruments (as in the paper)
-    # (0=acoustic, 1=electronic, 2=synthetic)
-    dataset = dataset.filter(lambda w, l, p, s: tf.equal(s, 0)[0])
-    # Filter just pitches 24-84
-    dataset = dataset.filter(lambda w, l, p, s: tf.greater_equal(p, 24)[0])
-    dataset = dataset.filter(lambda w, l, p, s: tf.less_equal(p, 84)[0])
-    dataset = dataset.map(lambda w, l, p, s: (w, l))
+    dataset = self._get_dataset_from_tfds()
+    dataset = dataset.map(
+        _parse_nsynth, num_parallel_calls=tf.data.experimental.AUTOTUNE)
     return dataset
 
   def get_pitch_counts(self):
     pitch_counts = {
-        24: 711,
-        25: 720,
-        26: 715,
-        27: 725,
-        28: 726,
-        29: 723,
-        30: 738,
-        31: 829,
-        32: 839,
-        33: 840,
-        34: 860,
-        35: 870,
-        36: 999,
-        37: 1007,
-        38: 1063,
-        39: 1070,
-        40: 1084,
-        41: 1121,
-        42: 1134,
-        43: 1129,
-        44: 1155,
-        45: 1149,
-        46: 1169,
-        47: 1154,
-        48: 1432,
-        49: 1406,
-        50: 1454,
-        51: 1432,
-        52: 1593,
-        53: 1613,
-        54: 1578,
-        55: 1784,
-        56: 1738,
-        57: 1756,
-        58: 1718,
-        59: 1738,
-        60: 1789,
-        61: 1746,
-        62: 1765,
-        63: 1748,
-        64: 1764,
-        65: 1744,
-        66: 1677,
-        67: 1746,
-        68: 1682,
-        69: 1705,
-        70: 1694,
-        71: 1667,
-        72: 1695,
-        73: 1580,
-        74: 1608,
-        75: 1546,
-        76: 1576,
-        77: 1485,
-        78: 1408,
-        79: 1438,
-        80: 1333,
-        81: 1369,
-        82: 1331,
-        83: 1295,
-        84: 1291
+        24: 551,
+        25: 545,
+        26: 561,
+        27: 550,
+        28: 549,
+        29: 578,
+        30: 547,
+        31: 628,
+        32: 626,
+        33: 630,
+        34: 670,
+        35: 668,
+        36: 751,
+        37: 768,
+        38: 788,
+        39: 801,
+        40: 821,
+        41: 871,
+        42: 873,
+        43: 860,
+        44: 873,
+        45: 844,
+        46: 883,
+        47: 865,
+        48: 1058,
+        49: 1036,
+        50: 1094,
+        51: 1065,
+        52: 1186,
+        53: 1200,
+        54: 1187,
+        55: 1346,
+        56: 1273,
+        57: 1320,
+        58: 1263,
+        59: 1283,
+        60: 1349,
+        61: 1285,
+        62: 1281,
+        63: 1332,
+        64: 1286,
+        65: 1301,
+        66: 1220,
+        67: 1300,
+        68: 1209,
+        69: 1257,
+        70: 1288,
+        71: 1223,
+        72: 1258,
+        73: 1183,
+        74: 1178,
+        75: 1125,
+        76: 1171,
+        77: 1089,
+        78: 1024,
+        79: 1081,
+        80: 966,
+        81: 1043,
+        82: 991,
+        83: 959,
+        84: 977,
     }
     return pitch_counts
 
 
 registry = {
-    'nsynth_tfrecord': NSynthTFRecordDataset,
+    'nsynth_tfds': NSynthTfdsDataset,
 }
