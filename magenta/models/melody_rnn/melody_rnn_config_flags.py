@@ -23,13 +23,13 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string(
     'config',
     None,
-    "Which config to use. Must be one of 'basic', 'lookback', or 'attention'. "
-    "Mutually exclusive with `--melody_encoder_decoder`.")
+    'Which config to use. Must be one of \'basic\', \'lookback\', or '
+    '\'attention\'. Mutually exclusive with `--melody_encoder_decoder`.')
 tf.app.flags.DEFINE_string(
     'melody_encoder_decoder',
     None,
-    "Which encoder/decoder to use. Must be one of 'onehot', 'lookback', or "
-    "'key'. Mutually exclusive with `--config`.")
+    'Which encoder/decoder to use. Must be one of \'onehot\', \'lookback\', or '
+    '\'key\'. Mutually exclusive with `--config`.')
 tf.app.flags.DEFINE_string(
     'generator_id',
     None,

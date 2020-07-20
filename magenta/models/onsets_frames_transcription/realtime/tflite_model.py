@@ -43,9 +43,9 @@ class Model(object):
     self._interpreter.allocate_tensors()
     self._input_details = self._interpreter.get_input_details()
     self._output_details = self._interpreter.get_output_details()
-    self._output_index = dict([
-        (detail['name'], detail['index']) for detail in self._output_details
-    ])
+    self._output_index = {
+        detail['name']: detail['index'] for detail in self._output_details
+    }
     self._input_wav_length = self._input_details[0]['shape'][0]
     self._output_roll_length = self._output_details[0]['shape'][1]
     assert (self._input_wav_length -
@@ -61,7 +61,7 @@ class Model(object):
     return Model.MODEL_WINDOW_LENGTH
 
   def get_timestep(self):
-    """Returns the amount of clock time represented by each output slice in ms."""
+    """Returns the clock time represented by each output slice in ms."""
     return int(1000 * self._timestep)
 
   def get_input_wav_length(self):

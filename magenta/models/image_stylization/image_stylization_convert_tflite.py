@@ -31,8 +31,8 @@ flags.DEFINE_bool('quantize', False,
                   'Whether to quantize the TensorFlow Lite model.')
 flags.DEFINE_integer(
     'image_size', 384,
-    'Default input image size in pixel for the generated TensorFlow Lite model. '
-    'The model will take image_size x image_size RGB image as input.')
+    'Default input image size in pixel for the generated TensorFlow Lite model.'
+    'model. The model will take image_size x image_size RGB image as input.')
 FLAGS = flags.FLAGS
 
 

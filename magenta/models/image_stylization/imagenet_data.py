@@ -29,6 +29,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import sys
 
 import tensorflow.compat.v1 as tf
 
@@ -95,7 +96,7 @@ class ImagenetData(object):
     imagenet_data_dir = os.path.expanduser(FLAGS.imagenet_data_dir)
     if not tf.gfile.Exists(imagenet_data_dir):
       print('%s does not exist!' % (imagenet_data_dir))
-      exit(-1)
+      sys.exit(-1)
 
     tf_record_pattern = os.path.join(imagenet_data_dir, '%s-*' % self.subset)
     data_files = tf.gfile.Glob(tf_record_pattern)
@@ -104,7 +105,7 @@ class ImagenetData(object):
             (self.subset, imagenet_data_dir))
 
       self.download_message()
-      exit(-1)
+      sys.exit(-1)
 
     return data_files
 

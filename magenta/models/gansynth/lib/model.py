@@ -249,8 +249,10 @@ class Model(object):
     noises = train_util.make_latent_vectors(batch_size, **config)
 
     # Get network functions and wrap with hparams
+    # pylint:disable=unnecessary-lambda
     g_fn = lambda x: net_fns.g_fn_registry[config['g_fn']](x, **config)
     d_fn = lambda x: net_fns.d_fn_registry[config['d_fn']](x, **config)
+    # pylint:enable=unnecessary-lambda
 
     # Extra lambda functions to conform to tfgan.gan_model interface
     gan_model = tfgan.gan_model(

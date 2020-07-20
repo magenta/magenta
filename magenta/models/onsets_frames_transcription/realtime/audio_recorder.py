@@ -96,7 +96,8 @@ class AudioRecorder(object):
                device_index=None):
     self._downsample_factor = downsample_factor
     self._raw_audio_sample_rate_hz = raw_audio_sample_rate_hz
-    self.audio_sample_rate_hz = self._raw_audio_sample_rate_hz // self._downsample_factor
+    self.audio_sample_rate_hz = (
+        self._raw_audio_sample_rate_hz // self._downsample_factor)
     self._raw_audio_queue = queue.Queue(self.max_queue_chunks)
     self._audio = pyaudio.PyAudio()
     self._print_input_devices()

@@ -245,7 +245,7 @@ class FrameEvaluator(BaseEvaluator):
     for t in range(tt):
       np.random.shuffle(o[t])
     o = o.reshape([tt * dd])
-    ts, ds = np.unravel_index(o.T, dims=(tt, dd))
+    ts, ds = np.unravel_index(o.T, shape=(tt, dd))
     return ts, ds
 
 
@@ -288,7 +288,7 @@ class NoteEvaluator(BaseEvaluator):
     o = np.arange(tt * dd, dtype=np.int32)
     if not self.chronological:
       np.random.shuffle(o)
-    ts, ds = np.unravel_index(o.T, dims=(tt, dd))
+    ts, ds = np.unravel_index(o.T, shape=(tt, dd))
     return ts, ds
 
 

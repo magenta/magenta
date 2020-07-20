@@ -315,6 +315,7 @@ class SVGDecoder(t2t_model.T2TModel):
 
   def _greedy_infer(self, features, extra_decode_length, use_tpu=False):
     # extra_decode_length is set to 0, unused.
+    del extra_decode_length
     infer_features = copy.copy(features)
     if 'targets' not in infer_features:
       infer_features['targets'] = infer_features['infer_targets']
