@@ -59,6 +59,10 @@ EXTRAS_REQUIRE = {
         'colorama',
         'tflite',
     ],
+    'test': [
+        'pylint'
+        'pytest',
+    ]
 }
 
 # pylint:disable=line-too-long
@@ -149,10 +153,4 @@ setup(
     package_data={
         'magenta': ['models/image_stylization/evaluation_images/*.jpg'],
     },
-    setup_requires=['pytest-runner', 'pytest-pylint'],
-    tests_require=[
-        'pytest >= 5.2.0',
-        'pytest-xdist < 1.30.0',  # 1.30 has problems working with pylint plugin
-        'pylint >= 2.4.2',
-    ],
 )
