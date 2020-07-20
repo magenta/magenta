@@ -43,7 +43,7 @@ def generator_fn_specgram(inputs, **kwargs):
   fake_images, end_points = networks.generator(
       z,
       kwargs['progress'],
-      lambda block_id: _num_filters_fn(block_id, **kwargs),
+      lambda block_id: _num_filters_fn(block_id, **kwargs),  # pylint:disable=unnecessary-lambda
       kwargs['resolution_schedule'],
       num_blocks=kwargs['num_blocks'],
       kernel_size=kwargs['kernel_size'],
@@ -66,7 +66,7 @@ def discriminator_fn_specgram(images, **kwargs):
   logits, end_points = networks.discriminator(
       images,
       kwargs['progress'],
-      lambda block_id: _num_filters_fn(block_id, **kwargs),
+      lambda block_id: _num_filters_fn(block_id, **kwargs),  # pylint:disable=unnecessary-lambda
       kwargs['resolution_schedule'],
       num_blocks=kwargs['num_blocks'],
       kernel_size=kwargs['kernel_size'],

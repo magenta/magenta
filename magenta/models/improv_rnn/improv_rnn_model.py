@@ -168,8 +168,9 @@ default_configs = {
         ImprovRnnConfig(
             generator_pb2.GeneratorDetails(
                 id='attention_improv',
-                description='Melody-given-chords RNN with one-hot triad encoding '
-                'for chords, attention, and binary counters.'),
+                description=
+                'Melody-given-chords RNN with one-hot triad encoding for '
+                'chords, attention, and binary counters.'),
             note_seq.ConditionalEventSequenceEncoderDecoder(
                 note_seq.OneHotEventSequenceEncoderDecoder(
                     note_seq.TriadChordOneHotEncoding()),
@@ -186,7 +187,8 @@ default_configs = {
         ImprovRnnConfig(
             generator_pb2.GeneratorDetails(
                 id='chord_pitches_improv',
-                description='Melody-given-chords RNN with chord pitches encoding.'
+                description=
+                'Melody-given-chords RNN with chord pitches encoding.'
             ),
             note_seq.ConditionalEventSequenceEncoderDecoder(
                 note_seq.PitchChordsEncoderDecoder(),

@@ -60,7 +60,7 @@ EXTRAS_REQUIRE = {
         'tflite',
     ],
     'test': [
-        'pylint'
+        'pylint',
         'pytest',
     ]
 }

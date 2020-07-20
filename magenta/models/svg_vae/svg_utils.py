@@ -618,7 +618,7 @@ def vector_to_cmd(vector, categorical=False, return_floats=False):
   """Does the inverse transformation as cmd_to_vector()."""
   cast_fn = float if return_floats else str
   if categorical:
-    command = vector[:len(CMDS_LIST) + 1],
+    command = (vector[:len(CMDS_LIST) + 1],)
     arguments = vector[len(CMDS_LIST) + 1:]
     cmd_idx = np.argmax(command) - 1
   else:

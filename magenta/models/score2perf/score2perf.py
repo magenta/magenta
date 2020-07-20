@@ -269,7 +269,7 @@ class Score2PerfProblem(problem.Problem):
 
 
 class ConditionalScore2PerfProblem(Score2PerfProblem):
-  """Lightweight version of base class for musical score-to-performance problems.
+  """Lightweight version of base class for score-to-performance problems.
 
   This version incorporates one performance conditioning signal.
   Data files contain tf.Example protos with encoded performance in 'targets' and
@@ -338,7 +338,7 @@ class ConditionalScore2PerfProblem(Score2PerfProblem):
 
 
 class ConditionalMelodyScore2PerfProblem(Score2PerfProblem):
-  """Lightweight version of base class for musical score-to-performance problems.
+  """Lightweight version of base class for score-to-performance problems.
 
   This version incorporates one performance conditioning signal.
   Data files contain tf.Example protos with encoded performance in 'targets' and
@@ -433,7 +433,7 @@ class ConditionalMelodyScore2PerfProblem(Score2PerfProblem):
 
 class ConditionalMelodyNoisyScore2PerfProblem(
     ConditionalMelodyScore2PerfProblem):
-  """Lightweight version of base class for musical score-to-performance problems.
+  """Lightweight version of base class for score-to-performance problems.
 
   This version incorporates one performance conditioning signal.
   Data files contain tf.Example protos with encoded performance in 'targets' and

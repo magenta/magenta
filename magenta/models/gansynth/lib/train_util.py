@@ -426,7 +426,7 @@ class ProganDebugHook(tf.train.SessionRunHook):
 
   def __init__(self):
     super(ProganDebugHook, self).__init__()
-    self._fetches = [v for v in tf.global_variables()]
+    self._fetches = list(tf.global_variables())
 
   def before_run(self, _):
     return tf.train.SessionRunArgs(self._fetches)

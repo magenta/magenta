@@ -28,6 +28,8 @@ Type3 = collections.namedtuple('Type3', ['s', 't'])
 Type4 = collections.namedtuple('Type4', ['s', 't', 'z'])
 Type5 = collections.namedtuple('Type5', ['a', 'b', 'c', 'd', 'z'])
 
+# pylint:disable=missing-class-docstring
+
 
 class UnitA(pipeline.Pipeline):
 

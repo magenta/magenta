@@ -24,6 +24,8 @@ rnn_cell = tf.nn.rnn_cell
 
 tf.disable_eager_execution()
 
+# pylint:disable=invalid-name
+
 
 class RNNCellTest(tf.test.TestCase):
 
@@ -264,6 +266,8 @@ class StackBidirectionalRNNTest(tf.test.TestCase):
                                           initial_states_fw=None,
                                           initial_states_bw=None,
                                           scope=None):
+    del use_gpu
+    del use_state_tuple
     self.layers = [2, 3]
     input_size = 5
     batch_size = 2
