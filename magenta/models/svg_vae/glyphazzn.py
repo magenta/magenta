@@ -67,6 +67,7 @@ class GlyphAzznProblem(problem.Problem):
     # this also means generate_samples will be called twice (one per split)
     return True
 
+  @property
   def has_inputs(self):
     return True
 
@@ -82,6 +83,7 @@ class GlyphAzznProblem(problem.Problem):
     return self.generate_samples(data_dir, tmp_dir, dataset_split)
 
   def generate_data(self, data_dir, tmp_dir, task_id=-1):
+    del tmp_dir  # unused argument
     filepath_fns = {
         problem.DatasetSplit.TRAIN: self.training_filepaths,
         problem.DatasetSplit.EVAL: self.dev_filepaths,
@@ -121,6 +123,7 @@ class GlyphAzznProblem(problem.Problem):
 
   def generate_samples(self, data_dir, tmp_dir, dataset_split):
     """Generate samples of target svg commands."""
+    del tmp_dir  # unused argument
     if not hasattr(self, 'splits'):
       tf.logging.info(
           'Loading binary_fp: train/test from {}'.format(URL_SPLITS))

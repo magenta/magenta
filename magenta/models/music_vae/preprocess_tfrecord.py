@@ -203,8 +203,8 @@ class ExtractExamplesDoFn(beam.DoFn):
                 'ExtractExamplesDoFn', 'different-reextraction').inc()
       yield example_ns, ns.id
 
-  def process(self, ns):
-    split_seqs = split_note_sequence_on_time_changes(ns)
+  def process(self, seq):
+    split_seqs = split_note_sequence_on_time_changes(seq)
     if len(split_seqs) > 100:
       beam_metrics.counter(
           'ExtractExamplesDoFn', 'filtered-too-many-sequence-time-splits').inc()

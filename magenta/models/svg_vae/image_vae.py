@@ -133,6 +133,7 @@ class ImageVAE(t2t_model.T2TModel):
     return z, kl_loss * self.hparams.kl_beta
 
   def visual_encoder(self, inputs, clss, hparams, train):
+    del train
     # goes from [batch, 64, 64, 1] to [batch, hidden_size]
     with tf.variable_scope('visual_encoder', reuse=tf.AUTO_REUSE):
       ret = inputs

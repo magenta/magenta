@@ -258,7 +258,8 @@ default_configs = {
         PerformanceRnnConfig(
             generator_pb2.GeneratorDetails(
                 id='density_conditioned_performance_with_dynamics',
-                description='Note-density-conditioned Performance RNN + dynamics'
+                description=
+                'Note-density-conditioned Performance RNN + dynamics'
             ),
             note_seq.OneHotEventSequenceEncoderDecoder(
                 note_seq.PerformanceOneHotEncoding(num_velocity_bins=32)),

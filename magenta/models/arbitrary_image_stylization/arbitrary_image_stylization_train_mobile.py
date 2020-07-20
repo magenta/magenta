@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Trains a real-time arbitrary image stylization model to use on mobile device."""
+"""Trains a real-time arbitrary image stylization model for mobile device."""
 import ast
 import os
 
