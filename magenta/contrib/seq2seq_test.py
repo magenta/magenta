@@ -24,8 +24,7 @@ tf.disable_v2_behavior()
 
 class DynamicDecodeRNNTest(tf.test.TestCase):
 
-  def _testDynamicDecodeRNN(self, time_major, maximum_iterations=None):
-
+  def _testDynamicDecodeRNN(self, time_major, maximum_iterations=None):  # pylint:disable=invalid-name
     sequence_length = [3, 4, 3, 1, 0]
     batch_size = 5
     max_time = 8
@@ -105,7 +104,7 @@ class DynamicDecodeRNNTest(tf.test.TestCase):
   def testDynamicDecodeRNNOneMaxIter(self):
     self._testDynamicDecodeRNN(time_major=True, maximum_iterations=1)
 
-  def _testDynamicDecodeRNNWithTrainingHelperMatchesDynamicRNN(
+  def _testDynamicDecodeRNNWithTrainingHelperMatchesDynamicRNN(  # pylint:disable=invalid-name
       self, use_sequence_length):
     sequence_length = [3, 4, 3, 1, 0]
     batch_size = 5
@@ -169,7 +168,7 @@ class DynamicDecodeRNNTest(tf.test.TestCase):
 
 class BasicDecoderTest(tf.test.TestCase):
 
-  def _testStepWithTrainingHelper(self, use_output_layer):
+  def _testStepWithTrainingHelper(self, use_output_layer):  # pylint:disable=invalid-name
     sequence_length = [3, 4, 3, 1, 0]
     batch_size = 5
     max_time = 8
@@ -254,7 +253,7 @@ class BasicDecoderTest(tf.test.TestCase):
   def testStepWithTrainingHelperWithOutputLayer(self):
     self._testStepWithTrainingHelper(use_output_layer=True)
 
-  def _testStepWithScheduledOutputTrainingHelper(
+  def _testStepWithScheduledOutputTrainingHelper(  # pylint:disable=invalid-name
       self, sampling_probability, use_next_inputs_fn, use_auxiliary_inputs):
     sequence_length = [3, 4, 3, 1, 0]
     batch_size = 5

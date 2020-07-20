@@ -141,8 +141,7 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
   """Create TPUEstimatorSpec."""
   loss_metrics = {}
   loss = None
-  if (mode == tf.estimator.ModeKeys.TRAIN or
-      mode == tf.estimator.ModeKeys.EVAL):
+  if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL):
     onset_losses = tf.losses.sigmoid_cross_entropy(
         labels.onsets[:, :, :constants.MIDI_PITCHES],
         onset_logits[:, :, :constants.MIDI_PITCHES],
@@ -179,8 +178,7 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
 
     loss = tf.losses.get_total_loss()
 
-  if (mode == tf.estimator.ModeKeys.EVAL or
-      mode == tf.estimator.ModeKeys.PREDICT):
+  if mode in (tf.estimator.ModeKeys.EVAL, tf.estimator.ModeKeys.PREDICT):
     frame_probs = tf.sigmoid(frame_logits)
     onset_probs = tf.sigmoid(onset_logits)
     if offset_network:

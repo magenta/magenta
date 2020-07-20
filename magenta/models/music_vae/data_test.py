@@ -186,7 +186,7 @@ class BaseOneHotDataTest(BaseDataTest):
   def testUnslicedEndToken(self):
     orig_converter = self.converter_class(
         steps_per_quarter=1, slice_bars=None)
-    self.assertEqual(None, orig_converter.end_token)
+    self.assertIsNone(orig_converter.end_token)
     converter = self.converter_class(
         steps_per_quarter=1, slice_bars=None, add_end_token=True)
     self.assertEqual(orig_converter.input_depth + 1, converter.input_depth)
@@ -1295,7 +1295,7 @@ class GrooveConverterTest(tf.test.TestCase):
     # Get notes in first bar
     sequence0 = sequences[0]
     notes0 = [n for n in self.two_bar_sequence.notes if n.start_time < 2]
-    reconstructed_notes0 = [n for n in sequence0.notes]
+    reconstructed_notes0 = sequence0.notes
 
     # Get notes in second bar, back them up by 2 secs for comparison
     sequence1 = sequences[1]
@@ -1303,7 +1303,7 @@ class GrooveConverterTest(tf.test.TestCase):
     for n in notes1:
       n.start_time = n.start_time-2
       n.end_time = n.end_time-2
-    reconstructed_notes1 = [n for n in sequence1.notes]
+    reconstructed_notes1 = sequence1.notes
 
     self.compare_notes(notes0, reconstructed_notes0)
     self.compare_notes(notes1, reconstructed_notes1)

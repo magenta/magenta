@@ -23,12 +23,14 @@ tf.disable_v2_behavior()
 
 
 class Model(model.BaseModel):
+  """Test model."""
 
   def _build_graph_for_generation(self):
     pass
 
 
 class SeuenceGenerator(sequence_generator.BaseSequenceGenerator):
+  """Test generator."""
 
   def __init__(self, checkpoint=None, bundle=None):
     details = generator_pb2.GeneratorDetails(
@@ -77,7 +79,7 @@ class SequenceGeneratorTest(tf.test.TestCase):
   def testGetBundleDetails(self):
     # Test with non-bundle generator.
     seq_gen = SeuenceGenerator(checkpoint='foo.ckpt')
-    self.assertEqual(None, seq_gen.bundle_details)
+    self.assertIsNone(seq_gen.bundle_details)
 
     # Test with bundle-based generator.
     bundle_details = generator_pb2.GeneratorBundle.BundleDetails(

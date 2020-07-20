@@ -351,7 +351,8 @@ class MultiInstrumentPerformanceConverter(
 
     # Each encoded track will begin with a program specification token
     # (with one extra program for drums).
-    num_program_tokens = note_seq.MAX_MIDI_PROGRAM - note_seq.MIN_MIDI_PROGRAM + 2
+    num_program_tokens = (
+        note_seq.MAX_MIDI_PROGRAM - note_seq.MIN_MIDI_PROGRAM + 2)
     end_token = self._performance_encoding.num_classes + num_program_tokens
     depth = end_token + 1
 

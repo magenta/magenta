@@ -254,7 +254,7 @@ def pipeline(config_map, dataset_config_map, preprocess_example_fn,
         # ('example_hash', serialized_example)
         id_exs = (id_exs
                   | 'id_exs_flatten_%s' % dataset.name >> beam.Flatten()
-                  | 'id_exs_distinct_%s' % dataset.name >>  beam.Distinct())
+                  | 'id_exs_distinct_%s' % dataset.name >> beam.Distinct())  # pylint:disable=no-value-for-parameter
 
         # ('source_id, 'example_hash')
         sourceid_to_exids = (

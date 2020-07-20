@@ -251,8 +251,8 @@ def _calculate_metrics_py(frame_probs,
            est_velocities=est_velocities))
 
   tf.logging.info(
-      'Metrics for %s: Note F1 %f, Note w/ velocity F1 %f, Note w/ offsets F1 %f, '
-      'Note w/ offsets & velocity: %f', sequence_id, note_f1,
+      'Metrics for %s: Note F1 %f, Note w/ velocity F1 %f, Note w/ offsets F1 '
+      '%f, Note w/ offsets & velocity: %f', sequence_id, note_f1,
       note_with_velocity_f1, note_with_offsets_f1,
       note_with_offsets_velocity_f1)
   # Return 1-d tensors for the metrics

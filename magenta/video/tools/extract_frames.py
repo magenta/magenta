@@ -24,6 +24,7 @@ from __future__ import print_function
 import argparse
 import glob
 import os
+import sys
 
 from PIL import Image
 import six
@@ -169,7 +170,7 @@ def main(_):
           img.save(file_out, 'PNG')
         else:
           print('unrecognize format', ARGS.format_ext)
-          quit()
+          sys.exit()
         file_count += 1
       frame_count += 1
     video_count += 1
