@@ -55,7 +55,7 @@ hparams['discriminator_ac_loss_weight'] = 10.0
 hparams['gen_gl_consistency_loss_weight'] = 0.0
 
 # STFT specific
-hparams['dataset_name'] = 'nsynth_tfrecord'
+hparams['dataset_name'] = 'nsynth_tfds'
 hparams['g_fn'] = 'specgram'
 hparams['d_fn'] = 'specgram'
 hparams['scale_mode'] = 'ALL'

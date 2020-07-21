@@ -27,24 +27,25 @@ gansynth_generate --ckpt_dir=/path/to/acoustic_only --output_dir=/path/to/output
 
 ## Training
 
-GANSynth can train on the NSynth dataset in ~3-4 days on a single V100 GPU. To train, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/master/README.md), using the install or develop environment. Then download the [NSynth Datasets](https://magenta.tensorflow.org/datasets/nsynth) as TFRecords.
+GANSynth can train on the NSynth dataset in ~3-4 days on a single V100 GPU. To train, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/master/README.md), using the install or develop environment.
 
-To test that training works, run from the root of the Magenta repo directory:
+Next, you'll need to access the GANSynth subset of the NSynth Dataset, which has different splits than the original dataset and some additional filtering. There are two ways to do this:
+
+1. Set 'tfds_data_dir' to 'gs://tfds-data/datasets' as shown in the example below. This will read the data directly off of Google Cloud Storage and is recommended if you're running your training on a Google Cloud VM or in Google Colab. Your training may be bottlenecked by I/O if you're not training in one of these places.
+1. Copy the dataset locally, which will remove a potential I/O bottleneck during training. You can download the dataset by running the following command with your own local dir:
 
 ```bash
-python magenta/models/gansynth/gansynth_train.py --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord", "train_root_dir":"/tmp/gansynth/train"}'
+python -m tensorflow_datasets.scripts.download_and_prepare --datasets=nsynth/gansynth_subset --tfds_dir=/path/to/local/dir
+```
+
+To test that training works, run from the following command, replacing 'gs://tfds-data/datasets' with your local directory if you used option 2 above:
+
+```bash
+gansynth_train.py --hparams='{"tfds_data_dir":"gs://tfds-data/datasets", "train_root_dir":"/tmp/gansynth/train"}'
 ```
 
 This will run the model with suitable hyperparmeters for quickly testing training (which you can find in `model.py`). The best performing hyperparmeter configuration from the paper _(Mel-Spectrograms, Progressive Training, High Frequency Resolution)_, can be found in `configs/mel_prog_hires.py`. You can train with this config by adding it as a flag:
 
 ```bash
-python magenta/models/gansynth/gansynth_train.py --config=mel_prog_hires --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord", "train_root_dir":"/tmp/gansynth/train"}'
+gansynth_train --config=mel_prog_hires --hparams='{"tfds_data_dir":"gs://tfds-data/datasets" "train_root_dir":"/tmp/gansynth/train"}'
 ```
-
-You can also alter it or make other configs to explore the other representations. As a reminder, the full list of hyperparameters can be found in `model.py`. By default, the model trains only on acoustic instruments pitch 24-84 as in the paper. This can be changed in `datasets.py`.
-
-If you've installed from the pip package, it will install a console script so you can run from anywhere.
-```bash
-gansynth_train --config=mel_prog_hires --hparams='{"train_data_path":"/path/to/nsynth-train.tfrecord", "train_root_dir":"/tmp/gansynth/train"}'
-```
-
