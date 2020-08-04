@@ -97,7 +97,7 @@ def basic_rnn_hparams():
   """Generates the hparams used to train a basic_rnn.
 
   These are the hparams used in the .mag file found at
-  https://github.com/tensorflow/magenta/tree/master/magenta/models/
+  https://github.com/magenta/magenta/tree/master/magenta/models/
   melody_rnn#pre-trained
 
   Returns:
