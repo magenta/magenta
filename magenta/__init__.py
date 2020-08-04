@@ -12,16 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Pulls in all magenta libraries that are in the public API.
-
-To regenerate this list based on the py_library dependencies of //magenta:
-bazel query 'kind(py_library, deps(//magenta))' | \
-  grep '//magenta' | \
-  egrep  -v "/([^:/]+):\1$" | \
-  sed -e 's/\/\//import /' -e 's/\//./' -e 's/:/./' -e  's/py_pb2/pb2/' | \
-  LANG=C sort
-"""
-# TODO(adarob): Remove these imports once moved to /py internally.
+r"""Pulls in all magenta libraries that are in the public API.."""
 
 import magenta.common.beam_search
 import magenta.common.concurrency
