@@ -28,8 +28,12 @@ REQUIRED_PACKAGES = [
     'absl-py',
     'apache-beam[gcp] >= 2.14.0',
     'dm-sonnet',
+    # tensor2tensor has a dependency on dopamine-rl, which we don't use.
+    # pin to a version that doesn't require pygame installation because that
+    # has too many external non-python dependencies.
+    'dopamine-rl <= 3.0.1',
     'imageio',
-    'librosa >= 0.6.2',
+    'librosa >= 0.6.2, < 0.8.0',
     'matplotlib >= 1.5.3',
     'mido == 1.2.6',
     'mir_eval >= 0.4',
