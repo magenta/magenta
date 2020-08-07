@@ -19,11 +19,11 @@ from __future__ import division
 from __future__ import print_function
 
 import functools
+from unittest import mock
 
 from magenta.contrib import training as contrib_training
 from magenta.models.music_vae import configs
 from magenta.models.music_vae import data
-import mock
 import note_seq
 from note_seq import testing_lib
 import numpy as np
