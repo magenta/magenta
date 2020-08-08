@@ -445,7 +445,7 @@ class EventSequenceRnnModel(model.BaseModel):
           'control sequence must be at least as long as the event sequences')
 
     batch_size = self._batch_size()
-    num_full_batches = len(event_sequences) / batch_size
+    num_full_batches = len(event_sequences) // batch_size
 
     loglik = np.empty(len(event_sequences))
 
@@ -462,8 +462,7 @@ class EventSequenceRnnModel(model.BaseModel):
           [events[:-1] for events in event_sequences], full_length=True)
 
     graph_initial_state = self._session.graph.get_collection('initial_state')
-    initial_state = [
-        self._session.run(graph_initial_state)] * len(event_sequences)
+    initial_state = self._session.run(graph_initial_state)
     offset = 0
     for _ in range(num_full_batches):
       # Evaluate a single step for one batch of event sequences.
@@ -471,7 +470,7 @@ class EventSequenceRnnModel(model.BaseModel):
       batch_loglik = self._evaluate_batch_log_likelihood(
           [event_sequences[i] for i in batch_indices],
           [inputs[i] for i in batch_indices],
-          initial_state[batch_indices])
+          [initial_state] * len(batch_indices))
       loglik[batch_indices] = batch_loglik
       offset += batch_size
 
@@ -485,7 +484,7 @@ class EventSequenceRnnModel(model.BaseModel):
           [event_sequences[i] for i in batch_indices] + [
               copy.deepcopy(event_sequences[-1]) for _ in range(pad_size)],
           [inputs[i] for i in batch_indices] + inputs[-1] * pad_size,
-          np.append(initial_state[batch_indices],
+          np.append([initial_state] * len(batch_indices),
                     np.tile(inputs[-1, :], (pad_size, 1)),
                     axis=0))
       loglik[batch_indices] = batch_loglik[0:num_extra]
