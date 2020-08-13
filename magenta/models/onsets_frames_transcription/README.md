@@ -63,7 +63,14 @@ onsets_frames_transcription_transcribe \
 
 ## Train your own
 
-If you would like to train the model yourself, first set up your [Magenta environment](/README.md).
+If you would like to train the model yourself, first set up the [Magenta development environment](/README.md#development-environment).
+If you're going to run dataset creation yourself (i.e. not using the pre-generated TFRecord files),
+you'll also need Apache Beam so the install command is:
+
+```
+pip install -e .[beam]
+```
+
 
 ### MAESTRO Dataset
 

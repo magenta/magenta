@@ -12,25 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tensor2Tensor data generator for Magenta problems."""
+"""Imports Magenta Tensor2Tensor problems, including datagen support."""
 
-# Registers all Magenta problems with Tensor2Tensor.
-
-from magenta.tensor2tensor import models  # pylint: disable=unused-import
-from magenta.tensor2tensor import problems_datagen  # pylint: disable=unused-import
-from tensor2tensor.bin import t2t_datagen
-import tensorflow.compat.v1 as tf
-
-
-def main(argv):
-  t2t_datagen.main(argv)
-
-
-def console_entry_point():
-  tf.disable_v2_behavior()
-  tf.logging.set_verbosity(tf.logging.INFO)
-  tf.app.run(main)
-
-
-if __name__ == '__main__':
-  console_entry_point()
+# pylint: disable=unused-import
+from magenta.models.score2perf import datagen_beam
+from magenta.tensor2tensor import problems
+# pylint: enable=unused-import

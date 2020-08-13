@@ -15,12 +15,18 @@
 """Tests for Score2Perf datagen using beam."""
 import tempfile
 
-import apache_beam as beam
-from magenta.models.score2perf import datagen_beam
 from magenta.models.score2perf import music_encoders
 from note_seq import testing_lib
 from note_seq.protobuf import music_pb2
+import pytest
 import tensorflow.compat.v1 as tf
+
+# Skip this file if beam cannot be imported.
+beam = pytest.importorskip('apache_beam')
+
+# pylint: disable=g-bad-import-order,g-import-not-at-top,wrong-import-position,ungrouped-imports
+from magenta.models.score2perf import datagen_beam
+# pylint: enable=g-bad-import-order,g-import-not-at-top,wrong-import-position,ungrouped-imports
 
 tf.disable_v2_behavior()
 

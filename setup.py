@@ -26,7 +26,6 @@ with open('magenta/version.py') as in_file:
 
 REQUIRED_PACKAGES = [
     'absl-py',
-    'apache-beam[gcp] >= 2.14.0',
     'dm-sonnet',
     # tensor2tensor has a dependency on dopamine-rl, which we don't use.
     # pin to a version that doesn't require pygame installation because that
@@ -58,6 +57,9 @@ REQUIRED_PACKAGES = [
 ]
 
 EXTRAS_REQUIRE = {
+    'beam': [
+        'apache-beam[gcp] >= 2.14.0',
+    ],
     'onsets_frames_realtime': [
         'pyaudio',
         'colorama',
