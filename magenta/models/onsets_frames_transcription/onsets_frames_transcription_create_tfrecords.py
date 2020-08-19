@@ -139,5 +139,10 @@ def main(argv):
           num_shards=FLAGS.num_shards)
 
 
-if __name__ == '__main__':
+def console_entry_point():
+  tf.disable_v2_behavior()
   app.run(main)
+
+
+if __name__ == '__main__':
+  console_entry_point()
