@@ -14,6 +14,7 @@
 
 """MusicVAE data library for hierarchical converters."""
 import abc
+import random
 
 from magenta.models.music_vae import data
 from magenta.pipelines import performance_pipeline
@@ -390,6 +391,9 @@ class MultiInstrumentPerformanceConverter(
         num_velocity_bins=self._num_velocity_bins,
         split_instruments=True)
 
+    if len(tracks) > self._max_num_instruments:
+      tracks = random.sample(tracks, self._max_num_instruments)
+
     # Reject sequences with too few instruments.
     if not (self._min_num_instruments <= len(tracks) <=
             self._max_num_instruments):
@@ -407,6 +411,7 @@ class MultiInstrumentPerformanceConverter(
       # Make sure the track is the proper number of time steps.
       track.set_length(self._max_steps_truncate)
 
+
       # Split this track into chunks.
       def new_performance(quantized_sequence, start_step, track=track):
         steps_per_quarter = (
@@ -422,10 +427,15 @@ class MultiInstrumentPerformanceConverter(
 
       assert len(track_chunks) == self._max_num_chunks
 
+      for i in range(len(track_chunks)):  
+        track_chunks[i].truncate(self._max_events_per_instrument - 2)
+
       track_chunk_lengths = [len(track_chunk) for track_chunk in track_chunks]
       # Each track chunk needs room for program token and end token.
       if not all(l <= self._max_events_per_instrument - 2
                  for l in track_chunk_lengths):
+        print('not enough room for program/end tokens')
+
         return [], []
       if not all(
           note_seq.MIN_MIDI_PROGRAM <= t.program <= note_seq.MAX_MIDI_PROGRAM
@@ -441,6 +451,7 @@ class MultiInstrumentPerformanceConverter(
 
     # Reject sequences that are too short (in events).
     if total_length < self._min_total_events:
+      print('sequence too short')
       return [], []
 
     num_programs = note_seq.MAX_MIDI_PROGRAM - note_seq.MIN_MIDI_PROGRAM + 1
