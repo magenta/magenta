@@ -306,6 +306,8 @@ class MultiInstrumentPerformanceConverter(
         sequences longer than the hop size.
     chord_encoding: An instantiated OneHotEncoding object to use for encoding
         chords on which to condition, or None if not conditioning on chords.
+    drop_tracks_and_truncate: Randomly drop extra tracks and truncate the event
+        sequence.
   """
 
   def __init__(self,
@@ -322,7 +324,8 @@ class MultiInstrumentPerformanceConverter(
                min_pitch=performance_lib.MIN_MIDI_PITCH,
                max_pitch=performance_lib.MAX_MIDI_PITCH,
                first_subsequence_only=False,
-               chord_encoding=None):
+               chord_encoding=None,
+               drop_tracks_and_truncate=False):
     max_shift_steps = (performance_lib.DEFAULT_MAX_SHIFT_QUARTERS *
                        steps_per_quarter)
 
@@ -345,6 +348,7 @@ class MultiInstrumentPerformanceConverter(
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
     self._first_subsequence_only = first_subsequence_only
+    self._drop_tracks_and_truncate = drop_tracks_and_truncate
 
     self._max_num_chunks = hop_size_bars // chunk_size_bars
     self._max_steps_truncate = (
@@ -391,7 +395,7 @@ class MultiInstrumentPerformanceConverter(
         num_velocity_bins=self._num_velocity_bins,
         split_instruments=True)
 
-    if len(tracks) > self._max_num_instruments:
+    if self._drop_tracks_and_truncate and len(tracks) > self._max_num_instruments:
       tracks = random.sample(tracks, self._max_num_instruments)
 
     # Reject sequences with too few instruments.
@@ -411,7 +415,6 @@ class MultiInstrumentPerformanceConverter(
       # Make sure the track is the proper number of time steps.
       track.set_length(self._max_steps_truncate)
 
-
       # Split this track into chunks.
       def new_performance(quantized_sequence, start_step, track=track):
         steps_per_quarter = (
@@ -427,15 +430,14 @@ class MultiInstrumentPerformanceConverter(
 
       assert len(track_chunks) == self._max_num_chunks
 
-      for i in range(len(track_chunks)):  
-        track_chunks[i].truncate(self._max_events_per_instrument - 2)
+      if self._drop_tracks_and_truncate:
+        for i in range(len(track_chunks)):  
+          track_chunks[i].truncate(self._max_events_per_instrument - 2)
 
       track_chunk_lengths = [len(track_chunk) for track_chunk in track_chunks]
       # Each track chunk needs room for program token and end token.
       if not all(l <= self._max_events_per_instrument - 2
                  for l in track_chunk_lengths):
-        print('not enough room for program/end tokens')
-
         return [], []
       if not all(
           note_seq.MIN_MIDI_PROGRAM <= t.program <= note_seq.MAX_MIDI_PROGRAM
@@ -451,7 +453,6 @@ class MultiInstrumentPerformanceConverter(
 
     # Reject sequences that are too short (in events).
     if total_length < self._min_total_events:
-      print('sequence too short')
       return [], []
 
     num_programs = note_seq.MAX_MIDI_PROGRAM - note_seq.MIN_MIDI_PROGRAM + 1
