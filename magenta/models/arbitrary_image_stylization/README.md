@@ -45,6 +45,23 @@ $ arbitrary_image_stylization_with_weights \
   --logtostderr
 ```
 
+#### Parameter Details
+Here is a list of parameters for test, along with the default values:
+```bash
+checkpoint=none                # the path of pre-trained model you downloaded
+output_dir=output_dir          # the path of test results
+content_images_path=images/contents_images # the path of input images
+content_square_crop=False      # Whether to crop the input images or not
+                               # true : crop the input images around the center
+                               # false : resize the input images keeping original aspect ratio
+image_size=256                 # input image width used in processing
+style_images_paths=images/style_images     # the path of style images
+style_squre_crop=False         # Whether to crop the style images or not
+                               # true : crop the style images around the center
+                               # false : resize the style images keeping original aspect ratio
+sytle_image_size=256           # style image width used in processing
+```
+
 #### Example results
 <p align='center'>
   <img src='images/white.jpg' width="140px">
