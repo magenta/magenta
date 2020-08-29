@@ -117,6 +117,11 @@ You can also install the (potentially modified) package with:
 pip install .
 ```
 
+You can install sndfile library with(if you face with OSError:sndfile library not found):
+```bash
+apt-get install libsndfile1
+```
+
 Before creating a pull request, please also test your changes with:
 
 ```bash
