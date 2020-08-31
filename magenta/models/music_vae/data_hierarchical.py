@@ -395,7 +395,8 @@ class MultiInstrumentPerformanceConverter(
         num_velocity_bins=self._num_velocity_bins,
         split_instruments=True)
 
-    if self._drop_tracks_and_truncate and len(tracks) > self._max_num_instruments:
+    if (self._drop_tracks_and_truncate and
+        len(tracks) > self._max_num_instruments):
       tracks = random.sample(tracks, self._max_num_instruments)
 
     # Reject sequences with too few instruments.
@@ -431,7 +432,7 @@ class MultiInstrumentPerformanceConverter(
       assert len(track_chunks) == self._max_num_chunks
 
       if self._drop_tracks_and_truncate:
-        for i in range(len(track_chunks)):  
+        for i in range(len(track_chunks)):
           track_chunks[i].truncate(self._max_events_per_instrument - 2)
 
       track_chunk_lengths = [len(track_chunk) for track_chunk in track_chunks]
