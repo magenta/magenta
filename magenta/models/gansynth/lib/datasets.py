@@ -112,8 +112,8 @@ class NSynthTfdsDataset(BaseDataset):
                                       length,
                                       channels)[0]
       one_hot_label = tf.one_hot(
-          label_index_table.lookup(label), depth=len(pitches))[0]
-      return wave, one_hot_label, label, example['instrument']['source']
+          label_index_table.lookup(label), depth=len(pitches))
+      return wave, one_hot_label
 
     dataset = self._get_dataset_from_tfds()
     dataset = dataset.map(

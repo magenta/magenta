@@ -141,8 +141,9 @@ class Model(object):
     # Read the flags from the experiment.json file
     # experiment.json is in the folder above
     # Remove last '/' if present
-    path = path[:-1] if path.endswith('/') else path
-    path = util.expand_path(path)
+    path = path.rstrip('/')
+    if not path.startswith('gs://'):
+      path = util.expand_path(path)
     if flags is None:
       flags = lib_flags.Flags()
     flags['train_root_dir'] = path
@@ -167,7 +168,7 @@ class Model(object):
                        % path)
     # Get last checkpoint
     last_stage_dir = train_sub_dirs[-1]
-    stage_id = int(last_stage_dir.split('_')[-1])
+    stage_id = int(last_stage_dir.split('_')[-1].strip('/'))
     weights_dir = os.path.join(path, last_stage_dir)
     ckpt = tf.train.latest_checkpoint(weights_dir)
     print('Load model from {}'.format(ckpt))
