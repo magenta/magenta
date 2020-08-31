@@ -14,6 +14,7 @@
 
 """MusicVAE data library for hierarchical converters."""
 import abc
+import random
 
 from magenta.models.music_vae import data
 from magenta.pipelines import performance_pipeline
@@ -305,6 +306,8 @@ class MultiInstrumentPerformanceConverter(
         sequences longer than the hop size.
     chord_encoding: An instantiated OneHotEncoding object to use for encoding
         chords on which to condition, or None if not conditioning on chords.
+    drop_tracks_and_truncate: Randomly drop extra tracks and truncate the event
+        sequence.
   """
 
   def __init__(self,
@@ -321,7 +324,8 @@ class MultiInstrumentPerformanceConverter(
                min_pitch=performance_lib.MIN_MIDI_PITCH,
                max_pitch=performance_lib.MAX_MIDI_PITCH,
                first_subsequence_only=False,
-               chord_encoding=None):
+               chord_encoding=None,
+               drop_tracks_and_truncate=False):
     max_shift_steps = (performance_lib.DEFAULT_MAX_SHIFT_QUARTERS *
                        steps_per_quarter)
 
@@ -344,6 +348,7 @@ class MultiInstrumentPerformanceConverter(
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
     self._first_subsequence_only = first_subsequence_only
+    self._drop_tracks_and_truncate = drop_tracks_and_truncate
 
     self._max_num_chunks = hop_size_bars // chunk_size_bars
     self._max_steps_truncate = (
@@ -390,6 +395,9 @@ class MultiInstrumentPerformanceConverter(
         num_velocity_bins=self._num_velocity_bins,
         split_instruments=True)
 
+    if self._drop_tracks_and_truncate and len(tracks) > self._max_num_instruments:
+      tracks = random.sample(tracks, self._max_num_instruments)
+
     # Reject sequences with too few instruments.
     if not (self._min_num_instruments <= len(tracks) <=
             self._max_num_instruments):
@@ -421,6 +429,10 @@ class MultiInstrumentPerformanceConverter(
           track, chunk_size_steps, new_performance, clip_tied_notes=True)
 
       assert len(track_chunks) == self._max_num_chunks
+
+      if self._drop_tracks_and_truncate:
+        for i in range(len(track_chunks)):  
+          track_chunks[i].truncate(self._max_events_per_instrument - 2)
 
       track_chunk_lengths = [len(track_chunk) for track_chunk in track_chunks]
       # Each track chunk needs room for program token and end token.
