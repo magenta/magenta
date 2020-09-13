@@ -70,7 +70,7 @@ class BatchIndexIterator(object):
 
   Args:
     n: An integer indicating total size of dataset.
-    batch_size: An integer indictating size of batch.
+    batch_size: An integer indicating size of batch.
   """
 
   def __init__(self, n, batch_size):
@@ -118,11 +118,11 @@ class InterGroupSamplingIndexIterator(object):
     group_by_label_B: List of lists for data space B. The i-th list indicates
         the non-empty list of indices for data instance with i-th (zero-based)
         label.
-    pairing_number: An integer indictating the umber of paired data to be used.
-    batch_size: An integer indictating size of batch.
+    pairing_number: An integer indicating the umber of paired data to be used.
+    batch_size: An integer indicating size of batch.
   """
 
-  # Variable that in its name has A or B indictating their belonging of one side
+  # Variable that in its name has A or B indicating their belonging of one side
   # of data has name consider to be invalid by pylint so we disable the warning.
   # pylint:disable=invalid-name
   def __init__(self, group_by_label_A, group_by_label_B, pairing_number,
@@ -189,7 +189,7 @@ class GuasssianDataHelper(object):
   Args:
     mu: Mean of data points.
     sigma: Variance of data points. If it is None, it is treated as zeros.
-    batch_size: An integer indictating size of batch.
+    batch_size: An integer indicating size of batch.
   """
 
   def __init__(self, mu, sigma=None):
@@ -226,7 +226,7 @@ class SingleDataIterator(object):
   Args:
     mu: Mean of data points.
     sigma: Variance of data points. If it is None, it is treated as zeros.
-    batch_size: An integer indictating size of batch.
+    batch_size: An integer indicating size of batch.
   """
 
   def __init__(self, mu, sigma, batch_size):
@@ -268,11 +268,11 @@ class PairedDataIterator(object):
     index_grouped_by_label_B: List of lists for data space B. The i-th list
         indicates the non-empty list of indices for data instance with i-th
         (zero-based) label.
-    pairing_number: An integer indictating the umber of paired data to be used.
-    batch_size: An integer indictating size of batch.
+    pairing_number: An integer indicating the umber of paired data to be used.
+    batch_size: An integer indicating size of batch.
   """
 
-  # Variable that in its name has A or B indictating their belonging of one side
+  # Variable that in its name has A or B indicating their belonging of one side
   # of data has name consider to be invalid by pylint so we disable the warning.
   # pylint:disable=invalid-name
 
