@@ -80,7 +80,7 @@ def main(unused_argv):
   # Reason:
   #   Following variables have their name consider to be invalid by pylint so
   #   we disable the warning.
-  #   - Variable that in its name has A or B indictating their belonging of
+  #   - Variable that in its name has A or B indicating their belonging of
   #     one side of data.
   del unused_argv
 
