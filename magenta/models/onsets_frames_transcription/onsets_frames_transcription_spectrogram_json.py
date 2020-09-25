@@ -43,7 +43,7 @@ tf.app.flags.DEFINE_string(
 
 def create_spec(filename, hparams):
   """Processes an audio file into a spectrogram."""
-  wav_data = tf.gfile.Open(filename).read()
+  wav_data = tf.gfile.Open(filename, 'rb').read()
   spec = data.wav_to_spec(wav_data, hparams)
   return spec
 
