@@ -106,6 +106,7 @@ class MidiPerformanceEncoder(object):
     """
     performance = note_seq.Performance(
         note_seq.quantize_note_sequence_absolute(ns, self._steps_per_second),
+        max_shift_steps=self._steps_per_second,
         num_velocity_bins=self._num_velocity_bins)
 
     event_ids = [self._encoding.encode_event(event) + self.num_reserved_ids
