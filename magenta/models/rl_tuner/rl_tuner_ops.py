@@ -240,7 +240,6 @@ def get_inner_scope(scope_str):
   idx = scope_str.find('/')
   return scope_str[idx + 1:]
 
-
 def trim_variable_postfixes(scope_str):
   """Trims any extra numbers added to a tensorflow scope string.
 
@@ -254,6 +253,28 @@ def trim_variable_postfixes(scope_str):
   idx = scope_str.find(':')
   return scope_str[:idx]
 
+def replace_changed_vars(scope_str):
+  """
+  Replaces names for layers in basic_rnn graph with original names in checkpoint.
+  Necessary to align variables in graph and checkpoint
+
+  Args:
+    scope_str: Tensorflow variable scope string.
+  Returns:
+    Scope string with original names for layers.
+  """
+  replace_dict = {"rnn/multi_rnn_cell/":"RNN/MultiRNNCell/",
+                 "/cell_0/":"/Cell0/",
+                 "/lstm_cell/bias":"/LSTMCell/B",
+                 "/lstm_cell/kernel":"/LSTMCell/W_0",
+                 #"":"",
+                 }
+    
+  for k, v in replace_dict.items():
+    scope_str = scope_str.replace(k,v)
+  return scope_str
+
+    
 
 def get_variable_names(graph, scope):
   """Finds all the variable names in a graph that begin with a given scope.
