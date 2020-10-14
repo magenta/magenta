@@ -972,6 +972,8 @@ class TrioConverter(BaseNoteSequenceConverter):
       for each NoteSequence.
     chord_encoding: An instantiated OneHotEncoding object to use for encoding
       chords on which to condition, or None if not conditioning on chords.
+    condition_on_key: If True, condition on key; key is represented as a
+      depth-12 one-hot encoding.
   """
 
   class InstrumentType(object):
@@ -983,11 +985,13 @@ class TrioConverter(BaseNoteSequenceConverter):
 
   def __init__(
       self, slice_bars=None, gap_bars=2, max_bars=1024, steps_per_quarter=4,
-      quarters_per_bar=4, max_tensors_per_notesequence=5, chord_encoding=None):
+      quarters_per_bar=4, max_tensors_per_notesequence=5,
+      chord_encoding=None, condition_on_key=False):
     self._melody_converter = OneHotMelodyConverter(
         gap_bars=None, steps_per_quarter=steps_per_quarter,
         pad_to_total_time=True, presplit_on_time_changes=False,
-        max_tensors_per_notesequence=None, chord_encoding=chord_encoding)
+        max_tensors_per_notesequence=None, chord_encoding=chord_encoding,
+        condition_on_key=condition_on_key)
     self._drums_converter = DrumsConverter(
         gap_bars=None, steps_per_quarter=steps_per_quarter,
         pad_to_total_time=True, presplit_on_time_changes=False,
@@ -998,6 +1002,7 @@ class TrioConverter(BaseNoteSequenceConverter):
     self._steps_per_quarter = steps_per_quarter
     self._steps_per_bar = steps_per_quarter * quarters_per_bar
     self._chord_encoding = chord_encoding
+    self._condition_on_key = condition_on_key
 
     self._split_output_depths = (
         self._melody_converter.output_depth,
@@ -1032,24 +1037,30 @@ class TrioConverter(BaseNoteSequenceConverter):
             note_seq.NegativeTimeError):
       return ConverterTensors()
 
-    if self._chord_encoding and not any(
+    if (self._chord_encoding and not any(
         ta.annotation_type == CHORD_SYMBOL
-        for ta in quantized_sequence.text_annotations):
-      # We are conditioning on chords but sequence does not have chords. Try to
-      # infer them.
+        for ta in quantized_sequence.text_annotations)) or (
+            self._condition_on_key and not quantized_sequence.key_signatures):
+      # We are conditioning on chords and/or key but sequence does not have
+      # them. Try to infer chords and optionally key.
       try:
-        note_seq.infer_chords_for_sequence(quantized_sequence)
+        note_seq.infer_chords_for_sequence(
+            quantized_sequence, add_key_signatures=self._condition_on_key)
       except note_seq.ChordInferenceError:
         return ConverterTensors()
 
       # The trio parts get extracted from the original NoteSequence, so copy the
-      # inferred chords back to that one.
+      # inferred chords and keys back to that one.
       for qta in quantized_sequence.text_annotations:
         if qta.annotation_type == CHORD_SYMBOL:
           ta = note_sequence.text_annotations.add()
           ta.annotation_type = CHORD_SYMBOL
           ta.time = qta.time
           ta.text = qta.text
+      for qks in quantized_sequence.key_signatures:
+        ks = note_sequence.key_signatures.add()
+        ks.time = qks.time
+        ks.key = qks.key
 
     total_bars = int(
         np.ceil(quantized_sequence.total_quantized_steps / self._steps_per_bar))
@@ -1096,17 +1107,17 @@ class TrioConverter(BaseNoteSequenceConverter):
         total_bars * self._steps_per_bar *
         60 / note_sequence.tempos[0].qpm / self._steps_per_quarter)
     encoded_instruments = {}
-    encoded_chords = None
+    encoded_controls = None
     for i in (instruments_by_type[self.InstrumentType.MEL] +
               instruments_by_type[self.InstrumentType.BASS]):
       tensors = self._melody_converter.to_tensors(
           _extract_instrument(note_sequence, i))
       if tensors.outputs:
         encoded_instruments[i] = tensors.outputs[0]
-        if encoded_chords is None:
-          encoded_chords = tensors.controls[0]
-        elif not np.array_equal(encoded_chords, tensors.controls[0]):
-          tf.logging.warning('Trio chords disagreement between instruments.')
+        if encoded_controls is None:
+          encoded_controls = tensors.controls[0]
+        elif not np.array_equal(encoded_controls, tensors.controls[0]):
+          tf.logging.warning('Trio controls disagreement between instruments.')
       else:
         coverage[:, i] = False
     for i in instruments_by_type[self.InstrumentType.DRUMS]:
@@ -1147,8 +1158,8 @@ class TrioConverter(BaseNoteSequenceConverter):
           seqs.append(np.concatenate(
               [encoded_instruments[i][start_step:end_step] for i in grp],
               axis=-1))
-          if encoded_chords is not None:
-            control_seqs.append(encoded_chords[start_step:end_step])
+          if encoded_controls is not None:
+            control_seqs.append(encoded_controls[start_step:end_step])
 
     return ConverterTensors(inputs=seqs, outputs=seqs, controls=control_seqs)
 

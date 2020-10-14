@@ -903,6 +903,9 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     # Chords.
     testing_lib.add_chords_to_sequence(
         sequence, [('C', 4), ('Am', 16), ('G', 32)])
+    # Keys.
+    testing_lib.add_key_signatures_to_sequence(
+        sequence, [(0, 0), (7, 32)])
 
     for n in sequence.notes:
       if n.instrument == 1:
@@ -942,6 +945,16 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
          'Am', 'Am', 'Am', 'Am',
          'G', 'G', 'G', 'G']
 
+    k = [0, 0, 0, 0,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         0, 0, 0, 0,
+         7, 7, 7, 7]
+
     expected_sliced_sets = [
         ((2, 4), (m1, b, d)),
         ((5, 7), (m1, b, d)),
@@ -960,6 +973,9 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     self.expected_sliced_chord_labels = [
         np.array([chord_encoding.encode_event(e) for e in es])
         for es in expected_sliced_chord_events]
+
+    self.expected_sliced_key_labels = [
+        np.array(k[i*4:j*4]) for (i, j), _ in expected_sliced_sets]
 
   def testSliced(self):
     converter = data.TrioConverter(
@@ -991,6 +1007,49 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
     self.assertArraySetsEqual(
         self.expected_sliced_chord_labels, actual_sliced_chord_labels)
+
+  def testSlicedKeyConditioned(self):
+    converter = data.TrioConverter(
+        steps_per_quarter=1,
+        gap_bars=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=None,
+        condition_on_key=True)
+    tensors = converter.to_tensors(self.sequence)
+    self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
+    actual_sliced_labels = [
+        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
+        for t in tensors.outputs]
+    actual_sliced_key_labels = [
+        np.argmax(t, axis=-1) for t in tensors.controls]
+
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_key_labels, actual_sliced_key_labels)
+
+  def testSlicedChordAndKeyConditioned(self):
+    converter = data.TrioConverter(
+        steps_per_quarter=1,
+        gap_bars=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=None,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding(),
+        condition_on_key=True)
+    tensors = converter.to_tensors(self.sequence)
+    self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
+    actual_sliced_labels = [
+        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
+        for t in tensors.outputs]
+    actual_sliced_chord_labels = [
+        np.argmax(t[:, :-12], axis=-1) for t in tensors.controls]
+    actual_sliced_key_labels = [
+        np.argmax(t[:, -12:], axis=-1) for t in tensors.controls]
+
+    self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_chord_labels, actual_sliced_chord_labels)
+    self.assertArraySetsEqual(
+        self.expected_sliced_key_labels, actual_sliced_key_labels)
 
   def testToNoteSequence(self):
     converter = data.TrioConverter(
@@ -1070,6 +1129,104 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
         >
         text_annotations <
           time: 2.0 text: 'C' annotation_type: CHORD_SYMBOL
+        >
+        total_time: 4.0
+        """,
+        sequences[0])
+
+  def testToNoteSequenceKeyConditioned(self):
+    converter = data.TrioConverter(
+        steps_per_quarter=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=1,
+        condition_on_key=True)
+
+    mel_oh = data.np_onehot(self.expected_sliced_labels[3][0], 90)
+    bass_oh = data.np_onehot(self.expected_sliced_labels[3][1], 90)
+    drums_oh = data.np_onehot(self.expected_sliced_labels[3][2], 512)
+    keys_oh = data.np_onehot(self.expected_sliced_key_labels[3], 12)
+
+    output_tensors = np.concatenate([mel_oh, bass_oh, drums_oh], axis=-1)
+
+    sequences = converter.from_tensors([output_tensors], [keys_oh])
+    self.assertEqual(1, len(sequences))
+
+    self.assertProtoEquals(
+        """
+        ticks_per_quarter: 220
+        tempos < qpm: 120 >
+        notes <
+          instrument: 0 pitch: 52 start_time: 2.0 end_time: 4.0 program: 0
+          velocity: 80
+        >
+        notes <
+          instrument: 1 pitch: 50 start_time: 1.0 end_time: 2.5 program: 33
+          velocity: 80
+        >
+        notes <
+          instrument: 9 pitch: 36 start_time: 0.0 end_time: 0.5 velocity: 80
+          is_drum: True
+        >
+        notes <
+          instrument: 9 pitch: 38 start_time: 2.0 end_time: 2.5 velocity: 80
+          is_drum: True
+        >
+        key_signatures <
+          key: 0
+        >
+        total_time: 4.0
+        """,
+        sequences[0])
+
+  def testToNoteSequenceChordAndKeyConditioned(self):
+    converter = data.TrioConverter(
+        steps_per_quarter=1,
+        slice_bars=2,
+        max_tensors_per_notesequence=1,
+        chord_encoding=note_seq.MajorMinorChordOneHotEncoding(),
+        condition_on_key=True)
+
+    mel_oh = data.np_onehot(self.expected_sliced_labels[3][0], 90)
+    bass_oh = data.np_onehot(self.expected_sliced_labels[3][1], 90)
+    drums_oh = data.np_onehot(self.expected_sliced_labels[3][2], 512)
+    chords_oh = data.np_onehot(self.expected_sliced_chord_labels[3], 25)
+    keys_oh = data.np_onehot(self.expected_sliced_key_labels[3], 12)
+
+    output_tensors = np.concatenate([mel_oh, bass_oh, drums_oh], axis=-1)
+
+    sequences = converter.from_tensors([output_tensors],
+                                       [np.concatenate([chords_oh, keys_oh],
+                                                       axis=-1)])
+    self.assertEqual(1, len(sequences))
+
+    self.assertProtoEquals(
+        """
+        ticks_per_quarter: 220
+        tempos < qpm: 120 >
+        notes <
+          instrument: 0 pitch: 52 start_time: 2.0 end_time: 4.0 program: 0
+          velocity: 80
+        >
+        notes <
+          instrument: 1 pitch: 50 start_time: 1.0 end_time: 2.5 program: 33
+          velocity: 80
+        >
+        notes <
+          instrument: 9 pitch: 36 start_time: 0.0 end_time: 0.5 velocity: 80
+          is_drum: True
+        >
+        notes <
+          instrument: 9 pitch: 38 start_time: 2.0 end_time: 2.5 velocity: 80
+          is_drum: True
+        >
+        text_annotations <
+          text: 'N.C.' annotation_type: CHORD_SYMBOL
+        >
+        text_annotations <
+          time: 2.0 text: 'C' annotation_type: CHORD_SYMBOL
+        >
+        key_signatures <
+          key: 0
         >
         total_time: 4.0
         """,
