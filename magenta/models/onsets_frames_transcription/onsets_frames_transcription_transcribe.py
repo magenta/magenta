@@ -99,7 +99,7 @@ def run(argv, config_map, data_fn):
                                             os.path.expanduser(FLAGS.model_dir),
                                             hparams)
 
-    iterator = dataset.make_initializable_iterator()
+    iterator = tf.data.make_initializable_iterator(dataset)
     next_record = iterator.get_next()
 
     with tf.Session() as sess:

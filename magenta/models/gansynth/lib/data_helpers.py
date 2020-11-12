@@ -69,7 +69,7 @@ class DataHelper(object):
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(1)
 
-        iterator = dataset.make_initializable_iterator()
+        iterator = tf.data.make_initializable_iterator(dataset)
         tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS,
                              iterator.initializer)
 

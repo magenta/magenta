@@ -196,11 +196,11 @@ def evaluate(master,
     with tf.Graph().as_default():
       record_check_params = copy.deepcopy(hparams)
       record_check_params.batch_size = 1
-      iterator = transcription_data_base(
+      dataset = transcription_data_base(
           params=record_check_params,
           shuffle_examples=False,
-          skip_n_initial_records=0,
-          ).make_initializable_iterator()
+          skip_n_initial_records=0)
+      iterator = tf.data.make_initializable_iterator(dataset)
       next_record = iterator.get_next()
       with tf.Session() as sess:
         sess.run(iterator.initializer)

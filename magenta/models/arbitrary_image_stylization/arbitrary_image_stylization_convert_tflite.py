@@ -273,7 +273,7 @@ def predict_model_gen(session, style_dataset, sample_count):
 
   def generator():
     dataset = style_dataset.batch(1)
-    iterator = dataset.make_initializable_iterator()
+    iterator = tf.data.make_initializable_iterator(dataset)
     session.run(iterator.initializer)
     next_element = iterator.get_next()
     for _ in range(sample_count):
@@ -313,7 +313,7 @@ def calculate_style_bottleneck(session,
 
   # Load the style dataset
   dataset = style_dataset.batch(batch_size)
-  iterator = dataset.make_initializable_iterator()
+  iterator = tf.data.make_initializable_iterator(dataset)
   session.run(iterator.initializer)
   next_element = iterator.get_next()
 
@@ -361,7 +361,7 @@ def transform_model_gen(session, predict_saved_model, style_dataset,
     """A generator to be used as representative_dataset for TFLiteConverter."""
     # Get ImageNet data to use as content_image representative dataset
     dataset = content_dataset.batch(1)
-    iterator = dataset.make_initializable_iterator()
+    iterator = tf.data.make_initializable_iterator(dataset)
     session.run(iterator.initializer)
     next_element = iterator.get_next()
 

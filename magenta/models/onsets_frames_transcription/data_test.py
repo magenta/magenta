@@ -131,7 +131,7 @@ class DataTest(tf.test.TestCase):
           is_training=False,
           shuffle_examples=False,
           skip_n_initial_records=0)
-      iterator = dataset.make_initializable_iterator()
+      iterator = tf.data.make_initializable_iterator(dataset)
       next_record = iterator.get_next()
       sess.run([
           tf.initializers.local_variables(),
