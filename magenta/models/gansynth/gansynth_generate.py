@@ -50,6 +50,9 @@ absl.flags.DEFINE_integer('batch_size', 8, 'Batch size for generation.')
 absl.flags.DEFINE_float('secs_per_instrument', 6.0,
                         'In random interpolations, the seconds it takes to '
                         'interpolate from one instrument to another.')
+absl.flags.DEFINE_string('tfds_data_dir',
+                         'gs://tfds-data/datasets',
+                         'Data directory for the TFDS dataset used to train.')
 
 FLAGS = absl.flags.FLAGS
 tf.logging.set_verbosity(tf.logging.INFO)
@@ -59,7 +62,11 @@ def main(unused_argv):
   absl.flags.FLAGS.alsologtostderr = True
 
   # Load the model
-  flags = lib_flags.Flags({'batch_size_schedule': [FLAGS.batch_size]})
+  flags = lib_flags.Flags(
+      {
+          'batch_size_schedule': [FLAGS.batch_size],
+          'tfds_data_dir': FLAGS.tfds_data_dir
+      })
   model = lib_model.Model.load_from_path(FLAGS.ckpt_dir, flags)
 
   # Make an output directory if it doesn't exist
