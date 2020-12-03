@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import subprocess
 
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import configs
@@ -58,7 +59,13 @@ tf.app.flags.DEFINE_string(
 
 def create_example(filename, sample_rate, load_audio_with_librosa):
   """Processes an audio file into an Example proto."""
-  wav_data = tf.gfile.Open(filename, 'rb').read()
+  fileparts = os.path.splitext(filename.lower())
+  if fileparts[1] != ".wav":
+    tf.logging.info('Converting %s into wav using ffmpeg...' % (filename) )
+    result = subprocess.run(['ffmpeg', '-i', filename, '-f', 'wav', '-'], capture_output=True, shell=False)
+    wav_data = result.stdout
+  else:
+    wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
       audio_label_data_utils.process_record(
           wav_data=wav_data,
