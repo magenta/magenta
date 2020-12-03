@@ -140,7 +140,7 @@ def run(argv, config_map, data_fn):
         sequence_prediction = music_pb2.NoteSequence.FromString(
             prediction_list[0]['sequence_predictions'][0])
 
-        midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
+        midi_filename = os.path.splitext(filename)[0] + FLAGS.transcribed_file_suffix + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
 
         tf.logging.info('Transcription written to %s.', midi_filename)
