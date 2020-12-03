@@ -115,7 +115,7 @@ def run(argv, config_map, data_fn):
         # the data processing functionality in data.py without having to
         # construct all the Example protos in memory ahead of time or create
         # a temporary tfrecord file.
-        tf.logging.info('Processing file...')
+        tf.logging.info('Processing file %s...' % (filename))
         sess.run(iterator.initializer,
                  {examples: [
                      create_example(filename, hparams.sample_rate,
