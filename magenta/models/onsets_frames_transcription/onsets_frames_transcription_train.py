@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,6 +47,10 @@ tf.app.flags.DEFINE_string(
     'model_dir', '~/tmp/onsets_frames',
     'Path where checkpoints and summary events will be located during '
     'training and evaluation.')
+tf.app.flags.DEFINE_string(
+    'warm_start_from', None,
+    'Optional string filepath to a checkpoint,  then all variables are '
+    'warm-started during training')
 tf.app.flags.DEFINE_string('eval_name', None, 'Name for this eval run.')
 tf.app.flags.DEFINE_integer('num_steps', 1000000,
                             'Number of training steps or `None` for infinite.')
@@ -93,7 +97,9 @@ def run(config_map, data_fn, additional_trial_info):
         preprocess_examples=FLAGS.preprocess_examples,
         hparams=hparams,
         keep_checkpoint_max=FLAGS.keep_checkpoint_max,
-        num_steps=FLAGS.num_steps)
+        num_steps=FLAGS.num_steps,
+        warm_start_from=FLAGS.warm_start_from
+    )
   elif FLAGS.mode == 'eval':
     train_util.evaluate(
         model_fn=config.model_fn,

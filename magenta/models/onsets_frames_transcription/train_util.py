@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -119,7 +119,8 @@ def train(master,
           hparams,
           keep_checkpoint_max,
           use_tpu,
-          num_steps=None):
+          num_steps=None,
+          warm_start_from=None):
   """Train loop."""
   estimator = create_estimator(
       model_fn=model_fn,
@@ -128,7 +129,9 @@ def train(master,
       tpu_cluster=tpu_cluster,
       hparams=hparams,
       keep_checkpoint_max=keep_checkpoint_max,
-      use_tpu=use_tpu)
+      use_tpu=use_tpu,
+      warm_start_from=warm_start_from
+  )
 
   if estimator.config.is_chief:
     _trial_summary(
