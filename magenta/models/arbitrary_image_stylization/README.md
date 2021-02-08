@@ -322,3 +322,22 @@ In the output folder, there are 6 TensorFlow Lite models:
 1. `style_transform.tflite`: The float32 version of style transformation network
 1. `style_transform_quantized.tflite`: The int8 weight-quantized version of style transformation network
 1. `style_transform_calibrated.tflite`: The full int8-quantized version of style transformation network
+
+## Image stylization models on TensorFlow Hub
+
+Several **TensorFlow Lite** variants are available on TensorFlow Hub and these are all ready to use -
+- [`magenta/arbitrary-image-stylization`](https://tfhub.dev/google/lite-model/magenta/arbitrary-image-stylization-v1-256/fp16/prediction/1)
+- [`arbitrary-image-stylization-inceptionv3`](https://tfhub.dev/sayakpaul/lite-model/arbitrary-image-stylization-inceptionv3/dr/predict/1)
+- [`arbitrary-image-stylization-inceptionv3-dynamic-shapes`](https://tfhub.dev/sayakpaul/lite-model/arbitrary-image-stylization-inceptionv3-dynamic-shapes/dr/predict/1)
+
+You can refer to [this sample mobile application](https://github.com/tensorflow/examples/blob/master/lite/examples/style_transfer/android/app/src/main/java/org/tensorflow/lite/examples/styletransfer/StyleTransferModelExecutor.kt) for a good understanding of the model usage.
+
+## Tutorials
+
+You can follow these tutorials if you want to try out the aforementioned models from a Colab Notebook -
+- [Artistic Style Transfer with TensorFlow Lite](https://www.tensorflow.org/lite/models/style_transfer/overview)
+- [Fast Style Transfer for Arbitrary Styles](https://www.tensorflow.org/hub/tutorials/tf2_arbitrary_image_stylization)
+
+## Community contributed guides
+
+- [This Colab Notebook](https://github.com/sayakpaul/Adventures-in-TensorFlow-Lite/blob/master/Magenta_arbitrary_style_transfer_model_conversion.ipynb) by [Sayak Paul](https://github.com/sayakpaul) shows how to load pre-trained Magenta stylization checkpoints and convert to TensorFlow Lite models using different post-training quantization formats.
