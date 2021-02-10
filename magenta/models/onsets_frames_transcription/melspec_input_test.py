@@ -98,6 +98,7 @@ class MelspecInputTest(tf.test.TestCase):
     return self.RunTfGraph()
 
   def setUp(self):
+    super().setUp()
     self._test_waveform = self.MakeTestWaveform()
     # Initialize TensorFlow.
     self._graph = tf.Graph()
@@ -122,8 +123,9 @@ class MelspecInputTest(tf.test.TestCase):
 
   def RunTfliteCompiler(self):
     # Attempt to run the tflite-style conversion to the current graph.
-    converter = tf.lite.TFLiteConverter.from_session(
-        self._session, [self._input], [self._output])
+    converter = tf.lite.TFLiteConverter.from_session(self._session,
+                                                     [self._input],
+                                                     [self._output])
     converter.inference_type = tf.lite.constants.FLOAT
     tflite_model = converter.convert()
     output_filename = _TmpFilePath(suffix='.tflite')
@@ -135,7 +137,7 @@ class MelspecInputTest(tf.test.TestCase):
     self.BuildTfGraph(tflite_compatible=True)
     self.RunTfliteCompiler()
 
-  def testRegularTfGraphIsntTfLiteCompatible(self):
+  def testTfLiteCompilesWithDynamicShape(self):
     self.BuildTfGraph(tflite_compatible=False)
     with self.assertRaises(convert.ConverterError):
       self.RunTfliteCompiler()
