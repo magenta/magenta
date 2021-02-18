@@ -7,12 +7,11 @@
 
 [MASTER]
 
-# Add files or directories to the blacklist. They should be base names, not
-# paths.
+# Files or directories to be skipped. They should be base names, not paths.
 ignore=third_party
 
-# Add files or directories matching the regex patterns to the blacklist. The
-# regex matches against base names, not paths.
+# Files or directories matching the regex patterns are skipped. The regex
+# matches against base names, not paths.
 ignore-patterns=
 
 # Pickle collected data for later comparisons.
@@ -28,11 +27,6 @@ jobs=4
 # Allow loading of arbitrary C extensions. Extensions are imported into the
 # active Python interpreter and may run arbitrary code.
 unsafe-load-any-extension=no
-
-# A comma-separated list of package or module names from where C extensions may
-# be loaded. Extensions are loading into the active Python interpreter and may
-# run arbitrary code
-extension-pkg-whitelist=
 
 
 [MESSAGES CONTROL]
@@ -62,6 +56,7 @@ disable=abstract-method,
         attribute-defined-outside-init,
         backtick,
         bad-option-value,
+        basestring-builtin,
         buffer-builtin,
         c-extension-no-member,
         consider-using-enumerate,
@@ -103,7 +98,7 @@ disable=abstract-method,
         no-else-continue,
         no-else-raise,
         no-else-return,
-        no-init,
+        no-init,  # added
         no-member,
         no-name-in-module,
         no-self-use,
@@ -116,7 +111,7 @@ disable=abstract-method,
         old-raise-syntax,
         parameter-unpacking,
         print-statement,
-        raise-missing-from,
+        raise-missing-from,  # added
         raising-string,
         range-builtin-not-iterating,
         raw_input-builtin,
@@ -128,7 +123,7 @@ disable=abstract-method,
         setslice-method,
         signature-differs,
         standarderror-builtin,
-        super-with-arguments,
+        super-with-arguments,  # added
         suppressed-message,
         sys-max-int,
         too-few-public-methods,
@@ -350,9 +345,7 @@ redefining-builtins-modules=six,six.moves,past.builtins,future.builtins,functool
 
 # Logging modules to check that the string format arguments are in logging
 # function parameter format
-logging-modules=logging,
-                absl.logging,
-                tensorflow.io.logging  # added
+logging-modules=logging,absl.logging,tensorflow.io.logging
 
 
 [SIMILARITIES]
