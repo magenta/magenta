@@ -133,7 +133,7 @@ To use your own dataset or the [E-GMD dataset](https://g.co/magenta/e-gmd), see 
 
 Now can train your own transcription model using the training TFRecord file generated during dataset creation.
 
-Note that if you have the `audio_transform` hparam set to true (which it is by default), you will need to have the [sox](http://sox.sourceforge.net/) binary installed on your system.
+Note that if you have the `transform_audio` hparam set to true (which it is by default), you will need to have the [sox](http://sox.sourceforge.net/) binary installed on your system.
 
 ```bash
 TRAIN_EXAMPLES=<path to training tfrecord(s) generated during dataset creation>
