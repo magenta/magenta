@@ -220,7 +220,7 @@ class SVGDecoder(t2t_model.T2TModel):
       return length < max_decode_length
 
     # passing state must be flattened:
-    initial_state = tuple([(s.c, s.h) for s in initial_state])
+    initial_state = tuple((s.c, s.h) for s in initial_state)
 
     # actually run tf.while:
     logits, final_state = tf.while_loop(
@@ -228,8 +228,8 @@ class SVGDecoder(t2t_model.T2TModel):
         [logits_so_far, initial_state],
         shape_invariants=[
             tf.TensorShape([None, None, 1, hparams.hidden_size]),
-            tuple([(s[0].get_shape(), s[1].get_shape())
-                   for s in initial_state]),
+            tuple((s[0].get_shape(), s[1].get_shape())
+                  for s in initial_state),
         ],
         back_prop=False,
         parallel_iterations=1

@@ -73,7 +73,7 @@ class ResolutionSchedule(object):
   def final_resolutions(self):
     """Returns the final resolutions."""
     if self._scale_mode == 'ALL':
-      return tuple([r * self.scale_factor(1) for r in self._start_resolutions])
+      return tuple(r * self.scale_factor(1) for r in self._start_resolutions)
     elif self._scale_mode == 'H':
       return tuple([self._start_resolutions[0] * self.scale_factor(1)] +
                    list(self._start_resolutions[1:]))
