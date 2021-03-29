@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import time
 
 from magenta.models.coconet import lib_graph
@@ -192,8 +193,8 @@ class CoconetSampleGraph(object):
       self.build_sample_graph()
     sess = tf.Session()
     saver = tf.train.Saver()
-    chkpt_fpath = tf.train.latest_checkpoint(self.chkpt_path)
-    tf.logging.info("loading checkpoint %s", chkpt_fpath)
+    tf.logging.info("loading checkpoint from path %s", self.chkpt_path)
+    chkpt_fpath = os.path.join(self.chkpt_path, "best_model.ckpt")
     saver.restore(sess, chkpt_fpath)
     tf.get_variable_scope().reuse_variables()
     self.sess = sess
