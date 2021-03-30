@@ -28,7 +28,7 @@ class ExportSavedModelTest(tf.test.TestCase):
 
   def save_checkpoint(self):
     logdir = tempfile.mkdtemp()
-    save_path = os.path.join(logdir, 'best_model.ckpt')
+    save_path = os.path.join(logdir, 'model.ckpt')
 
     hparams = lib_hparams.Hyperparameters(**{})
 
