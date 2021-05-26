@@ -60,6 +60,9 @@ disable=abstract-method,
         buffer-builtin,
         c-extension-no-member,
         consider-using-enumerate,
+        consider-using-max-builtin,  # added
+        consider-using-min-builtin,  # added
+        consider-using-with,  # added
         cmp-builtin,
         cmp-method,
         coerce-builtin,

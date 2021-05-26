@@ -20,8 +20,6 @@ from magenta.models.onsets_frames_transcription import melspec_input
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from tensorflow.lite.python import convert  # pylint: disable=g-direct-tensorflow-import
-
 tf.disable_v2_behavior()
 
 
@@ -139,8 +137,7 @@ class MelspecInputTest(tf.test.TestCase):
 
   def testTfLiteCompilesWithDynamicShape(self):
     self.BuildTfGraph(tflite_compatible=False)
-    with self.assertRaises(convert.ConverterError):
-      self.RunTfliteCompiler()
+    self.RunTfliteCompiler()
 
   def RunTfliteModel(self, tflite_model_path):
     """Load and run TFLite model under the interpreter."""
