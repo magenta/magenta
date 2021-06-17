@@ -403,7 +403,7 @@ def model_fn(features, labels, mode, params, config):
       loss_label = 'losses/' + label
       tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
     if mode == tf.estimator.ModeKeys.TRAIN:
-        train_op = slim.optimize_loss(
+      train_op = slim.optimize_loss(
         name='training',
         loss=loss,
         global_step=tf.train.get_or_create_global_step(),
