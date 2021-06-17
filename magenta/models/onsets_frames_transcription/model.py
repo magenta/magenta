@@ -402,9 +402,7 @@ def model_fn(features, labels, mode, params, config):
     for label, loss_collection in losses.items():
       loss_label = 'losses/' + label
       tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
-    if mode == tf.estimator.ModeKeys.EVAL:
-      train_op = None
-    else:
+    if mode == tf.estimator.ModeKeys.TRAIN:
         train_op = slim.optimize_loss(
         name='training',
         loss=loss,
@@ -418,13 +416,6 @@ def model_fn(features, labels, mode, params, config):
         clip_gradients=hparams.clip_norm,
         optimizer='Adam')
 
-        #adam_optimizer = tf.train.AdamOptimizer(learning_rate=hparams.learning_rate)
-        '''train_op = slim.learning.create_train_op(
-          loss,
-          adam_optimizer,
-          clip_gradient_norm=hparams.clip_norm,
-          summarize_gradients=True,
-          variables_to_train=None)'''
   return tf.estimator.EstimatorSpec(
       mode=mode, predictions=predictions, loss=loss, train_op=train_op,
       eval_metric_ops=metric_ops)
