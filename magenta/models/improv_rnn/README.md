@@ -130,7 +130,7 @@ improv_rnn_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](https://github.com/magenta/note-seq/blob/master/note_seq/generator.proto)
+The [bundle format](https://github.com/magenta/note-seq/blob/main/note_seq/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 
