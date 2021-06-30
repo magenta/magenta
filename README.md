@@ -46,7 +46,7 @@ If you are running Mac OS X or Ubuntu, you can try using our automated
 installation script. Just paste the following command into your terminal.
 
 ```bash
-curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
+curl https://raw.githubusercontent.com/tensorflow/magenta/main/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
 bash /tmp/magenta-install.sh
 ```
 

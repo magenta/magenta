@@ -74,9 +74,9 @@ class ImagenetData(object):
           'process could take several hours depending on the speed of your '
           'computer and network connection\n')
     print('Please see '
-          'https://github.com/tensorflow/models/blob/master/inception '
-          'for instructions on how to build the ImageNet dataset using '
-          'download_and_preprocess_imagenet.\n')
+          'https://github.com/tensorflow/models/blob/master/research/slim/'
+          'datasets/download_and_convert_imagenet.sh '
+          'for a tool to build the ImageNet dataset.\n')
     print('Note that the raw data size is 300 GB and the processed data size '
           'is 150 GB. Please ensure you have at least 500GB disk space.')
 

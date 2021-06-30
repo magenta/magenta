@@ -19,7 +19,7 @@ employing a WaveNet-style autoencoder to learn its own temporal embeddings.
 A full description of the algorithm and accompanying dataset can be found in our
 [arXiv paper][arXiv] and [blog post][blog].
 
-A Jupyter notebook [NSynth.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/NSynth.ipynb)
+A Jupyter notebook [NSynth.ipynb](https://github.com/tensorflow/magenta-demos/blob/main/jupyter-notebooks/NSynth.ipynb)
 found in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository shows some creative uses of NSynth.
 
 # The Models

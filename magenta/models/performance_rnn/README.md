@@ -21,7 +21,7 @@ You can run Performance RNN live in your browser at the [Performance RNN browser
 
 You can try out Performance RNN in the [Colab](https://colab.research.google.com) environment with the [performance_rnn.ipynb](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/performance_rnn/performance_rnn.ipynb) notebook.
 
-There is also a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Performance_RNN.ipynb)
+There is also a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/main/jupyter-notebooks/Performance_RNN.ipynb)
 in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository showing how to generate performances from a trained model.
 
 ## How to Use

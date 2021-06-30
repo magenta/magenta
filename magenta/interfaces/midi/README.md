@@ -15,7 +15,7 @@ Note that you can only interface with a trained models that have a
 ## Example Demo
 
 The simplest way to try this interface is using the
-[AI Jam demo](https://github.com/tensorflow/magenta-demos/tree/master/ai-jam-js). The instructions below provide a more basic
+[AI Jam demo](https://github.com/tensorflow/magenta-demos/tree/main/ai-jam-js). The instructions below provide a more basic
 customizable interaction that is more difficult to set up.
 
 ## Installing Dependencies

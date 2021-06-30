@@ -131,7 +131,7 @@ To train your own model, you need to have the following:
    [PBN testing](https://github.com/zo7/painter-by-numbers/releases/download/data-v1.0/test.tgz)
    [DTD dataset](https://www.robots.ox.ac.uk/~vgg/data/dtd/download/dtd-r1.0.1.tar.gz)
 2. The ImageNet dataset. Instructions for downloading the dataset can be found
-   [here](https://github.com/tensorflow/models/tree/master/research/inception#getting-started).
+   [here](https://www.tensorflow.org/datasets/catalog/imagenet2012).
 3. A [trained VGG model checkpoint](http://download.tensorflow.org/models/vgg_16_2016_08_28.tar.gz).
 4. A [trained Inception-v3 model
    checkpoint](http://download.tensorflow.org/models/inception_v3_2016_08_28.tar.gz).
