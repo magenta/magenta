@@ -521,8 +521,9 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
 
     return control_seqs
 
-  def to_tensors(self, note_sequence):
+  def to_tensors(self, item):
     """Converts NoteSequence to unique, one-hot tensor sequences."""
+    note_sequence = item
     try:
       if self._steps_per_quarter:
         quantized_sequence = note_seq.quantize_note_sequence(
@@ -754,7 +755,8 @@ class OneHotMelodyConverter(LegacyEventListOneHotConverter):
     note_sequence.notes.extend([n for n in notes if is_valid(n)])
     return super(OneHotMelodyConverter, self).to_tensors(note_sequence)
 
-  def to_tensors(self, note_sequence):
+  def to_tensors(self, item):
+    note_sequence = item
     return split_process_and_combine(note_sequence,
                                      self._presplit_on_time_changes,
                                      self.max_tensors_per_notesequence,
@@ -920,7 +922,8 @@ class DrumsConverter(BaseNoteSequenceConverter):
 
     return ConverterTensors(inputs=input_seqs, outputs=output_seqs)
 
-  def to_tensors(self, note_sequence):
+  def to_tensors(self, item):
+    note_sequence = item
     return split_process_and_combine(note_sequence,
                                      self._presplit_on_time_changes,
                                      self.max_tensors_per_notesequence,
@@ -1163,7 +1166,8 @@ class TrioConverter(BaseNoteSequenceConverter):
 
     return ConverterTensors(inputs=seqs, outputs=seqs, controls=control_seqs)
 
-  def to_tensors(self, note_sequence):
+  def to_tensors(self, item):
+    note_sequence = item
     return split_process_and_combine(note_sequence,
                                      self._presplit_on_time_changes,
                                      self.max_tensors_per_notesequence,
@@ -1395,7 +1399,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
     else:
       raise ValueError('Unlisted feature: ' + feature)
 
-  def to_tensors(self, note_sequence):
+  def to_tensors(self, item):
 
     def _get_steps_hash(note_sequence):
       """Partitions all Notes in a NoteSequence by quantization step and drum.
@@ -1443,6 +1447,7 @@ class GrooveConverter(BaseNoteSequenceConverter):
       return [tensor[i:i+window_size, :] for i in range(
           0, len(tensor) - window_size  + 1, hop_size)]
 
+    note_sequence = item
     try:
       quantized_sequence = sequences_lib.quantize_note_sequence(
           note_sequence, self._steps_per_quarter)

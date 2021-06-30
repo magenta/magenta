@@ -107,7 +107,7 @@ for musical aesthetics, try modifying the `reward_music_theory` function!
 [blog post]: https://magenta.tensorflow.org/2016/11/09/tuning-recurrent-networks-with-reinforcement-learning/
 [ipynb]: https://nbviewer.jupyter.org/github/tensorflow/magenta/tree/master/magenta/models/rl_tuner/rl_tuner.ipynb
 [note rnn ckpt]: http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt
-[magenta pretrained]: https://github.com/magenta/magenta/tree/master/magenta/models/melody_rnn#pre-trained
+[magenta pretrained]: https://github.com/magenta/magenta/tree/main/magenta/models/melody_rnn#pre-trained
 [dqn ex]: https://github.com/nivwusquorum/tensorflow-deepq/blob/master/tf_rl/
 [g learning]: https://arxiv.org/pdf/1512.08562.pdf
 [psi learning]: http://homepages.inf.ed.ac.uk/svijayak/publications/rawlik-RSS2012.pdf

@@ -38,7 +38,8 @@ class ChordsExtractor(pipeline.Pipeline):
     self._max_steps = max_steps
     self._all_transpositions = all_transpositions
 
-  def transform(self, quantized_sequence):
+  def transform(self, input_object):
+    quantized_sequence = input_object
     try:
       chord_progressions, stats = extract_chords(
           quantized_sequence, max_steps=self._max_steps,

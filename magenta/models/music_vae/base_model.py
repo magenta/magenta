@@ -32,7 +32,8 @@ class BaseEncoder(object, metaclass=abc.ABCMeta):
      -`encode`
   """
 
-  @abc.abstractproperty
+  @property
+  @abc.abstractmethod
   def output_depth(self):
     """Returns the size of the output final dimension."""
     pass

@@ -112,8 +112,8 @@ def main(unused_argv=None):
       total_loss, loss_dict = learning.total_loss(
           inputs, stylized_inputs, style_gram_matrices, content_weights,
           style_weights)
-      for key in loss_dict:
-        tf.summary.scalar(key, loss_dict[key])
+      for key, value in loss_dict.items():
+        tf.summary.scalar(key, value)
 
       # Adding Image summaries to the tensorboard.
       tf.summary.image('image/0_inputs', inputs, 3)

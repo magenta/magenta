@@ -48,7 +48,8 @@ class LeadSheetExtractor(pipeline.Pipeline):
     self._require_chords = require_chords
     self._all_transpositions = all_transpositions
 
-  def transform(self, quantized_sequence):
+  def transform(self, input_object):
+    quantized_sequence = input_object
     try:
       lead_sheets, stats = extract_lead_sheet_fragments(
           quantized_sequence,

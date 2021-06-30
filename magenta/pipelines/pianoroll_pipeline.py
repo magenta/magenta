@@ -37,7 +37,8 @@ class PianorollSequenceExtractor(pipeline.Pipeline):
     self._min_steps = min_steps
     self._max_steps = max_steps
 
-  def transform(self, quantized_sequence):
+  def transform(self, input_object):
+    quantized_sequence = input_object
     pianoroll_seqs, stats = extract_pianoroll_sequences(
         quantized_sequence,
         min_steps_discard=self._min_steps,

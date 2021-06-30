@@ -596,7 +596,8 @@ class MultiInstrumentPerformanceConverter(
                                     self.output_depth, self.control_depth,
                                     self._control_pad_token)
 
-  def to_tensors(self, note_sequence):
+  def to_tensors(self, item):
+    note_sequence = item
     return data.split_process_and_combine(note_sequence,
                                           self._presplit_on_time_changes,
                                           self.max_tensors_per_notesequence,
