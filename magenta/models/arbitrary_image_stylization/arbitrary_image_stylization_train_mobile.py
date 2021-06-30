@@ -111,8 +111,8 @@ def main(unused_argv=None):
             )
 
       # Adding scalar summaries to the tensorboard.
-      for key in loss_dict:
-        tf.summary.scalar(key, loss_dict[key])
+      for key, value in loss_dict.items():
+        tf.summary.scalar(key, value)
 
       # Adding Image summaries to the tensorboard.
       tf.summary.image('image/0_content_inputs', content_inputs_, 3)

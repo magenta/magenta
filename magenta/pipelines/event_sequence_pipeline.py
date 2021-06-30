@@ -36,7 +36,8 @@ class EncoderPipeline(pipeline.Pipeline):
         name=name)
     self._encoder_decoder = encoder_decoder
 
-  def transform(self, seq):
+  def transform(self, input_object):
+    seq = input_object
     encoded = pipelines_common.make_sequence_example(
         *self._encoder_decoder.encode(seq))
     return [encoded]

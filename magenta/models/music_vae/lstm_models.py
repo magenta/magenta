@@ -557,7 +557,7 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
     return sampler.sample()
 
   def sample(self, n, max_length=None, z=None, c_input=None, temperature=None,
-             start_inputs=None, end_token=None):
+             start_inputs=None, end_fn=None):
     """Overrides BaseLstmDecoder `sample` method to add optional end token.
 
     Args:
@@ -570,17 +570,17 @@ class CategoricalLstmDecoder(BaseLstmDecoder):
       temperature: (Optional) The softmax temperature to use  Defaults to 1.0.
       start_inputs: (Optional) Initial inputs to use for batch.
         Sized `[n, output_depth]`.
-      end_token: (Optional) Scalar token signaling the end of the sequence to
-        use for early stopping.
+      end_fn: (Optional) This argument is redefined as a scalar token signaling
+        the end of the sequence to use for early stopping. This will be wrapped
+        into a true function and passed to the superclass's sample() function.
     Returns:
       samples: Sampled sequences. Sized `[n, max_length, output_depth]`.
       final_state: The final states of the decoder.
     Raises:
       ValueError: If `z` is provided and its first dimension does not equal `n`.
     """
-    if end_token is None:
-      end_fn = None
-    else:
+    end_token = end_fn
+    if end_token is not None:
       end_fn = lambda x: tf.equal(tf.argmax(x, axis=-1), end_token)
     return super(CategoricalLstmDecoder, self).sample(
         n, max_length, z, c_input, temperature, start_inputs, end_fn)

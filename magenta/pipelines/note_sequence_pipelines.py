@@ -56,7 +56,8 @@ class Splitter(NoteSequencePipeline):
     super(Splitter, self).__init__(name=name)
     self._hop_size_seconds = hop_size_seconds
 
-  def transform(self, note_sequence):
+  def transform(self, input_object):
+    note_sequence = input_object
     return sequences_lib.split_note_sequence(
         note_sequence, self._hop_size_seconds)
 
@@ -64,7 +65,8 @@ class Splitter(NoteSequencePipeline):
 class TimeChangeSplitter(NoteSequencePipeline):
   """A Pipeline that splits NoteSequences on time signature & tempo changes."""
 
-  def transform(self, note_sequence):
+  def transform(self, input_object):
+    note_sequence = input_object
     return sequences_lib.split_note_sequence_on_time_changes(note_sequence)
 
 
@@ -92,7 +94,8 @@ class Quantizer(NoteSequencePipeline):
     self._steps_per_quarter = steps_per_quarter
     self._steps_per_second = steps_per_second
 
-  def transform(self, note_sequence):
+  def transform(self, input_object):
+    note_sequence = input_object
     try:
       if self._steps_per_quarter is not None:
         quantized_sequence = sequences_lib.quantize_note_sequence(
@@ -124,7 +127,8 @@ class Quantizer(NoteSequencePipeline):
 class SustainPipeline(NoteSequencePipeline):
   """Applies sustain pedal control changes to a NoteSequence."""
 
-  def transform(self, note_sequence):
+  def transform(self, input_object):
+    note_sequence = input_object
     return [sequences_lib.apply_sustain_control_changes(note_sequence)]
 
 
@@ -141,7 +145,8 @@ class StretchPipeline(NoteSequencePipeline):
     super(StretchPipeline, self).__init__(name=name)
     self._stretch_factors = stretch_factors
 
-  def transform(self, note_sequence):
+  def transform(self, input_object):
+    note_sequence = input_object
     return [sequences_lib.stretch_note_sequence(note_sequence, stretch_factor)
             for stretch_factor in self._stretch_factors]
 
@@ -166,7 +171,8 @@ class TranspositionPipeline(NoteSequencePipeline):
     self._min_pitch = min_pitch
     self._max_pitch = max_pitch
 
-  def transform(self, sequence):
+  def transform(self, input_object):
+    sequence = input_object
     stats = dict((state_name, statistics.Counter(state_name)) for state_name in
                  ['skipped_due_to_range_exceeded', 'transpositions_generated'])
 

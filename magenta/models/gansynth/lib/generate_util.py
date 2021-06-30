@@ -19,7 +19,7 @@
 from magenta.models.gansynth.lib import util
 import note_seq
 import numpy as np
-import scipy.io.wavfile as wavfile
+from scipy.io import wavfile
 
 MAX_NOTE_LENGTH = 3.0
 MAX_VELOCITY = 127.0

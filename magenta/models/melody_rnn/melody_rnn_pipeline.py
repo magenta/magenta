@@ -43,7 +43,8 @@ class EncoderPipeline(pipeline.Pipeline):
     self._max_note = config.max_note
     self._transpose_to_key = config.transpose_to_key
 
-  def transform(self, melody):
+  def transform(self, input_object):
+    melody = input_object
     melody.squash(
         self._min_note,
         self._max_note,

@@ -221,7 +221,7 @@ class PianorollEncoderDecoder(object):
     if out_of_range_pitch_count > 0:
       raise ValueError(
           '%d pitches out of the range (%d, %d) the model was trained on.' %
-          (out_of_range_pitch_count, self.min_pitch, self.max_pitch))
+          (out_of_range_pitch_count.item(), self.min_pitch, self.max_pitch))
     roll = roll[:, self.min_pitch:self.max_pitch + 1]
     return roll
 
