@@ -23,6 +23,7 @@ set -e
 # and pass the path up to the inner most directory as first argument when running this
 # script.
 checkpoint=$1
+midi_in=$2
 
 # Change this to path for saving samples.
 generation_output_dir=./../../../output
@@ -33,7 +34,12 @@ gen_batch_size=1
 piece_length=16
 strategy=harmonize_midi_melody
 tfsample=true
-midi_in=/samples
+
+for filelist in $dirlist
+do
+    substring="${filelist:$len:-5}";
+    echo "${substring}/${qty}";
+done
 
 # Run command.
 python coconet_sample.py \
