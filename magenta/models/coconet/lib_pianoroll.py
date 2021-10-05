@@ -40,7 +40,7 @@ class PianorollEncoderDecoder(object):
 
   qpm = 120
   
-  programs = [1, 32, 41, 33]
+  programs = [1, 25, 41, 34]
 
   def __init__(self,
                shortest_duration=0.125,
