@@ -33,13 +33,7 @@ generation_output_dir=./../../../output
 gen_batch_size=1
 piece_length=16
 strategy=harmonize_midi_melody
-tfsample=true
-
-for filelist in $dirlist
-do
-    substring="${filelist:$len:-5}";
-    echo "${substring}/${qty}";
-done
+tfsample=False
 
 # Run command.
 python coconet_sample.py \

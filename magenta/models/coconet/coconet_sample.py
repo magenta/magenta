@@ -11,7 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+print(FLAGS.prime_midi_melody_fpath)
+      print(os.path.exists(FLAGS.prime_midi_melody_fpath))
+      assert os.path.exists(FLAGS.prime_midi_melody_fpath), "Input File does not Exists"
+      
 # Lint as: python3
 """Generate from trained model from scratch or condition on a partial score."""
 import itertools as it
@@ -59,7 +62,7 @@ def main(unused_argv):
     wmodel = instantiate_model(FLAGS.checkpoint)
     generator = Generator(wmodel, FLAGS.strategy)
   midi_outs = generator.run_generation(
-      gen_batch_size=FLAGS.gen_batch_size, piece_length=FLAGS.piece_length)
+      gen_batch_size=FLAGS.gen_batch_size, piece_length=FLAGS.piece_length, midi_in=FLAGS.prime_midi_melody_fpath)
 
   # Creates a folder for storing the process of the sampling.
   #label = "sample_%s_%s_%s_T%g_l%i_%.2fmin" % (lib_util.timestamp(),
@@ -69,6 +72,7 @@ def main(unused_argv):
   #                                             FLAGS.piece_length,
   #                                             generator.time_taken)
   label = "%s" % (lib_util.timestamp())
+  tf.gfile.MakeDirs(FLAGS.generation_output_dir)
   #basepath = os.path.join(FLAGS.generation_output_dir, label)
   #tf.logging.info("basepath: %s", basepath)
   #tf.gfile.MakeDirs(basepath)
@@ -120,7 +124,7 @@ def main(unused_argv):
 class Generator(object):
   """Instantiates model and generates according to strategy and midi input."""
 
-  def __init__(self, wmodel, strategy_name="complete_midi"):
+  def __init__(self, wmodel, strategy_name="harmonize_midi_melody"):
     """Initializes Generator with a wrapped model and strategy name.
 
     Args:
@@ -199,89 +203,6 @@ class Generator(object):
     return self._time_taken
 
 
-class TFGenerator(object):
-  """Instantiates model and generates according to strategy and midi input."""
-
-  def __init__(self, checkpoint_path):
-    """Initializes Generator with a wrapped model and strategy name.
-
-    Args:
-      checkpoint_path: A string that gives the full path to the folder that
-          holds the checkpoint.
-    """
-    self.sampler = lib_tfsampling.CoconetSampleGraph(checkpoint_path)
-    self.hparams = self.sampler.hparams
-    self.endecoder = lib_pianoroll.get_pianoroll_encoder_decoder(self.hparams)
-
-    self._time_taken = None
-    self._pianorolls = None
-
-  def run_generation(self,
-                     midi_in=None,
-                     pianorolls_in=None,
-                     masks=None,
-                     gen_batch_size=3,
-                     piece_length=16,
-                     sample_steps=0,
-                     current_step=0,
-                     total_gibbs_steps=0,
-                     temperature=0.99):
-    """Generates, conditions on midi_in if given, returns midi.
-
-    Args:
-      midi_in: An optional PrettyMIDI instance containing notes to be
-          conditioned on.
-      pianorolls_in: An optional numpy.ndarray encoding the notes to be
-          conditioned on as pianorolls.
-      masks: a 4D numpy array of the same shape as pianorolls, with 1s
-          indicating mask out.  If is None, then the masks will be where have 1s
-          where there are no notes, indicating to the model they should be
-          filled in.
-      gen_batch_size: An integer specifying the number of outputs to generate.
-      piece_length: An integer specifying the desired number of time steps to
-          generate for the output, where a time step corresponds to the
-          shortest duration supported by the model.
-      See the CoconetSampleGraph class in lib_tfsample.py for more detail.
-      sample_steps: an integer indicating the number of steps to sample in this
-          call.  If set to 0, then it defaults to total_gibbs_steps.
-      current_step: an integer indicating how many steps might have already
-          sampled before.
-      total_gibbs_steps: an integer indicating the total number of steps that
-          a complete sampling procedure would take.
-      temperature: a float indicating the temperature for sampling from softmax.
-
-    Returns:
-      A list of PrettyMIDI instances, with length gen_batch_size.
-    """
-    # Update the length of piece to be generated.
-    self.hparams.crop_piece_len = piece_length
-    shape = [gen_batch_size] + self.hparams.pianoroll_shape
-    tf.logging.info("Tentative shape of pianorolls to be generated: %r", shape)
-
-    # Generates.
-    if midi_in is not None:
-      pianorolls_in = self.endecoder.encode_midi_to_pianoroll(midi_in, shape)
-    elif pianorolls_in is None:
-      pianorolls_in = np.zeros(shape, dtype=np.float32)
-    results = self.sampler.run(
-        pianorolls_in, masks, sample_steps=sample_steps,
-        current_step=current_step, total_gibbs_steps=total_gibbs_steps,
-        temperature=temperature)
-    self._pianorolls = results["pianorolls"]
-    self._time_taken = results["time_taken"]
-    tf.logging.info("output pianorolls shape: %r", self.pianorolls.shape)
-    midi_outs = get_midi_from_pianorolls(self.pianorolls, self.endecoder)
-    return midi_outs
-
-  @property
-  def pianorolls(self):
-    return self._pianorolls
-
-  @property
-  def time_taken(self):
-    return self._time_taken
-
-
 def get_midi_from_pianorolls(rolls, decoder):
   midi_datas = []
   for pianoroll in rolls:
@@ -348,9 +269,7 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
 
   def load_midi_melody(self, midi=None):
     if midi is None:
-      print(FLAGS.prime_midi_melody_fpath)
-      print(os.path.exists(FLAGS.prime_midi_melody_fpath))
-      assert os.path.exists(FLAGS.prime_midi_melody_fpath), "Input File does not Exists"
+      assert os.path.exists(FLAGS.prime_midi_melody_fpath), "Input File does not Exists."
       midi = pretty_midi.PrettyMIDI(FLAGS.prime_midi_melody_fpath)
     return self.decoder.encode_midi_melody_to_pianoroll(midi)
 
