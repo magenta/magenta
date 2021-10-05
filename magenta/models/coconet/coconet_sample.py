@@ -11,10 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-print(FLAGS.prime_midi_melody_fpath)
-      print(os.path.exists(FLAGS.prime_midi_melody_fpath))
-      assert os.path.exists(FLAGS.prime_midi_melody_fpath), "Input File does not Exists"
-      
+
 # Lint as: python3
 """Generate from trained model from scratch or condition on a partial score."""
 import itertools as it
@@ -268,9 +265,8 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
   key = "harmonize_midi_melody"
 
   def load_midi_melody(self, midi=None):
-    if midi is None:
-      assert os.path.exists(FLAGS.prime_midi_melody_fpath), "Input File does not Exists."
-      midi = pretty_midi.PrettyMIDI(FLAGS.prime_midi_melody_fpath)
+    assert os.path.exists(FLAGS.prime_midi_melody_fpath), "Input File does not Exists."
+    midi = pretty_midi.PrettyMIDI(FLAGS.prime_midi_melody_fpath)
     return self.decoder.encode_midi_melody_to_pianoroll(midi)
 
   def make_pianoroll_from_melody_roll(self, mroll, requested_shape):
