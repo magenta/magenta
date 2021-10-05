@@ -68,21 +68,21 @@ def main(unused_argv):
   #                                             FLAGS.temperature,
   #                                             FLAGS.piece_length,
   #                                             generator.time_taken)
-  label = "%s_%s" % (lib_util.timestamp(),FLAGS.strategy)
-  basepath = os.path.join(FLAGS.generation_output_dir, label)
-  tf.logging.info("basepath: %s", basepath)
-  tf.gfile.MakeDirs(basepath)
+  label = "%s" % (lib_util.timestamp())
+  #basepath = os.path.join(FLAGS.generation_output_dir, label)
+  #tf.logging.info("basepath: %s", basepath)
+  #tf.gfile.MakeDirs(basepath)
 
   # Saves the results as midi or returns as midi out.
-  midi_path = os.path.join(basepath, "midi")
-  tf.gfile.MakeDirs(midi_path)
-  tf.logging.info("Made directory %s", midi_path)
-  save_midis(midi_outs, midi_path, label)
+  #midi_path = os.path.join(basepath, "midi")
+  #  tf.gfile.MakeDirs(midi_path)
+  #tf.logging.info("Made directory %s", midi_path)
+  save_midis(midi_outs, FLAGS.generation_output_dir, label)
 
-  result_npy_save_path = os.path.join(basepath, "generated_result.npy")
-  tf.logging.info("Writing final result to %s", result_npy_save_path)
-  with tf.gfile.Open(result_npy_save_path, "w") as p:
-    np.save(p, generator.pianorolls)
+  #result_npy_save_path = os.path.join(basepath, "generated_result.npy")
+  #tf.logging.info("Writing final result to %s", result_npy_save_path)
+  #with tf.gfile.Open(result_npy_save_path, "w") as p:
+  #  np.save(p, generator.pianorolls)
 
   if FLAGS.tfsample:
     tf.logging.info("Done")
@@ -293,10 +293,16 @@ def get_midi_from_pianorolls(rolls, decoder):
 
 def save_midis(midi_datas, midi_path, label=""):
   for i, midi_data in enumerate(midi_datas):
-    midi_fpath = os.path.join(midi_path, "%s_%i.midi" % (label, i))
-    tf.logging.info("Writing midi to %s", midi_fpath)
-    with lib_util.atomic_file(midi_fpath) as p:
-      midi_data.write(p)
+    if i==0:
+      midi_fpath = os.path.join(midi_path, "%s.midi" % (label))
+      tf.logging.info("Writing midi to %s", midi_fpath)
+      with lib_util.atomic_file(midi_fpath) as p:
+        midi_data.write(p)
+    else:
+      midi_fpath = os.path.join(midi_path, "%s_%i.midi" % (label, i))
+      tf.logging.info("Writing midi to %s", midi_fpath)
+      with lib_util.atomic_file(midi_fpath) as p:
+        midi_data.write(p)
   return midi_fpath
 
 
