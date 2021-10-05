@@ -25,7 +25,7 @@ set -e
 checkpoint=$1
 
 # Change this to path for saving samples.
-generation_output_dir=/samples
+generation_output_dir=./../../../output
 
 # Generation parameters.
 # Number of samples to generate in a batch.
