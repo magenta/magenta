@@ -25,14 +25,15 @@ set -e
 checkpoint=$1
 
 # Change this to path for saving samples.
-generation_output_dir=$HOME/samples
+generation_output_dir=/samples
 
 # Generation parameters.
 # Number of samples to generate in a batch.
-gen_batch_size=2
+gen_batch_size=1
 piece_length=16
-strategy=igibbs
+strategy=harmonize_midi_melody
 tfsample=true
+midi_in=/samples
 
 # Run command.
 python coconet_sample.py \
@@ -43,6 +44,7 @@ python coconet_sample.py \
 --strategy=$strategy \
 --tfsample=$tfsample \
 --generation_output_dir=$generation_output_dir \
+--prime_midi_melody_fpath=$midi_in \
 --logtostderr
 
 

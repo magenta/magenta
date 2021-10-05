@@ -62,12 +62,13 @@ def main(unused_argv):
       gen_batch_size=FLAGS.gen_batch_size, piece_length=FLAGS.piece_length)
 
   # Creates a folder for storing the process of the sampling.
-  label = "sample_%s_%s_%s_T%g_l%i_%.2fmin" % (lib_util.timestamp(),
-                                               FLAGS.strategy,
-                                               generator.hparams.architecture,
-                                               FLAGS.temperature,
-                                               FLAGS.piece_length,
-                                               generator.time_taken)
+  #label = "sample_%s_%s_%s_T%g_l%i_%.2fmin" % (lib_util.timestamp(),
+  #                                             FLAGS.strategy,
+  #                                             generator.hparams.architecture,
+  #                                             FLAGS.temperature,
+  #                                             FLAGS.piece_length,
+  #                                             generator.time_taken)
+  label = "%s_%s" % (lib_util.timestamp(),FLAGS.strategy)
   basepath = os.path.join(FLAGS.generation_output_dir, label)
   tf.logging.info("basepath: %s", basepath)
   tf.gfile.MakeDirs(basepath)

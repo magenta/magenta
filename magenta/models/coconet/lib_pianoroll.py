@@ -39,8 +39,8 @@ class PianorollEncoderDecoder(object):
   """Encodes list/array format piece into pianorolls and decodes into midi."""
 
   qpm = 120
-  # Oboe, English horn, clarinet, bassoon, sounds better on timidity.
-  programs = [69, 70, 72, 71]
+  
+  programs = [1, 2, 3, 4]
 
   def __init__(self,
                shortest_duration=0.125,
