@@ -177,7 +177,8 @@ class Generator(object):
     start_time = time.time()
 
     if midi_in is not None and "midi" in self.strategy_name.lower():
-      pianorolls = self.strategy((shape, midi_in))
+      midi = pretty_midi.PrettyMIDI(midi_in)
+      pianorolls = self.strategy((shape, midi))
     elif "complete_manual" == self.strategy_name.lower():
       pianorolls = self.strategy(pianorolls_in)
     else:
