@@ -90,32 +90,32 @@ def main(unused_argv):
     return
 
   # Stores all the (intermediate) steps.
-  intermediate_steps_path = os.path.join(basepath, "intermediate_steps.npz")
-  with lib_util.timing("writing_out_sample_npz"):
-    tf.logging.info("Writing intermediate steps to %s", intermediate_steps_path)
-    generator.logger.dump(intermediate_steps_path)
+  #intermediate_steps_path = os.path.join(basepath, "intermediate_steps.npz")
+  #with lib_util.timing("writing_out_sample_npz"):
+  #  tf.logging.info("Writing intermediate steps to %s", intermediate_steps_path)
+  #  generator.logger.dump(intermediate_steps_path)
 
   # Save the prime as midi and npy if in harmonization mode.
   # First, checks the stored npz for the first (context) and last step.
-  tf.logging.info("Reading to check %s", intermediate_steps_path)
-  with tf.gfile.Open(intermediate_steps_path, "r") as p:
-    foo = np.load(p)
-    for key in foo.keys():
-      if re.match(r"0_root/.*?_strategy/.*?_context/0_pianorolls", key):
-        context_rolls = foo[key]
-        context_fpath = os.path.join(basepath, "context.npy")
-        tf.logging.info("Writing context to %s", context_fpath)
-        with lib_util.atomic_file(context_fpath) as context_p:
-          np.save(context_p, context_rolls)
-        if "harm" in FLAGS.strategy:
-          # Only synthesize the one prime if in Midi-melody-prime mode.
-          primes = context_rolls
-          if "Melody" in FLAGS.strategy:
-            primes = [context_rolls[0]]
-          prime_midi_outs = get_midi_from_pianorolls(primes, generator.decoder)
-          save_midis(prime_midi_outs, midi_path, label + "_prime")
-        break
-  tf.logging.info("Done")
+  #tf.logging.info("Reading to check %s", intermediate_steps_path)
+  #with tf.gfile.Open(intermediate_steps_path, "r") as p:
+  #  foo = np.load(p)
+  #  for key in foo.keys():
+  #    if re.match(r"0_root/.*?_strategy/.*?_context/0_pianorolls", key):
+  #      context_rolls = foo[key]
+  #      context_fpath = os.path.join(basepath, "context.npy")
+  #      tf.logging.info("Writing context to %s", context_fpath)
+  #      with lib_util.atomic_file(context_fpath) as context_p:
+  #        np.save(context_p, context_rolls)
+  #      if "harm" in FLAGS.strategy:
+  #        # Only synthesize the one prime if in Midi-melody-prime mode.
+  #        primes = context_rolls
+  #        if "Melody" in FLAGS.strategy:
+  #          primes = [context_rolls[0]]
+  #        prime_midi_outs = get_midi_from_pianorolls(primes, generator.decoder)
+  #        save_midis(prime_midi_outs, midi_path, label + "_prime")
+  #      break
+  #tf.logging.info("Done")
 
 
 class Generator(object):
