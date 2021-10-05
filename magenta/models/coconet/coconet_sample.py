@@ -70,7 +70,7 @@ def main(unused_argv):
   #                                             generator.time_taken)
   label = "%s" % (lib_util.timestamp())
   tf.gfile.MakeDirs(FLAGS.generation_output_dir)
-  #basepath = os.path.join(FLAGS.generation_output_dir, label)
+  basepath = FLAGS.generation_output_dir
   #tf.logging.info("basepath: %s", basepath)
   #tf.gfile.MakeDirs(basepath)
 
