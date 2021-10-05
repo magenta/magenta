@@ -348,6 +348,9 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
 
   def load_midi_melody(self, midi=None):
     if midi is None:
+      print(FLAGS.prime_midi_melody_fpath)
+      print(os.path.exists(FLAGS.prime_midi_melody_fpath))
+      assert os.path.exists(FLAGS.prime_midi_melody_fpath), "Input File does not Exists"
       midi = pretty_midi.PrettyMIDI(FLAGS.prime_midi_melody_fpath)
     return self.decoder.encode_midi_melody_to_pianoroll(midi)
 
@@ -371,7 +374,6 @@ class HarmonizeMidiMelodyStrategy(BaseStrategy):
   def run(self, tuple_in):
     shape, midi_in = tuple_in
     mroll = self.load_midi_melody(midi_in)
-    assert os.path.exists(midi_in), "Input File does not Exists"
     pianorolls = self.make_pianoroll_from_melody_roll(mroll, shape)
     masks = lib_sampling.HarmonizationMasker()(pianorolls.shape)
     gibbs = self.make_sampler(
