@@ -177,7 +177,6 @@ class Generator(object):
     start_time = time.time()
 
     if midi_in is not None and "midi" in self.strategy_name.lower():
-      midi = pretty_midi.PrettyMIDI(midi_in)
       pianorolls = self.strategy((shape, midi))
     elif "complete_manual" == self.strategy_name.lower():
       pianorolls = self.strategy(pianorolls_in)
@@ -259,6 +258,7 @@ class TFGenerator(object):
 
     # Generates.
     if midi_in is not None:
+      midi = pretty_midi.PrettyMIDI(midi_in)
       pianorolls_in = self.endecoder.encode_midi_to_pianoroll(midi_in, shape)
     elif pianorolls_in is None:
       pianorolls_in = np.zeros(shape, dtype=np.float32)
