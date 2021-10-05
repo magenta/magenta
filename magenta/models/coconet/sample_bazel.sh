@@ -33,7 +33,7 @@ generation_output_dir=./../../../output
 gen_batch_size=1
 piece_length=16
 strategy=harmonize_midi_melody
-tfsample=False
+tfsample=True
 
 # Run command.
 python coconet_sample.py \
