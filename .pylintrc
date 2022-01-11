@@ -60,6 +60,7 @@ disable=abstract-method,
         buffer-builtin,
         c-extension-no-member,
         consider-using-enumerate,
+        consider-using-f-string,  # added
         consider-using-max-builtin,  # added
         consider-using-min-builtin,  # added
         consider-using-with,  # added
@@ -147,6 +148,7 @@ disable=abstract-method,
         unnecessary-pass,
         unpacking-in-except,
         unsubscriptable-object,  # added
+        use-list-literal,  # added
         useless-else-on-loop,
         useless-object-inheritance,
         useless-suppression,
