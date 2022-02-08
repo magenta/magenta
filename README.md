@@ -24,7 +24,7 @@ This is the home for our Python TensorFlow library. To use our models in the bro
 ## Getting Started
 
 Take a look at our [colab notebooks](https://magenta.tensorflow.org/demos/colab/) for various models, including one on [getting started](https://colab.research.google.com/notebooks/magenta/hello_magenta/hello_magenta.ipynb).
-[Magenta.js](https://github.com/tensorflow/magenta-js) is a also a good resource for models and [demos](https://magenta.tensorflow.org/demos/web/) that run in the browser.
+[Magenta.js](https://github.com/tensorflow/magenta-js) is also a good resource for models and [demos](https://magenta.tensorflow.org/demos/web/) that run in the browser.
 This and more, including [blog posts](https://magenta.tensorflow.org/blog) and [Ableton Live plugins](https://magenta.tensorflow.org/demos/native/), can be found at [https://magenta.tensorflow.org](https://magenta.tensorflow.org).
 
 ## Magenta Repo
@@ -46,7 +46,7 @@ If you are running Mac OS X or Ubuntu, you can try using our automated
 installation script. Just paste the following command into your terminal.
 
 ```bash
-curl https://raw.githubusercontent.com/tensorflow/magenta/master/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
+curl https://raw.githubusercontent.com/tensorflow/magenta/main/magenta/tools/magenta-install.sh > /tmp/magenta-install.sh
 bash /tmp/magenta-install.sh
 ```
 

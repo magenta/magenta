@@ -22,7 +22,7 @@ Note that while we provide commits for code used in papers, we can provide suppo
 
 You may also be interested in a [PyTorch Onsets and Frames](https://github.com/jongwook/onsets-and-frames) implementation by [Jong Wook Kim](https://github.com/jongwook) (not supported by the Magenta team).
 
-Finally, we have also open sourced the [align_fine](https://github.com/magenta/note-seq/blob/master/note_seq/alignment) tool for high performance fine alignment of sequences that are already coarsely aligned, as described in the "Fine Alignment" section of the Appendix in the [MAESTRO paper](https://goo.gl/magenta/maestro-paper).
+Finally, we have also open sourced the [align_fine](https://github.com/magenta/note-seq/blob/main/note_seq/alignment) tool for high performance fine alignment of sequences that are already coarsely aligned, as described in the "Fine Alignment" section of the Appendix in the [MAESTRO paper](https://goo.gl/magenta/maestro-paper).
 
 ## JavaScript App
 
@@ -133,7 +133,7 @@ To use your own dataset or the [E-GMD dataset](https://g.co/magenta/e-gmd), see 
 
 Now can train your own transcription model using the training TFRecord file generated during dataset creation.
 
-Note that if you have the `audio_transform` hparam set to true (which it is by default), you will need to have the [sox](http://sox.sourceforge.net/) binary installed on your system.
+Note that if you have the `transform_audio` hparam set to true (which it is by default), you will need to have the [sox](http://sox.sourceforge.net/) binary installed on your system.
 
 ```bash
 TRAIN_EXAMPLES=<path to training tfrecord(s) generated during dataset creation>

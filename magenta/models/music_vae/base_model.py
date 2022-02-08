@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,8 @@ class BaseEncoder(object, metaclass=abc.ABCMeta):
      -`encode`
   """
 
-  @abc.abstractproperty
+  @property
+  @abc.abstractmethod
   def output_depth(self):
     """Returns the size of the output final dimension."""
     pass

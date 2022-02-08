@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -145,15 +145,15 @@ class MidiPerformanceEncoder(object):
       ns = note_seq.NoteSequence()
     return self.encode_note_sequence(ns)
 
-  def decode(self, ids, strip_extraneous=False):
-    """Transform a sequence of event indices into a performance MIDI file.
+  def decode_to_note_sequence(self, ids, strip_extraneous=False):
+    """Transform a sequence of event indices into a performance NoteSequence.
 
     Args:
       ids: List of performance event indices.
       strip_extraneous: Whether to strip EOS and padding from the end of `ids`.
 
     Returns:
-      Path to the temporary file where the MIDI was saved.
+      A NoteSequence.
     """
     if strip_extraneous:
       ids = text_encoder.strip_ids(ids, list(range(self.num_reserved_ids)))
@@ -174,6 +174,20 @@ class MidiPerformanceEncoder(object):
       performance.append(self._encoding.decode_event(i - self.num_reserved_ids))
 
     ns = performance.to_sequence()
+
+    return ns
+
+  def decode(self, ids, strip_extraneous=False):
+    """Transform a sequence of event indices into a performance MIDI file.
+
+    Args:
+      ids: List of performance event indices.
+      strip_extraneous: Whether to strip EOS and padding from the end of `ids`.
+
+    Returns:
+      Path to the temporary file where the MIDI was saved.
+    """
+    ns = self.decode_to_note_sequence(ids, strip_extraneous=strip_extraneous)
 
     _, tmp_file_path = tempfile.mkstemp('_decode.mid')
     note_seq.sequence_proto_to_midi_file(ns, tmp_file_path)

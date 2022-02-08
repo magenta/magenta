@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ class DataHelper(object):
         dataset = dataset.batch(batch_size)
         dataset = dataset.prefetch(1)
 
-        iterator = dataset.make_initializable_iterator()
+        iterator = tf.data.make_initializable_iterator(dataset)
         tf.add_to_collection(tf.GraphKeys.TABLE_INITIALIZERS,
                              iterator.initializer)
 

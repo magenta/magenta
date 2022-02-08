@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -147,7 +147,8 @@ class DrumsExtractor(pipeline.Pipeline):
     self._max_steps = max_steps
     self._gap_bars = gap_bars
 
-  def transform(self, quantized_sequence):
+  def transform(self, input_object):
+    quantized_sequence = input_object
     try:
       # pylint has a false positive error on this method call for some reason.
       # pylint:disable=redundant-keyword-arg

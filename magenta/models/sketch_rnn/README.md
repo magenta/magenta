@@ -2,12 +2,12 @@
 
 Before jumping in on any code examples, please first set up your [Magenta environment](/README.md).
 
-![Example Images](https://cdn.rawgit.com/tensorflow/magenta/master/magenta/models/sketch_rnn/assets/sketch_rnn_examples.svg)
+![Example Images](https://cdn.rawgit.com/tensorflow/magenta/main/magenta/models/sketch_rnn/assets/sketch_rnn_examples.svg)
 
 *Examples of vector images produced by this generative model.*
 
 This repo contains the TensorFlow code for `sketch-rnn`, the recurrent neural network model described in [Teaching Machines to Draw](https://research.googleblog.com/2017/04/teaching-machines-to-draw.html) and [A Neural Representation of Sketch Drawings](https://arxiv.org/abs/1704.03477).
-We've also provided a Jupyter notebook [Sketch_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Sketch_RNN.ipynb)
+We've also provided a Jupyter notebook [Sketch_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/main/jupyter-notebooks/Sketch_RNN.ipynb)
 in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository which demonstrates many of the examples discussed here.
 
 
@@ -18,7 +18,7 @@ in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository w
 
 The encoder will sample a latent code *z*, a vector of floats with a dimension of `z_size`. Like in the VAE, we can enforce a Gaussian IID distribution to *z*, and the strength of the KL Divergence loss term is controlled using `kl_weight`. There will be a tradeoff between KL Divergence Loss and the Reconstruction Loss. We also allow some room for the latent code to store information, and not be pure Gaussian IID. Once the KL Loss term gets below `kl_tolerance`, we will stop optimizing for this term.
 
-![Model Schematic](https://cdn.rawgit.com/tensorflow/magenta/master/magenta/models/sketch_rnn/assets/sketch_rnn_schematic.svg)
+![Model Schematic](https://cdn.rawgit.com/tensorflow/magenta/main/magenta/models/sketch_rnn/assets/sketch_rnn_schematic.svg)
 
 For small to medium sized datasets, dropout and data augmentation is very useful technique to avoid overfitting. We have provided options for input dropout, output dropout, and [recurrent dropout without memory loss](https://arxiv.org/abs/1603.05118). In practice, we only use recurrent dropout, and usually set it to between 65% to 90% depending on the dataset. [Layer Normalization](https://arxiv.org/abs/1607.06450) and [Recurrent Dropout](https://arxiv.org/abs/1603.05118) can be used together, forming a powerful combination for training recurrent neural nets on a small dataset.
 
@@ -95,7 +95,7 @@ Please create your own interesting datasets and train this algorithm on them!  G
 
 Each example in the dataset is stored as list of coordinate offsets: ∆x, ∆y, and a binary value representing whether the pen is lifted away from the paper.  This format, we refer to as *stroke-3*, is described in this [paper](https://arxiv.org/abs/1308.0850).  Note that the data format described in the paper has 5 elements (*stroke-5* format), and this conversion is done automatically inside the `DataLoader`.  Below is an example sketch of a turtle using this format:
 
-![Example Training Sketches](https://cdn.rawgit.com/tensorflow/magenta/master/magenta/models/sketch_rnn/assets/data_format.svg)
+![Example Training Sketches](https://cdn.rawgit.com/tensorflow/magenta/main/magenta/models/sketch_rnn/assets/data_format.svg)
 *Figure: A sample sketch, as a sequence of (∆x, ∆y, binary pen state) points and in rendered form.
 In the rendered sketch, the line color corresponds to the sequential stroke ordering.*
 
@@ -130,11 +130,11 @@ In addition, we have provided pre-trained models for selected QuickDraw datasets
 
 # Using a Model with Jupyter Notebook
 
-![Example Images](https://cdn.rawgit.com/tensorflow/magenta/master/magenta/models/sketch_rnn/assets/catbus.svg)
+![Example Images](https://cdn.rawgit.com/tensorflow/magenta/main/magenta/models/sketch_rnn/assets/catbus.svg)
 
 *Let's get the model to interpolate between a cat and a bus!*
 
-We've included a simple [Jupyter Notebook](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Sketch_RNN.ipynb) to show you how to load a pre-trained model and generate vector sketches.  You will be able to encode, decode, and morph between two vector images, and also generate new random ones.  When sampling images, you can tune the `temperature` parameter to control the level of uncertainty.
+We've included a simple [Jupyter Notebook](https://github.com/tensorflow/magenta-demos/blob/main/jupyter-notebooks/Sketch_RNN.ipynb) to show you how to load a pre-trained model and generate vector sketches.  You will be able to encode, decode, and morph between two vector images, and also generate new random ones.  When sampling images, you can tune the `temperature` parameter to control the level of uncertainty.
 
 # Citation
 

@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -119,7 +119,8 @@ def train(master,
           hparams,
           keep_checkpoint_max,
           use_tpu,
-          num_steps=None):
+          num_steps=None,
+          warm_start_from=None):
   """Train loop."""
   estimator = create_estimator(
       model_fn=model_fn,
@@ -128,7 +129,9 @@ def train(master,
       tpu_cluster=tpu_cluster,
       hparams=hparams,
       keep_checkpoint_max=keep_checkpoint_max,
-      use_tpu=use_tpu)
+      use_tpu=use_tpu,
+      warm_start_from=warm_start_from
+  )
 
   if estimator.config.is_chief:
     _trial_summary(
@@ -196,11 +199,11 @@ def evaluate(master,
     with tf.Graph().as_default():
       record_check_params = copy.deepcopy(hparams)
       record_check_params.batch_size = 1
-      iterator = transcription_data_base(
+      dataset = transcription_data_base(
           params=record_check_params,
           shuffle_examples=False,
-          skip_n_initial_records=0,
-          ).make_initializable_iterator()
+          skip_n_initial_records=0)
+      iterator = tf.data.make_initializable_iterator(dataset)
       next_record = iterator.get_next()
       with tf.Session() as sess:
         sess.run(iterator.initializer)

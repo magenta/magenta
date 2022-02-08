@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -245,7 +245,7 @@ class DAGPipeline(pipeline.Pipeline):
             'either be a Pipeline or DagOutput object'
             % (unit, dependency, unit))
       if isinstance(dependency, dict):
-        if not all([isinstance(name, six.string_types) for name in dependency]):
+        if not all(isinstance(name, six.string_types) for name in dependency):
           raise InvalidDAGError(
               'Dependency {%s: %s} is invalid. Right hand side keys %s must be '
               'strings' % (unit, dependency, dependency.keys()))

@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,14 +28,14 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
     return pianoroll_rnn_nade_graph.get_build_graph_fn(
         'generate', self._config)()
 
-  def _generate_step_for_batch(self, pianoroll_sequences, inputs, initial_state,
+  def _generate_step_for_batch(self, event_sequences, inputs, initial_state,
                                temperature):
     """Extends a batch of event sequences by a single step each.
 
     This method modifies the event sequences in place.
 
     Args:
-      pianoroll_sequences: A list of PianorollSequences. The list of event
+      event_sequences: A list of PianorollSequences. The list of event
           sequences should have length equal to `self._batch_size()`.
       inputs: A Python list of model inputs, with length equal to
           `self._batch_size()`.
@@ -51,6 +51,7 @@ class PianorollRnnNadeModel(events_rnn_model.EventSequenceRnnModel):
           log-likelihood of each entire sequence up to and including the
           generated step will be computed and returned.
     """
+    pianoroll_sequences = event_sequences
     assert len(pianoroll_sequences) == self._batch_size()
 
     graph_inputs = self._session.graph.get_collection('inputs')[0]

@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -220,7 +220,7 @@ class SVGDecoder(t2t_model.T2TModel):
       return length < max_decode_length
 
     # passing state must be flattened:
-    initial_state = tuple([(s.c, s.h) for s in initial_state])
+    initial_state = tuple((s.c, s.h) for s in initial_state)
 
     # actually run tf.while:
     logits, final_state = tf.while_loop(
@@ -228,8 +228,8 @@ class SVGDecoder(t2t_model.T2TModel):
         [logits_so_far, initial_state],
         shape_invariants=[
             tf.TensorShape([None, None, 1, hparams.hidden_size]),
-            tuple([(s[0].get_shape(), s[1].get_shape())
-                   for s in initial_state]),
+            tuple((s[0].get_shape(), s[1].get_shape())
+                  for s in initial_state),
         ],
         back_prop=False,
         parallel_iterations=1
@@ -313,9 +313,9 @@ class SVGDecoder(t2t_model.T2TModel):
                         common_layers.shape_list(zero_pad))
     return zero_pad, initial_output
 
-  def _greedy_infer(self, features, extra_decode_length, use_tpu=False):
-    # extra_decode_length is set to 0, unused.
-    del extra_decode_length
+  def _greedy_infer(self, features, decode_length, use_tpu=False):
+    # decode_length is set to 0, unused.
+    del decode_length
     infer_features = copy.copy(features)
     if 'targets' not in infer_features:
       infer_features['targets'] = infer_features['infer_targets']

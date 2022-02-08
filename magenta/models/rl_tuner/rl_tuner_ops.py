@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -97,7 +97,7 @@ def basic_rnn_hparams():
   """Generates the hparams used to train a basic_rnn.
 
   These are the hparams used in the .mag file found at
-  https://github.com/magenta/magenta/tree/master/magenta/models/
+  https://github.com/magenta/magenta/tree/main/magenta/models/
   melody_rnn#pre-trained
 
   Returns:

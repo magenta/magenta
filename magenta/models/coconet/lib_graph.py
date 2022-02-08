@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -145,7 +145,8 @@ class CoconetGraph(object):
     # FIXME 0.5 -> hparams.decay_rate
     self.decay_op = tf.assign(self.learning_rate, 0.5 * self.learning_rate)
     self.optimizer = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
-    self.train_op = self.optimizer.minimize(self.loss)
+    self.train_op = self.optimizer.minimize(
+        self.loss, global_step=tf.train.get_global_step())
 
   def compute_predictions(self, logits):
     if self.hparams.use_softmax_loss:
@@ -253,10 +254,7 @@ class CoconetGraph(object):
 
     filter_shape = layer['filters']
     # Instantiate or retrieve filter weights.
-    fanin = tf.to_float(tf.reduce_prod(filter_shape[:-1]))
-    stddev = tf.sqrt(tf.div(2.0, fanin))
-    initializer = tf.random_normal_initializer(
-        0.0, stddev)
+    initializer = tf.keras.initializers.he_normal()
     regular_convs = (not self.hparams.use_sep_conv or
                      layer_idx < self.hparams.num_initial_regular_conv_layers)
     if regular_convs:
@@ -277,7 +275,9 @@ class CoconetGraph(object):
     else:
       num_outputs = filter_shape[-1]
       num_splits = layer.get('num_pointwise_splits', 1)
+      dilation_rate = layer.get('dilation_rate', [1, 1])
       tf.logging.info('num_splits %d', num_splits)
+      tf.logging.info('dilation_rate %r', dilation_rate)
       if num_splits > 1:
         num_outputs = None
       conv = tf.layers.separable_conv2d(
@@ -285,11 +285,12 @@ class CoconetGraph(object):
           num_outputs,
           filter_shape[:2],
           depth_multiplier=self.hparams.sep_conv_depth_multiplier,
-          stride=layer.get('conv_stride', 1),
+          strides=layer.get('conv_stride', [1, 1]),
           padding=layer.get('conv_pad', 'SAME'),
-          rate=layer.get('dilation_rate', 1),
-          activation_fn=None,
-          weights_initializer=initializer if self.is_training else None)
+          dilation_rate=dilation_rate,
+          activation=None,
+          depthwise_initializer=initializer if self.is_training else None,
+          pointwise_initializer=initializer if self.is_training else None)
       if num_splits > 1:
         splits = tf.split(conv, num_splits, -1)
         print(len(splits), splits[0].shape)

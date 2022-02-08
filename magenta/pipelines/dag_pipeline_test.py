@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -244,7 +244,8 @@ class DAGPipelineTest(absltest.TestCase):
             input_type,
             {training_set_name: Type0, test_set_name: Type0})
 
-      def transform(self, input_dict):
+      def transform(self, input_object):
+        input_dict = input_object
         input_object = Type0(input_dict['xy'].x,
                              input_dict['xy'].y,
                              input_dict['z'].z)
@@ -295,7 +296,8 @@ class DAGPipelineTest(absltest.TestCase):
       def __init__(self):
         pipeline.Pipeline.__init__(self, {'xy': Type1, 'z': Type2}, Type4)
 
-      def transform(self, input_dict):
+      def transform(self, input_object):
+        input_dict = input_object
         return [Type4(input_dict['xy'].x,
                       input_dict['xy'].y,
                       input_dict['z'].z)]
@@ -356,7 +358,8 @@ class DAGPipelineTest(absltest.TestCase):
       def __init__(self):
         pipeline.Pipeline.__init__(self, {'xy': Type1, 'z': Type2}, Type4)
 
-      def transform(self, input_dict):
+      def transform(self, input_object):
+        input_dict = input_object
         return [Type4(input_dict['xy'].x,
                       input_dict['xy'].y,
                       input_dict['z'].z)]

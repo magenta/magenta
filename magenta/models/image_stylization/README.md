@@ -11,7 +11,7 @@ Manjunath Kudlur*.
 Whether you want to stylize an image with one of our pre-trained models or train your own model, you need to set up your [Magenta environment](/README.md).
 
 # Jupyter notebook
-There is a Jupyter notebook [Image_Stylization.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Image_Stylization.ipynb)
+There is a Jupyter notebook [Image_Stylization.ipynb](https://github.com/tensorflow/magenta-demos/blob/main/jupyter-notebooks/Image_Stylization.ipynb)
 in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository showing how to apply style transfer from a trained model.
 
 # Stylizing an Image
@@ -59,7 +59,7 @@ To train your own model, you'll need three things:
 
 1. A directory of images to use as styles.
 2. A [trained VGG model checkpoint](http://download.tensorflow.org/models/vgg_16_2016_08_28.tar.gz).
-3. The ImageNet dataset. Instructions for downloading the dataset can be found [here](https://github.com/tensorflow/models/tree/master/research/inception#getting-started).
+3. The ImageNet dataset. Instructions for downloading the dataset can be found [here](https://www.tensorflow.org/datasets/catalog/imagenet2012).
 
 First, you need to prepare your style images:
 

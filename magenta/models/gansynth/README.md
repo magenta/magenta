@@ -5,7 +5,7 @@ The details can be found in the [ICLR 2019 Paper](https://openreview.net/forum?i
 
 ## Generation
 
-To generate some sounds, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/master/README.md), then download a pretrained checkpoint, or train your own. We have several available for download:
+To generate some sounds, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/main/README.md), then download a pretrained checkpoint, or train your own. We have several available for download:
 
 * [acoustic_only](https://storage.googleapis.com/magentadata/models/gansynth/acoustic_only.zip): As shown in the paper, trained on only acoustic instruments pitch 24-84 (Mel-IF, Progressive, High Frequency Resolution).
 
@@ -27,7 +27,7 @@ gansynth_generate --ckpt_dir=/path/to/acoustic_only --output_dir=/path/to/output
 
 ## Training
 
-GANSynth can train on the NSynth dataset in ~3-4 days on a single V100 GPU. To train, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/master/README.md), using the install or develop environment.
+GANSynth can train on the NSynth dataset in ~3-4 days on a single V100 GPU. To train, first [follow the setup instructions for Magenta](https://github.com/tensorflow/magenta/blob/main/README.md), using the install or develop environment.
 
 Next, you'll need to access the GANSynth subset of the NSynth Dataset, which has different splits than the original dataset and some additional filtering. There are two ways to do this:
 

@@ -21,7 +21,7 @@ You can run Performance RNN live in your browser at the [Performance RNN browser
 
 You can try out Performance RNN in the [Colab](https://colab.research.google.com) environment with the [performance_rnn.ipynb](https://colab.research.google.com/notebook#fileId=/v2/external/notebooks/magenta/performance_rnn/performance_rnn.ipynb) notebook.
 
-There is also a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/Performance_RNN.ipynb)
+There is also a Jupyter notebook [Performance_RNN.ipynb](https://github.com/tensorflow/magenta-demos/blob/main/jupyter-notebooks/Performance_RNN.ipynb)
 in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository showing how to generate performances from a trained model.
 
 ## How to Use
@@ -152,7 +152,7 @@ performance_rnn_generate \
 
 ### Creating a Bundle File
 
-The [bundle format](https://github.com/magenta/note-seq/blob/master/note_seq/protobuf/generator.proto)
+The [bundle format](https://github.com/magenta/note-seq/blob/main/note_seq/protobuf/generator.proto)
 is a convenient way of combining the model checkpoint, metagraph, and
 some metadata about the model into a single file.
 

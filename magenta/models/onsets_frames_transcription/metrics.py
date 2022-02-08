@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,39 +28,10 @@ import mir_eval
 from note_seq import sequences_lib
 from note_seq.protobuf import music_pb2
 import numpy as np
-import pretty_midi
 import tensorflow.compat.v1 as tf
 
 # Disable for Numpy and Pandas containers.
 # pylint: disable=g-explicit-length-test
-
-
-def sequence_to_valued_intervals(note_sequence,
-                                 min_midi_pitch=constants.MIN_MIDI_PITCH,
-                                 max_midi_pitch=constants.MAX_MIDI_PITCH,
-                                 restrict_to_pitch=None):
-  """Convert a NoteSequence to valued intervals."""
-  intervals = []
-  pitches = []
-  velocities = []
-
-  for note in note_sequence.notes:
-    if restrict_to_pitch and restrict_to_pitch != note.pitch:
-      continue
-    if note.pitch < min_midi_pitch or note.pitch > max_midi_pitch:
-      continue
-    # mir_eval does not allow notes that start and end at the same time.
-    if note.end_time == note.start_time:
-      continue
-    intervals.append((note.start_time, note.end_time))
-    pitches.append(note.pitch)
-    velocities.append(note.velocity)
-
-  # Reshape intervals to ensure that the second dim is 2, even if the list is
-  # of size 0. mir_eval functions will complain if intervals is not shaped
-  # appropriately.
-  return (np.array(intervals).reshape((-1, 2)), np.array(pitches),
-          np.array(velocities))
 
 
 def f1_score(precision, recall):
@@ -186,11 +157,11 @@ def _calculate_metrics_py(frame_probs,
     sequence_label = shifted_sequence_label
 
   est_intervals, est_pitches, est_velocities = (
-      sequence_to_valued_intervals(
+      sequences_lib.sequence_to_valued_intervals(
           sequence_prediction, restrict_to_pitch=restrict_to_pitch))
 
   ref_intervals, ref_pitches, ref_velocities = (
-      sequence_to_valued_intervals(
+      sequences_lib.sequence_to_valued_intervals(
           sequence_label, restrict_to_pitch=restrict_to_pitch))
 
   processed_frame_predictions = sequences_lib.sequence_to_pianoroll(
@@ -217,37 +188,39 @@ def _calculate_metrics_py(frame_probs,
 
   note_precision, note_recall, note_f1, _ = (
       mir_eval.transcription.precision_recall_f1_overlap(
-          ref_intervals,
-          pretty_midi.note_number_to_hz(ref_pitches),
-          est_intervals,
-          pretty_midi.note_number_to_hz(est_pitches),
+          ref_intervals=ref_intervals,
+          ref_pitches=ref_pitches,
+          est_intervals=est_intervals,
+          est_pitches=est_pitches,
           offset_ratio=None))
 
   (note_with_velocity_precision, note_with_velocity_recall,
    note_with_velocity_f1, _) = (
        mir_eval.transcription_velocity.precision_recall_f1_overlap(
            ref_intervals=ref_intervals,
-           ref_pitches=pretty_midi.note_number_to_hz(ref_pitches),
+           ref_pitches=ref_pitches,
            ref_velocities=ref_velocities,
            est_intervals=est_intervals,
-           est_pitches=pretty_midi.note_number_to_hz(est_pitches),
+           est_pitches=est_pitches,
            est_velocities=est_velocities,
            offset_ratio=None))
 
   (note_with_offsets_precision, note_with_offsets_recall, note_with_offsets_f1,
    _) = (
        mir_eval.transcription.precision_recall_f1_overlap(
-           ref_intervals, pretty_midi.note_number_to_hz(ref_pitches),
-           est_intervals, pretty_midi.note_number_to_hz(est_pitches)))
+           ref_intervals=ref_intervals,
+           ref_pitches=ref_pitches,
+           est_intervals=est_intervals,
+           est_pitches=est_pitches))
 
   (note_with_offsets_velocity_precision, note_with_offsets_velocity_recall,
    note_with_offsets_velocity_f1, _) = (
        mir_eval.transcription_velocity.precision_recall_f1_overlap(
            ref_intervals=ref_intervals,
-           ref_pitches=pretty_midi.note_number_to_hz(ref_pitches),
+           ref_pitches=ref_pitches,
            ref_velocities=ref_velocities,
            est_intervals=est_intervals,
-           est_pitches=pretty_midi.note_number_to_hz(est_pitches),
+           est_pitches=est_pitches,
            est_velocities=est_velocities))
 
   tf.logging.info(

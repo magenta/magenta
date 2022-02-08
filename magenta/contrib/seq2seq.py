@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -589,7 +589,8 @@ class Helper(object, metaclass=abc.ABCMeta):
   Helper instances are used by `BasicDecoder`.
   """
 
-  @abc.abstractproperty
+  @property
+  @abc.abstractmethod
   def batch_size(self):
     """Batch size of tensor returned by `sample`.
 
@@ -597,7 +598,8 @@ class Helper(object, metaclass=abc.ABCMeta):
     """
     raise NotImplementedError("batch_size has not been implemented")
 
-  @abc.abstractproperty
+  @property
+  @abc.abstractmethod
   def sample_ids_shape(self):
     """Shape of tensor returned by `sample`, excluding the batch dimension.
 
@@ -605,7 +607,8 @@ class Helper(object, metaclass=abc.ABCMeta):
     """
     raise NotImplementedError("sample_ids_shape has not been implemented")
 
-  @abc.abstractproperty
+  @property
+  @abc.abstractmethod
   def sample_ids_dtype(self):
     """DType of tensor returned by `sample`.
 

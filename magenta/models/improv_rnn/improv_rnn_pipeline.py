@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,7 +44,8 @@ class EncoderPipeline(pipeline.Pipeline):
     self._max_note = config.max_note
     self._transpose_to_key = config.transpose_to_key
 
-  def transform(self, lead_sheet):
+  def transform(self, input_object):
+    lead_sheet = input_object
     lead_sheet.squash(
         self._min_note,
         self._max_note,

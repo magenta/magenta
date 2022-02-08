@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,7 +43,8 @@ class MelodyExtractor(pipeline.Pipeline):
     self._ignore_polyphonic_notes = ignore_polyphonic_notes
     self._filter_drums = filter_drums
 
-  def transform(self, quantized_sequence):
+  def transform(self, input_object):
+    quantized_sequence = input_object
     try:
       melodies, stats = extract_melodies(
           quantized_sequence,

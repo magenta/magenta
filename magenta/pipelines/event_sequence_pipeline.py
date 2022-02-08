@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,8 @@ class EncoderPipeline(pipeline.Pipeline):
         name=name)
     self._encoder_decoder = encoder_decoder
 
-  def transform(self, seq):
+  def transform(self, input_object):
+    seq = input_object
     encoded = pipelines_common.make_sequence_example(
         *self._encoder_decoder.encode(seq))
     return [encoded]

@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,6 @@ import tempfile
 from magenta.models.onsets_frames_transcription import melspec_input
 import numpy as np
 import tensorflow.compat.v1 as tf
-
-from tensorflow.lite.python import convert  # pylint: disable=g-direct-tensorflow-import
 
 tf.disable_v2_behavior()
 
@@ -98,6 +96,7 @@ class MelspecInputTest(tf.test.TestCase):
     return self.RunTfGraph()
 
   def setUp(self):
+    super().setUp()
     self._test_waveform = self.MakeTestWaveform()
     # Initialize TensorFlow.
     self._graph = tf.Graph()
@@ -122,8 +121,9 @@ class MelspecInputTest(tf.test.TestCase):
 
   def RunTfliteCompiler(self):
     # Attempt to run the tflite-style conversion to the current graph.
-    converter = tf.lite.TFLiteConverter.from_session(
-        self._session, [self._input], [self._output])
+    converter = tf.lite.TFLiteConverter.from_session(self._session,
+                                                     [self._input],
+                                                     [self._output])
     converter.inference_type = tf.lite.constants.FLOAT
     tflite_model = converter.convert()
     output_filename = _TmpFilePath(suffix='.tflite')
@@ -135,10 +135,9 @@ class MelspecInputTest(tf.test.TestCase):
     self.BuildTfGraph(tflite_compatible=True)
     self.RunTfliteCompiler()
 
-  def testRegularTfGraphIsntTfLiteCompatible(self):
+  def testTfLiteCompilesWithDynamicShape(self):
     self.BuildTfGraph(tflite_compatible=False)
-    with self.assertRaises(convert.ConverterError):
-      self.RunTfliteCompiler()
+    self.RunTfliteCompiler()
 
   def RunTfliteModel(self, tflite_model_path):
     """Load and run TFLite model under the interpreter."""

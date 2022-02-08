@@ -69,7 +69,7 @@ environment](/README.md).
 you can either use a pre-trained model or train your own.
 
 To train the model you can use the jupyter notebook
-[RL_Tuner.ipynb](https://github.com/tensorflow/magenta-demos/blob/master/jupyter-notebooks/RL_Tuner.ipynb) found
+[RL_Tuner.ipynb](https://github.com/tensorflow/magenta-demos/blob/main/jupyter-notebooks/RL_Tuner.ipynb) found
 in our [Magenta Demos](https://github.com/tensorflow/magenta-demos) repository or you can simply run:
 
 ```
@@ -105,9 +105,9 @@ for musical aesthetics, try modifying the `reward_music_theory` function!
 
 [our arxiv]: https://arxiv.org/pdf/1611.02796v2.pdf
 [blog post]: https://magenta.tensorflow.org/2016/11/09/tuning-recurrent-networks-with-reinforcement-learning/
-[ipynb]: https://nbviewer.jupyter.org/github/tensorflow/magenta/tree/master/magenta/models/rl_tuner/rl_tuner.ipynb
+[ipynb]: https://nbviewer.jupyter.org/github/tensorflow/magenta/tree/main/magenta/models/rl_tuner/rl_tuner.ipynb
 [note rnn ckpt]: http://download.magenta.tensorflow.org/models/rl_tuner_note_rnn.ckpt
-[magenta pretrained]: https://github.com/magenta/magenta/tree/master/magenta/models/melody_rnn#pre-trained
+[magenta pretrained]: https://github.com/magenta/magenta/tree/main/magenta/models/melody_rnn#pre-trained
 [dqn ex]: https://github.com/nivwusquorum/tensorflow-deepq/blob/master/tf_rl/
 [g learning]: https://arxiv.org/pdf/1512.08562.pdf
 [psi learning]: http://homepages.inf.ed.ac.uk/svijayak/publications/rawlik-RSS2012.pdf

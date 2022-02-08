@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -186,8 +186,7 @@ def model_inference(model_fn,
   with tf.Graph().as_default(), tf.Session().as_default():
     for k, v in all_metrics.items():
       final_scalar_name = 'final/' + k
-      metric_summary = tf.summary.scalar(
-          final_scalar_name, np.mean(all_metrics[k]))
+      metric_summary = tf.summary.scalar(final_scalar_name, np.mean(v))
       summary_writer.add_summary(metric_summary.eval())
     summary_writer.flush()
 

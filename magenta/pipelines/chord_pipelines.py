@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,7 +38,8 @@ class ChordsExtractor(pipeline.Pipeline):
     self._max_steps = max_steps
     self._all_transpositions = all_transpositions
 
-  def transform(self, quantized_sequence):
+  def transform(self, input_object):
+    quantized_sequence = input_object
     try:
       chord_progressions, stats = extract_chords(
           quantized_sequence, max_steps=self._max_steps,

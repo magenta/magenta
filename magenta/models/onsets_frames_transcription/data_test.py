@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -131,7 +131,7 @@ class DataTest(tf.test.TestCase):
           is_training=False,
           shuffle_examples=False,
           skip_n_initial_records=0)
-      iterator = dataset.make_initializable_iterator()
+      iterator = tf.data.make_initializable_iterator(dataset)
       next_record = iterator.get_next()
       sess.run([
           tf.initializers.local_variables(),

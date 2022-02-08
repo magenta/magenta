@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -199,7 +199,7 @@ class Hyperparameters(object):
 
   def __str__(self):
     """Get all hyperparameters as a string."""
-    # include whitelisted keys only
+    # include allowed keys only
     shorthand = dict(
         batch_size='bs',
         learning_rate='lr',
@@ -250,7 +250,10 @@ class Hyperparameters(object):
 
 
 class Architecture(lib_util.Factory):
-  pass
+  """Base class for nets."""
+
+  def __init__(self):
+    pass
 
 
 class Straight(Architecture):
@@ -259,6 +262,7 @@ class Straight(Architecture):
 
   def __init__(self, input_depth, num_layers, num_filters, num_pitches,  # pylint:disable=unused-argument
                output_depth, **kwargs):
+    super().__init__()
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
                     self.key, input_depth, output_depth)
     assert num_layers >= 4
@@ -294,6 +298,7 @@ class Dilated(Architecture):
 
   def __init__(self, input_depth, num_layers, num_filters, num_pitches,  # pylint:disable=unused-argument
                output_depth, **kwargs):
+    super().__init__()
     tf.logging.info('model_type=%s, input_depth=%d, output_depth=%d',
                     self.key, input_depth, output_depth)
     kws = """num_dilation_blocks dilate_time_only crop_piece_len

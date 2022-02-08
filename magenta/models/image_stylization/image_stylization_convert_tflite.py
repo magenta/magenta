@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ def _convert_to_tflite(saved_model_dir, num_styles, image_size, quantize,
 
   # Specify quantization option
   if quantize:
-    converter.optimizations = [tf.lite.Optimize.OPTIMIZE_FOR_SIZE]
+    converter.optimizations = [tf.lite.Optimize.DEFAULT]
 
   # Convert and save the TF Lite model
   tflite_model = converter.convert()

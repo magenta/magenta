@@ -1,4 +1,4 @@
-# Copyright 2020 The Magenta Authors.
+# Copyright 2021 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,8 @@ class PianorollSequenceExtractor(pipeline.Pipeline):
     self._min_steps = min_steps
     self._max_steps = max_steps
 
-  def transform(self, quantized_sequence):
+  def transform(self, input_object):
+    quantized_sequence = input_object
     pianoroll_seqs, stats = extract_pianoroll_sequences(
         quantized_sequence,
         min_steps_discard=self._min_steps,
