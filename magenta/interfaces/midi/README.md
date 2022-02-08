@@ -66,7 +66,7 @@ install one by doing the following:
 
 **Ubuntu:** Use the command `sudo apt-get install fluid-soundfont-gm`.<br />
 **Mac:** Download the soundfont from
-ftp://ftp.osuosl.org/pub/musescore/soundfont/fluid-soundfont.tar.gz and unpack the SF2
+https://ftp.osuosl.org/pub/musescore/soundfont/fluid-soundfont.tar.gz and unpack the SF2
 file or choose one from this list https://musescore.org/en/handbook/soundfonts-and-sfz-files#list.
 
 ## Set Up
