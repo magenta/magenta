@@ -133,7 +133,7 @@ def model_fn(features, labels, mode, params, config):
   length = features.length
   spec = features.spec
 
-  is_training = mode == tf.estimator.ModeKeys.TRAIN
+  is_training = (mode == tf.estimator.ModeKeys.TRAIN or mode == tf.estimator.ModeKeys.EVAL)
 
   if is_training:
     onset_labels = labels.onsets
@@ -402,8 +402,8 @@ def model_fn(features, labels, mode, params, config):
     for label, loss_collection in losses.items():
       loss_label = 'losses/' + label
       tf.summary.scalar(loss_label, tf.reduce_mean(loss_collection))
-
-    train_op = slim.optimize_loss(
+    if mode == tf.estimator.ModeKeys.TRAIN:
+      train_op = slim.optimize_loss(
         name='training',
         loss=loss,
         global_step=tf.train.get_or_create_global_step(),
