@@ -182,6 +182,29 @@ class RLTuner(object):
         self.note_rnn_checkpoint_dir = os.getcwd()
         self.note_rnn_checkpoint_file = os.path.join(os.getcwd(),
                                                      'note_rnn.ckpt')
+       
+        
+        vars_to_rename = {
+            "rnn_model/RNN/MultiRNNCell/Cell0/LSTMCell/W_0": "rnn_model/rnn/multi_rnn_cell/cell_0/lstm_cell/kernel",
+            "rnn_model/RNN/MultiRNNCell/Cell0/LSTMCell/B": "rnn_model/rnn/multi_rnn_cell/cell_0/lstm_cell/bias",
+        }
+        new_checkpoint_vars = {}
+        reader = tf.train.NewCheckpointReader(self.note_rnn_checkpoint_file)
+        for old_name in reader.get_variable_to_shape_map():
+          if old_name in vars_to_rename:
+            new_name = vars_to_rename[old_name]
+          else:
+            new_name = old_name
+          new_checkpoint_vars[new_name] = tf.Variable(reader.get_tensor(old_name))
+
+        init = tf.global_variables_initializer()
+        saver = tf.train.Saver(new_checkpoint_vars)
+
+        with tf.Session() as sess:
+                sess.run(init)
+                saver.save(sess, self.note_rnn_checkpoint_file)
+
+        
 
       if self.note_rnn_hparams is None:
         if self.note_rnn_type == 'basic_rnn':
