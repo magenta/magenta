@@ -1962,7 +1962,7 @@ class RLTuner(object):
 
     reward_batch = self.output_every_nth
     x = [reward_batch * i for i in np.arange(len(self.eval_avg_reward))]
-    start_index = start_at_epoch / self.output_every_nth
+    start_index = start_at_epoch // self.output_every_nth
     plt.figure()
     plt.plot(x[start_index:], self.eval_avg_reward[start_index:])
     plt.plot(x[start_index:], self.eval_avg_music_theory_reward[start_index:])
