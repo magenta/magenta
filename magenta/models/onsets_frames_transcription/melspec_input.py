@@ -32,8 +32,6 @@ explicitly unrolled framing). In this case, the input waveform tensor
 must have an explicit size at graph-building time.
 """
 
-import fractions
-
 import math
 
 from magenta.models.onsets_frames_transcription import mfcc_mel
@@ -128,7 +126,7 @@ def _fixed_frame(signal, frame_length, frame_step, first_axis=False):
     # work if we want the last of 1 axes.
     gather_axis = len(outer_dimensions)
 
-  subframe_length = fractions.gcd(frame_length, frame_step)  # pylint: disable=deprecated-method
+  subframe_length = math.gcd(frame_length, frame_step)
   subframes_per_frame = frame_length // subframe_length
   subframes_per_hop = frame_step // subframe_length
   num_subframes = length_samples // subframe_length
