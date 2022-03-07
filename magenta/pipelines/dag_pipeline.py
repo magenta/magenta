@@ -605,7 +605,7 @@ class DAGPipeline(pipeline.Pipeline):
     if not outputs:
       return []
     if isinstance(unit.output_type, dict):
-      concated = dict((key, list()) for key in unit.output_type.keys())
+      concated = dict((key, []) for key in unit.output_type.keys())
       for d in outputs:
         if not isinstance(d, dict):
           raise InvalidTransformOutputError(

@@ -535,7 +535,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         quantized_sequence = note_seq.quantize_note_sequence_absolute(
             note_sequence, self._steps_per_second)
     except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
-            note_seq.NegativeTimeError) as e:
+            note_seq.NegativeTimeError):
       return ConverterTensors()
 
     if (self._chord_encoding and not any(
@@ -858,7 +858,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
           self._steps_per_bar):
         return ConverterTensors()
     except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
-            note_seq.NegativeTimeError) as e:
+            note_seq.NegativeTimeError):
       return ConverterTensors()
 
     new_notes = []

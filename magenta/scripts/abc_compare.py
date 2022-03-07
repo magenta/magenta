@@ -36,6 +36,8 @@ FLAGS = tf.app.flags.FLAGS
 tf.app.flags.DEFINE_string('input_dir', None,
                            'Directory containing files to convert.')
 
+# pylint: disable=forgotten-debug-statement
+
 
 class CompareDirectory(tf.test.TestCase):
   """Fake test used to compare directories of abc and midi files."""
