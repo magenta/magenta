@@ -1,3 +1,7 @@
+# Status
+
+This repository is currently inactive and serves only as a supplement to the papers mentioned below. For our current transcription work, see the [MT3 blog post](https://g.co/magenta/mt3) and [MT3 GitHub repository](https://github.com/magenta/mt3).
+
 ## Onsets and Frames Transcription
 
 State of the art piano and drum transcription models, including velocity estimation.
