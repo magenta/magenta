@@ -49,6 +49,7 @@ REQUIRED_PACKAGES = [
     'sk-video',
     'sox >= 1.3.7',
     'tensor2tensor',
+    'gym < 0.22.0',  # Temporary fix to avoid problems in tensor2tensor.
     'tensorflow',
     'tensorflow-datasets',
     'tensorflow-probability',

@@ -106,7 +106,7 @@ def softmax(p, axis=None, temperature=1):
     p = np.exp(logp)
   p /= p.sum(axis=axis, keepdims=True)
   if np.isnan(p).any():
-    pdb.set_trace()
+    pdb.set_trace()  # pylint: disable=forgotten-debug-statement
   return p
 
 
