@@ -127,7 +127,7 @@ def load_dataset(data_dir, model_params, inference_mode=False):
       data_filepath = '/'.join([data_dir, dataset])
       tf.logging.info('Downloading %s', data_filepath)
       response = requests.get(data_filepath)
-      data = np.load(six.BytesIO(response.content), encoding='latin1')
+      data = np.load(six.BytesIO(response.content), encoding='latin1', allow_pickle=True)
     else:
       data_filepath = os.path.join(data_dir, dataset)
       data = np.load(data_filepath, encoding='latin1', allow_pickle=True)
