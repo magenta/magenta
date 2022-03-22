@@ -26,6 +26,7 @@ from tensor2tensor.utils import registry
 from tensor2tensor.utils import t2t_model
 from tensor2tensor.utils import trainer_lib
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 rnn = tf.nn.rnn_cell
 
@@ -37,7 +38,7 @@ class SVGDecoder(t2t_model.T2TModel):
   def body(self, features):
     if self._hparams.initializer == 'orthogonal':
       raise ValueError('LSTM models fail with orthogonal initializer.')
-    train = self._hparams.mode == tf.estimator.ModeKeys.TRAIN
+    train = self._hparams.mode == tf_estimator.ModeKeys.TRAIN
     return self.render2cmd_v3_internal(features, self._hparams, train)
 
   def pretrained_visual_encoder(self, features, hparams):
@@ -113,7 +114,7 @@ class SVGDecoder(t2t_model.T2TModel):
       if hparams.twice_decoder:
         hparams_decoder.hidden_size = 2 * hparams.hidden_size
 
-      if hparams.mode == tf.estimator.ModeKeys.PREDICT:
+      if hparams.mode == tf_estimator.ModeKeys.PREDICT:
         decoder_outputs, _ = self.lstm_decoder_infer(
             common_layers.flatten4d3d(shifted_targets),
             targets_length, hparams_decoder, features['targets_cls'],

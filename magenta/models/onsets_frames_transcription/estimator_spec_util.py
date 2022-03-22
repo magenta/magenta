@@ -23,6 +23,7 @@ from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import metrics
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tf_slim
 
 
@@ -141,7 +142,7 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
   """Create TPUEstimatorSpec."""
   loss_metrics = {}
   loss = None
-  if mode in (tf.estimator.ModeKeys.TRAIN, tf.estimator.ModeKeys.EVAL):
+  if mode in (tf_estimator.ModeKeys.TRAIN, tf_estimator.ModeKeys.EVAL):
     onset_losses = tf.losses.sigmoid_cross_entropy(
         labels.onsets[:, :, :constants.MIDI_PITCHES],
         onset_logits[:, :, :constants.MIDI_PITCHES],
@@ -178,7 +179,7 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
 
     loss = tf.losses.get_total_loss()
 
-  if mode in (tf.estimator.ModeKeys.EVAL, tf.estimator.ModeKeys.PREDICT):
+  if mode in (tf_estimator.ModeKeys.EVAL, tf_estimator.ModeKeys.PREDICT):
     frame_probs = tf.sigmoid(frame_logits)
     onset_probs = tf.sigmoid(onset_logits)
     if offset_network:
@@ -213,7 +214,7 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
       loss_label = 'losses/' + label
       metrics_values[loss_label] = loss_collection
 
-  if mode == tf.estimator.ModeKeys.TRAIN:
+  if mode == tf_estimator.ModeKeys.TRAIN:
     train_op = tf_slim.optimize_loss(
         name='training',
         loss=loss,
@@ -231,11 +232,11 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
 
     return tf.tpu.estimator.TPUEstimatorSpec(
         mode=mode, loss=loss, train_op=train_op)
-  elif mode == tf.estimator.ModeKeys.EVAL:
+  elif mode == tf_estimator.ModeKeys.EVAL:
     metric_ops = {k: tf.metrics.mean(v) for k, v in metrics_values.items()}
-    return tf.estimator.EstimatorSpec(
+    return tf_estimator.EstimatorSpec(
         mode=mode, loss=loss, eval_metric_ops=metric_ops)
-  elif mode == tf.estimator.ModeKeys.PREDICT:
+  elif mode == tf_estimator.ModeKeys.PREDICT:
     predictions = {
         'frame_probs':
             frame_probs,
@@ -272,6 +273,6 @@ def get_estimator_spec(hparams, mode, features, labels, frame_logits,
     for k, v in metrics_values.items():
       predictions[k] = tf.stack(v)
 
-    return tf.estimator.EstimatorSpec(mode=mode, predictions=predictions)
+    return tf_estimator.EstimatorSpec(mode=mode, predictions=predictions)
   else:
     raise ValueError('Unsupported mode: %s' % mode)

@@ -21,6 +21,7 @@ import functools
 import random
 import sys
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tf_slim
 
 
@@ -84,8 +85,8 @@ def create_estimator(model_fn,
   else:
     tpu_cluster_resolver = None
 
-  config = tf.estimator.tpu.RunConfig(
-      tpu_config=tf.estimator.tpu.TPUConfig(
+  config = tf_estimator.tpu.RunConfig(
+      tpu_config=tf_estimator.tpu.TPUConfig(
           iterations_per_loop=save_checkpoint_steps),
       master=master,
       cluster=tpu_cluster_resolver,
@@ -96,7 +97,7 @@ def create_estimator(model_fn,
 
   params = copy.deepcopy(hparams)
   params.del_hparam('batch_size')
-  return tf.estimator.tpu.TPUEstimator(
+  return tf_estimator.tpu.TPUEstimator(
       use_tpu=use_tpu,
       model_fn=wrapped_model_fn,
       model_dir=model_dir,

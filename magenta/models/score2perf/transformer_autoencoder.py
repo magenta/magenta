@@ -38,6 +38,7 @@ from tensor2tensor.utils import mlperf_log
 from tensor2tensor.utils import registry
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 # pylint: disable=g-direct-tensorflow-import
 
@@ -307,7 +308,7 @@ def transformer_decode(decoder_function,
       **kwargs)
 
   if (common_layers.is_xla_compiled() and
-      hparams.mode == tf.estimator.ModeKeys.TRAIN):
+      hparams.mode == tf_estimator.ModeKeys.TRAIN):
     # TPU does not react kindly to extra dimensions.
     # TODO(noam): remove this once TPU is more forgiving of extra dims.
     return decoder_output
