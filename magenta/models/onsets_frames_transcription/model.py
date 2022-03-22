@@ -30,6 +30,7 @@ from magenta.models.onsets_frames_transcription import infer_util
 from magenta.models.onsets_frames_transcription import metrics
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tf_slim as slim
 
 
@@ -133,7 +134,7 @@ def model_fn(features, labels, mode, params, config):
   length = features.length
   spec = features.spec
 
-  is_training = mode == tf.estimator.ModeKeys.TRAIN
+  is_training = mode == tf_estimator.ModeKeys.TRAIN
 
   if is_training:
     onset_labels = labels.onsets
@@ -416,7 +417,7 @@ def model_fn(features, labels, mode, params, config):
         clip_gradients=hparams.clip_norm,
         optimizer='Adam')
 
-  return tf.estimator.EstimatorSpec(
+  return tf_estimator.EstimatorSpec(
       mode=mode, predictions=predictions, loss=loss, train_op=train_op,
       eval_metric_ops=metric_ops)
 
