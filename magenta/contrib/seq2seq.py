@@ -850,7 +850,7 @@ class ScheduledOutputTrainingHelper(TrainingHelper):
   def initialize(self, name=None):
     return super(ScheduledOutputTrainingHelper, self).initialize(name=name)
 
-  def sample(self, time, outputs, state, name=None):
+  def sample(self, time, outputs, state, name=None):  # pylint: disable=arguments-renamed
     with tf.name_scope(name, "ScheduledOutputTrainingHelperSample",
                        [time, outputs, state]):
       return bernoulli_sample(
@@ -858,7 +858,7 @@ class ScheduledOutputTrainingHelper(TrainingHelper):
           sample_shape=self.batch_size,
           seed=self._seed)
 
-  def next_inputs(self, time, outputs, state, sample_ids, name=None):
+  def next_inputs(self, time, outputs, state, sample_ids, name=None):  # pylint: disable=arguments-renamed
     with tf.name_scope(name, "ScheduledOutputTrainingHelperNextInputs",
                        [time, outputs, state, sample_ids]):
       (finished, base_next_inputs, state) = (

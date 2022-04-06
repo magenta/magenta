@@ -395,6 +395,7 @@ class MelodyPerformanceTransformer(Transformer):
     else:
       return True
 
+  # pylint: disable=arguments-renamed
   def encode(self, perf_inputs, mel_inputs, target_space, hparams,
              features=None, losses=None):
     """Encode transformer inputs, but concatenate mel w perf."""
@@ -402,6 +403,7 @@ class MelodyPerformanceTransformer(Transformer):
         self._encoder_function, perf_inputs, mel_inputs, target_space, hparams,
         attention_weights=self.attention_weights,
         prepare_encoder_fn=self._prepare_encoder_fn)
+  # pylint: enable=arguments-renamed
 
   def body(self, features):
     """Transformer main model_fn.
