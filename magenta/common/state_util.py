@@ -69,6 +69,7 @@ def batch(states, batch_size=None):
   def stack_and_pad(*states):
     stacked = np.stack(states)
     if batch_size:
-      stacked.resize([batch_size] + list(stacked.shape)[1:])
+      stacked = np.pad(stacked, [(0, batch_size - stacked.shape[0])] +
+                       [(0, 0)] * (len(stacked.shape) - 1))
     return stacked
   return tf.nest.map_structure(stack_and_pad, *states)
