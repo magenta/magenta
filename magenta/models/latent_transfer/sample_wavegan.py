@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Sample from pre-trained WaveGAN model.
 
 This script provides sampling from pre-trained WaveGAN model that is done

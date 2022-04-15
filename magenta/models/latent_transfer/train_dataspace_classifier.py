@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Train classifier on dataspace.
 
 This script trains the data space classifier as defined in

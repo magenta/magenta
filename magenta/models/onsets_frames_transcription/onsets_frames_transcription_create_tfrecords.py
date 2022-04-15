@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Beam job for creating tfrecord files from datasets.
 
 Expects a CSV with the following fields: audio_filename, midi_filename, split

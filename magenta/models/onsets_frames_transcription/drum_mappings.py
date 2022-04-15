@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Drum hit mappings."""
 
 from magenta.models.onsets_frames_transcription import constants

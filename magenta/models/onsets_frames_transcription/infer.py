@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Inference for onset conditioned model.
 
 A histogram summary will be written for every example processed, and the
