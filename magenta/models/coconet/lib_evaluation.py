@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Helpers for evaluating the log likelihood of pianorolls under a model."""
 import time
 

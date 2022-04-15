@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Trains an N-styles style transfer model on the cheap.
 
 Training is done by finetuning the instance norm parameters of a pre-trained
