@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Transform one or multiple video in a set of frames.
 
 Files are prefixed by a f followed by the frame number.

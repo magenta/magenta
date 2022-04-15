@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Polyphonic RNN generation code as a SequenceGenerator interface."""
 import copy
 import functools

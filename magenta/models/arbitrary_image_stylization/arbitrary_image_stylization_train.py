@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Trains a real-time arbitrary image stylization model.
 
 For example of usage see start_training_locally.sh and start_training_on_borg.sh

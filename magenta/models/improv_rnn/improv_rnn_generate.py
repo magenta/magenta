@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Generate melodies from a trained checkpoint of an improv RNN model."""
 
 from __future__ import absolute_import

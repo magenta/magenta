@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Variations of Transformer autoencoder for conditional music generation.
 
 The Transformer autoencoder consists of an encoder and a decoder. The models

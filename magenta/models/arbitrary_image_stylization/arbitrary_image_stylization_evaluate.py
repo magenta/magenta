@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Evaluates a real-time arbitrary image stylization model.
 
 For example of usage see README.md.

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Generate samples with a pretrained GANSynth model.
 
 To use a config of hyperparameters and manual hparams:

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 """Autoencoder model for training on spectrograms."""
 from magenta.contrib import training as contrib_training
 from magenta.models.nsynth import utils
