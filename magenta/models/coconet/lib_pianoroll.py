@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Utilities for converting between NoteSequences and pianorolls."""
 import numpy as np
 import pretty_midi

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """A class for sampling, encoding, and decoding from trained MusicVAE models."""
 import copy
 import os

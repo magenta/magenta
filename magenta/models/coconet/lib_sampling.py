@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Classes and subroutines for generating pianorolls from coconet."""
 
 from magenta.models.coconet import lib_data

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Generate from trained model from scratch or condition on a partial score."""
 import itertools as it
 import os
