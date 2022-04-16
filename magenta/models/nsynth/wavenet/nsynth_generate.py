@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """A binary for generating samples given a folder of .wav files or encodings."""
 
 import os

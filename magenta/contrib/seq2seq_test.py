@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Tests for magenta.contrib.seq2seq."""
 
 from magenta.contrib import seq2seq

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Beam pipelines to generate examples for the GlyphAzzn dataset."""
 from absl import app
 from absl import flags

@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Interface to asynchronously capture continuous audio from PyAudio.
 
 This module provides one class, AudioRecorder, which buffers chunks of audio

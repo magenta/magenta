@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Forked classes and functions from `tf.contrib.seq2seq`."""
 
 import abc

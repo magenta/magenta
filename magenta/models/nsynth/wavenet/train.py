@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python2, python3
 r"""The training script that runs the party.
 
 This script requires tensorflow 1.1.0-rc1 or beyond.
