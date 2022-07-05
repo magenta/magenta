@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,6 +49,7 @@ REQUIRED_PACKAGES = [
     'sk-video',
     'sox >= 1.3.7',
     'tensor2tensor',
+    'gym < 0.22.0',  # Temporary fix to avoid problems in tensor2tensor.
     'tensorflow',
     'tensorflow-datasets',
     'tensorflow-probability',

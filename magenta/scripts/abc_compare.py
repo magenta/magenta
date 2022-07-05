@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Compare a directory of abc and midi files.
 
 Assumes a directory of abc files converted with something like:
@@ -35,6 +34,8 @@ FLAGS = tf.app.flags.FLAGS
 
 tf.app.flags.DEFINE_string('input_dir', None,
                            'Directory containing files to convert.')
+
+# pylint: disable=forgotten-debug-statement
 
 
 class CompareDirectory(tf.test.TestCase):

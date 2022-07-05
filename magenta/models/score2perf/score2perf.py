@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,6 +30,7 @@ from tensor2tensor.layers import modalities as t2t_modalities
 from tensor2tensor.models import transformer
 from tensor2tensor.utils import registry
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 # Instead of importing datagen_beam (only needed for datagen) here, it is
 # imported inline when needed to avoid the transitive apache_beam dependency
@@ -241,7 +242,7 @@ class Score2PerfProblem(problem.Problem):
         del example[name]
       example['inputs'] = tf.stack(inputs, axis=2)
 
-    if self.random_crop_in_train and mode == tf.estimator.ModeKeys.TRAIN:
+    if self.random_crop_in_train and mode == tf_estimator.ModeKeys.TRAIN:
       # Take a random crop of the training example.
       assert not self.has_inputs
       max_offset = tf.maximum(
@@ -255,7 +256,7 @@ class Score2PerfProblem(problem.Problem):
           example['targets'][offset:offset + hparams.max_target_seq_length])
       return example
 
-    elif self.split_in_eval and mode == tf.estimator.ModeKeys.EVAL:
+    elif self.split_in_eval and mode == tf_estimator.ModeKeys.EVAL:
       # Split the example into non-overlapping segments.
       assert not self.has_inputs
       length = tf.shape(example['targets'])[0]

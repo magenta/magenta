@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 """Variations of Transformer autoencoder for conditional music generation.
 
 The Transformer autoencoder consists of an encoder and a decoder. The models
@@ -38,6 +37,7 @@ from tensor2tensor.utils import mlperf_log
 from tensor2tensor.utils import registry
 
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 # pylint: disable=g-direct-tensorflow-import
 
@@ -307,7 +307,7 @@ def transformer_decode(decoder_function,
       **kwargs)
 
   if (common_layers.is_xla_compiled() and
-      hparams.mode == tf.estimator.ModeKeys.TRAIN):
+      hparams.mode == tf_estimator.ModeKeys.TRAIN):
     # TPU does not react kindly to extra dimensions.
     # TODO(noam): remove this once TPU is more forgiving of extra dims.
     return decoder_output
@@ -394,6 +394,7 @@ class MelodyPerformanceTransformer(Transformer):
     else:
       return True
 
+  # pylint: disable=arguments-renamed
   def encode(self, perf_inputs, mel_inputs, target_space, hparams,
              features=None, losses=None):
     """Encode transformer inputs, but concatenate mel w perf."""
@@ -401,6 +402,7 @@ class MelodyPerformanceTransformer(Transformer):
         self._encoder_function, perf_inputs, mel_inputs, target_space, hparams,
         attention_weights=self.attention_weights,
         prepare_encoder_fn=self._prepare_encoder_fn)
+  # pylint: enable=arguments-renamed
 
   def body(self, features):
     """Transformer main model_fn.

@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import numpy as np
 from tensor2tensor.layers import common_layers
 from tensor2tensor.layers import modalities
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 
 # pylint: disable=redefined-outer-name
@@ -141,7 +142,7 @@ def real_svg_top(body_output, unused_targets, model_hparams, unused_vocab_size,
     ret = tf.layers.dense(body_output, nout, name='top')
     batch_size = common_layers.shape_list(ret)[0]
 
-    if hard or model_hparams.mode == tf.estimator.ModeKeys.PREDICT:
+    if hard or model_hparams.mode == tf_estimator.ModeKeys.PREDICT:
       temperature = model_hparams.mix_temperature
 
       # apply temperature, do softmax

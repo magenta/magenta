@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import numpy as np
 from tensor2tensor.layers import common_hparams
 from tensor2tensor.utils import expert_utils
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 
 tf.disable_v2_behavior()
 
@@ -34,7 +35,7 @@ class ModalitiesTest(tf.test.TestCase):
     hidden_size = 9
     model_hparams = common_hparams.basic_params1()
     model_hparams.hidden_size = hidden_size
-    model_hparams.mode = tf.estimator.ModeKeys.TRAIN
+    model_hparams.mode = tf_estimator.ModeKeys.TRAIN
     x = np.stack([
         -1 + np.random.random_integers(
             vocab_size[i], size=(batch_size, length, 1))

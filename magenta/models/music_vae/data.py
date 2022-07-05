@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -535,7 +535,7 @@ class LegacyEventListOneHotConverter(BaseNoteSequenceConverter):
         quantized_sequence = note_seq.quantize_note_sequence_absolute(
             note_sequence, self._steps_per_second)
     except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
-            note_seq.NegativeTimeError) as e:
+            note_seq.NegativeTimeError):
       return ConverterTensors()
 
     if (self._chord_encoding and not any(
@@ -858,7 +858,7 @@ class DrumsConverter(BaseNoteSequenceConverter):
           self._steps_per_bar):
         return ConverterTensors()
     except (note_seq.BadTimeSignatureError, note_seq.NonIntegerStepsPerBarError,
-            note_seq.NegativeTimeError) as e:
+            note_seq.NegativeTimeError):
       return ConverterTensors()
 
     new_notes = []

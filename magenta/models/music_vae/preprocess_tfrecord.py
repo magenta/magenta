@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Lint as: python3
 r"""Beam job to preprocess a TFRecord of NoteSequences for training a MusicVAE.
 
 Splits a TFRecord of NoteSequences (as prepared by `convert_to_note_sequences`)

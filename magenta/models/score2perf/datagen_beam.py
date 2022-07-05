@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -503,7 +503,7 @@ class ConditionalExtractExamplesDoFn(beam.DoFn):
     # Seed random number generator based on key so that hop times are
     # deterministic.
     key, ns_str = kv
-    m = hashlib.md5(key)
+    m = hashlib.md5(key.encode('utf-8'))
     random.seed(int(m.hexdigest(), 16))
 
     # Deserialize NoteSequence proto.
@@ -573,7 +573,7 @@ class ConditionalExtractExamplesDoFn(beam.DoFn):
               all_pitches = [x.pitch for x in decoded_ns.notes]
               min_val = min(all_pitches)
               max_val = max(all_pitches)
-              transpose_range = range(-(min_val - 21), 108 - max_val + 1)
+              transpose_range = list(range(-(min_val - 21), 108 - max_val + 1))
               try:
                 transpose_range.remove(0)  # make sure you transpose
               except ValueError:

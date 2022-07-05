@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ from magenta.contrib import training as contrib_training
 from magenta.models.onsets_frames_transcription import constants
 from magenta.models.onsets_frames_transcription import estimator_spec_util
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1 import estimator as tf_estimator
 import tf_slim as slim
 
 
@@ -319,7 +320,7 @@ def model_fn(features, labels, mode, params, config):
 
   length = features.length
   spec = features.spec
-  is_training = mode == tf.estimator.ModeKeys.TRAIN
+  is_training = mode == tf_estimator.ModeKeys.TRAIN
 
   frame_logits, onset_logits, offset_logits, velocity_values = build_model(
       spec, length, hparams, is_training)

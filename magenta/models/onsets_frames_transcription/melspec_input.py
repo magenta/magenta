@@ -1,4 +1,4 @@
-# Copyright 2021 The Magenta Authors.
+# Copyright 2022 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,8 +31,6 @@ from tflite-compatible ops (i.e., it uses matmul for the DFT, and
 explicitly unrolled framing). In this case, the input waveform tensor
 must have an explicit size at graph-building time.
 """
-
-import fractions
 
 import math
 
@@ -128,7 +126,7 @@ def _fixed_frame(signal, frame_length, frame_step, first_axis=False):
     # work if we want the last of 1 axes.
     gather_axis = len(outer_dimensions)
 
-  subframe_length = fractions.gcd(frame_length, frame_step)  # pylint: disable=deprecated-method
+  subframe_length = math.gcd(frame_length, frame_step)
   subframes_per_frame = frame_length // subframe_length
   subframes_per_hop = frame_step // subframe_length
   num_subframes = length_samples // subframe_length
