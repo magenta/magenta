@@ -724,7 +724,7 @@ class MidiCaptor(threading.Thread):
           None.
 
     Returns:
-      The unqiue name of the callback thread to enable cancellation.
+      The unique name of the callback thread to enable cancellation.
 
     Raises:
       MidiHubError: If neither `signal` nor `period` or both are specified.

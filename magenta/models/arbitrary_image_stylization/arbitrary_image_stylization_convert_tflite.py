@@ -261,7 +261,7 @@ def predict_model_gen(session, style_dataset, sample_count):
   """Create a generator function that emits style images.
 
   Args:
-    session: tf.Session, the session that contains subgraph to load the traning
+    session: tf.Session, the session that contains subgraph to load the training
       dataset
     style_dataset: tf.data.Dataset that contains training style images.
     sample_count: int, number of sample to create.
@@ -291,7 +291,7 @@ def calculate_style_bottleneck(session,
   """Calculate style bottleneck using style predict SavedModel.
 
   Args:
-    session: tf.Session, the session that contains subgraph to load the traning
+    session: tf.Session, the session that contains subgraph to load the training
       dataset.
     predict_saved_model: str, path to the style predict SavedModel.
     style_dataset: tf.data.Dataset that contains training style images.
@@ -338,7 +338,7 @@ def transform_model_gen(session, predict_saved_model, style_dataset,
   """Create a generator function that emits content images & style bottlenecks.
 
   Args:
-    session: tf.Session, the session that contains subgraph to load the traning
+    session: tf.Session, the session that contains subgraph to load the training
       dataset.
     predict_saved_model: str, path to the style predict SavedModel.
     style_dataset: tf.data.Dataset that contains training style images.
