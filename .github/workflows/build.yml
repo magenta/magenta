@@ -17,7 +17,7 @@ jobs:
         sudo apt-get -y install ffmpeg build-essential libasound2-dev libjack-dev sox
         pip install -e .[test]
     - name: Test with pytest
-      run: pytest
+      run: pytest --ignore=magenta/models/score2perf
     - name: Lint with pylint
       run: pylint magenta
     # The below step just reports the success or failure of tests as a "commit status".

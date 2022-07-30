@@ -58,6 +58,7 @@ class ImageVAE(t2t_model.T2TModel):
   def top(self, body_output, features):
     # body_output should be a dict with 'outputs', which will be an image.
     # no postprocessing needed.
+    del features
     return body_output
 
   def loss(self, logits, features):

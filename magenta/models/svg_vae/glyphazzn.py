@@ -83,7 +83,7 @@ class GlyphAzznProblem(problem.Problem):
     return self.generate_samples(data_dir, tmp_dir, dataset_split)
 
   def generate_data(self, data_dir, tmp_dir, task_id=-1):
-    del tmp_dir  # unused argument
+    del tmp_dir, task_id  # unused argument
     filepath_fns = {
         problem.DatasetSplit.TRAIN: self.training_filepaths,
         problem.DatasetSplit.EVAL: self.dev_filepaths,
@@ -226,6 +226,7 @@ class GlyphAzznProblem(problem.Problem):
     return example
 
   def hparams(self, defaults, model_hparams):
+    del model_hparams
     p = defaults
     p.stop_at_eos = int(False)
     p.vocab_size = {'inputs': self.feature_dim, 'targets': self.feature_dim}

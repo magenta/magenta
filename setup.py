@@ -25,50 +25,44 @@ with open('magenta/version.py') as in_file:
   exec(in_file.read())  # pylint: disable=exec-used
 
 REQUIRED_PACKAGES = [
-    'absl-py',
-    'dm-sonnet',
-    # tensor2tensor has a dependency on dopamine-rl, which we don't use.
-    # pin to a version that doesn't require pygame installation because that
-    # has too many external non-python dependencies.
-    'dopamine-rl <= 3.0.1',
-    'imageio',
-    'librosa >= 0.6.2, < 0.8.0',
-    'matplotlib >= 1.5.3',
+    'absl-py == 1.2.0',
+    'dm-sonnet == 2.0.0',
+    'imageio == 2.20.0',
+    'librosa == 0.7.2',
+    'matplotlib == 3.5.2',
     'mido == 1.2.6',
-    'mir_eval >= 0.4',
-    'note-seq',
-    'numba < 0.50',  # temporary fix for librosa import
-    'numpy',
-    'Pillow >= 3.4.2',
-    'pretty_midi >= 0.2.6',
-    'pygtrie >= 2.3',
-    'python-rtmidi >= 1.1, < 1.2',  # 1.2 breaks us
-    'scikit-image',
-    'scipy >= 0.18.1',
-    'six >= 1.12.0',
-    'sk-video',
-    'sox >= 1.3.7',
-    'tensor2tensor',
-    'gym < 0.22.0',  # Temporary fix to avoid problems in tensor2tensor.
-    'tensorflow',
-    'tensorflow-datasets',
-    'tensorflow-probability',
-    'tf_slim',
-    'wheel',
+    'mir_eval == 0.7',
+    'note-seq == 0.0.3',
+    'numba == 0.49.1',
+    'numpy == 1.21.6',
+    'Pillow == 9.2.0',
+    'pretty_midi == 0.2.9',
+    'pygtrie == 2.5.0',
+    'python-rtmidi == 1.1.2',
+    'scikit-image == 0.19.3',
+    'scipy == 1.7.3',
+    'six == 1.16.0',
+    'sk-video == 1.1.10',
+    'sox == 1.4.1',
+    'tensorflow == 2.9.1',
+    'tensorflow-datasets == 4.6.0',
+    'tensorflow-probability == 0.17.0',
+    'tf_slim == 1.1.0',
+    'wheel == 0.37.1',
 ]
 
 EXTRAS_REQUIRE = {
     'beam': [
-        'apache-beam[gcp] >= 2.14.0',
+        'apache-beam[gcp] == 2.40.0',
     ],
     'onsets_frames_realtime': [
-        'pyaudio',
-        'colorama',
-        'tflite',
+        'pyaudio == 0.2.12',
+        'colorama == 0.4.5',
+        'tflite == 2.4.0',
     ],
     'test': [
-        'pylint',
-        'pytest',
+        'pylint == 2.14.5',
+        'pytest == 7.1.2',
     ]
 }
 

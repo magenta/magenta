@@ -61,6 +61,7 @@ disable=abstract-method,
         c-extension-no-member,
         consider-using-enumerate,
         consider-using-f-string,  # added
+        consider-using-generator,  # added
         consider-using-in,  # added
         consider-using-max-builtin,  # added
         consider-using-min-builtin,  # added
@@ -146,6 +147,8 @@ disable=abstract-method,
         unbalanced-tuple-unpacking,  # added
         unichr-builtin,
         unicode-builtin,
+        unnecessary-dunder-call,  # added
+        unnecessary-lambda-assignment,  # added
         unnecessary-pass,
         unpacking-in-except,
         unsubscriptable-object,  # added

@@ -398,6 +398,7 @@ class MelodyPerformanceTransformer(Transformer):
   def encode(self, perf_inputs, mel_inputs, target_space, hparams,
              features=None, losses=None):
     """Encode transformer inputs, but concatenate mel w perf."""
+    del features, losses
     return mel_perf_transformer_encode(
         self._encoder_function, perf_inputs, mel_inputs, target_space, hparams,
         attention_weights=self.attention_weights,
