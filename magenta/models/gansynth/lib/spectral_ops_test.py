@@ -102,7 +102,7 @@ class SpectralOpsTest(parameterized.TestCase, tf.test.TestCase):
     # Append with initial phase
     s = [slice(None),] * unwrapped_np.ndim
     s[axis] = slice(0, 1)
-    slice_np = unwrapped_np[s]
+    slice_np = unwrapped_np[tuple(s)]
     dphase_np = np.concatenate([slice_np, dphase_np], axis=axis) / np.pi
 
     phase_tf = tf.convert_to_tensor(phase_np)
