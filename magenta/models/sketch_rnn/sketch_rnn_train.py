@@ -14,7 +14,6 @@
 
 """SketchRNN training."""
 
-import json
 import os
 import time
 import zipfile
