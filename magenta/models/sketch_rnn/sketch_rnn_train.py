@@ -448,7 +448,7 @@ def trainer(model_params):
   tf.gfile.MakeDirs(FLAGS.log_root)
   with tf.gfile.Open(
       os.path.join(FLAGS.log_root, 'model_config.json'), 'w') as f:
-    json.dump(list(model_params.values()), f, indent=True)
+    f.write(model_params.to_json(indent=True))
 
   train(sess, model, eval_model, train_set, valid_set, test_set)
 
