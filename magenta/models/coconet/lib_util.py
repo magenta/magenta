@@ -274,7 +274,7 @@ def batches(*xss, **kwargs):
 
   Yields batches of the form `[xs[indices] for xs in xss]` where at each
   iteration `indices` selects a subset. Each index is only selected once.
-  **kwards could be one of the following:
+  **kwargs could be one of the following:
     size: number of elements per batch
     discard_remainder: if true, discard final short batch
     shuffle: if true, yield examples in randomly determined order
