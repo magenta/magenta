@@ -203,7 +203,7 @@ TEST_EXAMPLES=<path to eval tfrecord(s) generated during dataset creation>
 OUTPUT_DIR=<path where output should be saved>
 
 onsets_frames_transcription_infer \
-  --model_dir="${CHECKPOINT_DIR}" \
+  --model_dir="${MODEL_DIR}" \
   --examples_path="${TEST_EXAMPLES}" \
   --output_dir="${OUTPUT_DIR}"
 ```
