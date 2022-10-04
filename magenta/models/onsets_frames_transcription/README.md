@@ -50,7 +50,7 @@ After unzipping that checkpoint, you can run the following command:
 ```bash
 MODEL_DIR=<path to directory containing checkpoint>
 onsets_frames_transcription_transcribe \
-  --model_dir="${CHECKPOINT_DIR}" \
+  --model_dir="${MODEL_DIR}" \
   <piano_recording1.wav, piano_recording2.wav, ...>
 ```
 
@@ -59,7 +59,7 @@ For drum transcription, use the [checkpoint](https://storage.googleapis.com/mage
 ```bash
 MODEL_DIR=<path to directory containing checkpoint>
 onsets_frames_transcription_transcribe \
-  --model_dir="${CHECKPOINT_DIR}" \
+  --model_dir="${MODEL_DIR}" \
   --config="drums" \
   <drums_recording1.wav, drums_recording2.wav, ...>
 ```
@@ -203,7 +203,7 @@ TEST_EXAMPLES=<path to eval tfrecord(s) generated during dataset creation>
 OUTPUT_DIR=<path where output should be saved>
 
 onsets_frames_transcription_infer \
-  --model_dir="${CHECKPOINT_DIR}" \
+  --model_dir="${MODEL_DIR}" \
   --examples_path="${TEST_EXAMPLES}" \
   --output_dir="${OUTPUT_DIR}"
 ```
