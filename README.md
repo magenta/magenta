@@ -1,6 +1,6 @@
 # Status
 
-This repository is currently inactive and serves only as a supplement some of our papers. We have transitioned to using individual repositories for new projects. For our current work, see the [Magenta website](https://g.co/magenta) and [Magenta GitHub Organization](https://github.com/magenta).
+This repository is currently inactive and serves only as a supplement to some of our papers. We have transitioned to using individual repositories for new projects. For our current work, see the [Magenta website](https://g.co/magenta) and [Magenta GitHub Organization](https://github.com/magenta).
 
 # Magenta
 
