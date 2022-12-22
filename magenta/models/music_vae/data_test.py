@@ -138,10 +138,10 @@ class BaseDataTest(object):
     self.assertEqual(len(lhs), len(rhs))
     for a, b in zip(_np_sorted(lhs), _np_sorted(rhs)):
       # Convert bool type to int for easier-to-read error messages.
-      if a.dtype == np.bool:
-        a = a.astype(np.int)
-      if b.dtype == np.bool:
-        b = b.astype(np.int)
+      if a.dtype == bool:
+        a = a.astype(int)
+      if b.dtype == bool:
+        b = b.astype(int)
       # Take argmaxes to make one-hots easier to read.
       if (a.shape[-1] == b.shape[-1] and
           np.all(a >= 0) and np.all(b >= 0) and
@@ -773,7 +773,7 @@ class RollInputsOneHotDrumsConverterTest(OneHotDrumsConverterTest):
             input_[i, j] = l % 2
             l >>= 1
             j += 1
-          assert np.any(input_[i]), label_arr.astype(np.int)
+          assert np.any(input_[i]), label_arr.astype(int)
       inputs.append(input_)
     return inputs
 
@@ -821,7 +821,7 @@ class RollOutputsDrumsConverterTest(BaseDataTest, tf.test.TestCase):
     ])
     expected_output_tensors = np.zeros(
         (len(expected_sliced_events), 8, len(data.REDUCED_DRUM_PITCH_CLASSES)),
-        np.bool)
+        bool)
     for i, events in enumerate(expected_sliced_events):
       for j, e in enumerate(events):
         expected_output_tensors[i, j, e] = 1
