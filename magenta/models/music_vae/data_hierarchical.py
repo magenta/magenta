@@ -219,7 +219,7 @@ def hierarchical_pad_tensors(tensors, sample_size, randomize, max_lengths,
     output = np.concatenate(
         [pad_with_value(x, max_lengths[-1], 0) for x in output])
 
-    if np.size(control):
+    if np.size(np.asarray(control, dtype=object)):
       control = tf.nest.flatten(
           pad_with_element(control, max_lengths[:-1],
                            data.np_onehot([control_pad_token], control_depth)))
