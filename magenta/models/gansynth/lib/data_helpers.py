@@ -1,4 +1,4 @@
-# Copyright 2022 The Magenta Authors.
+# Copyright 2023 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ class DataSTFTHelper(DataHelper):
         mel_downscale=1,
         ifreq=True)
 
-  def _map_fn(self, wave, one_hot_label):
+  def _map_fn(self, wave, one_hot_label):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     waves = wave[tf.newaxis, :, :]
     data = self.waves_to_data(waves)
     return data[0], one_hot_label
@@ -143,7 +143,7 @@ class DataSTFTNoIFreqHelper(DataHelper):
         mel_downscale=1,
         ifreq=False)
 
-  def _map_fn(self, wave, one_hot_label):
+  def _map_fn(self, wave, one_hot_label):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     waves = wave[tf.newaxis, :, :]
     data = self.waves_to_data(waves)
     return data[0], one_hot_label
