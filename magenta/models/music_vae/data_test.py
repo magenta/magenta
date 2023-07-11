@@ -984,8 +984,11 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     tensors = converter.to_tensors(self.sequence)
     self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
     actual_sliced_labels = [
-        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
-        for t in tensors.outputs]
+        np.stack(
+            [np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1)]
+        )
+        for t in tensors.outputs
+    ]
 
     self.assertArraySetsEqual(self.expected_sliced_labels, actual_sliced_labels)
 
@@ -999,8 +1002,11 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     tensors = converter.to_tensors(self.sequence)
     self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
     actual_sliced_labels = [
-        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
-        for t in tensors.outputs]
+        np.stack(
+            [np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1)]
+        )
+        for t in tensors.outputs
+    ]
     actual_sliced_chord_labels = [
         np.argmax(t, axis=-1) for t in tensors.controls]
 
@@ -1018,8 +1024,11 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     tensors = converter.to_tensors(self.sequence)
     self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
     actual_sliced_labels = [
-        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
-        for t in tensors.outputs]
+        np.stack(
+            [np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1)]
+        )
+        for t in tensors.outputs
+    ]
     actual_sliced_key_labels = [
         np.argmax(t, axis=-1) for t in tensors.controls]
 
@@ -1038,8 +1047,11 @@ class TrioConverterTest(BaseDataTest, tf.test.TestCase):
     tensors = converter.to_tensors(self.sequence)
     self.assertArraySetsEqual(tensors.inputs, tensors.outputs)
     actual_sliced_labels = [
-        np.stack(np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1))
-        for t in tensors.outputs]
+        np.stack(
+            [np.argmax(s, axis=-1) for s in np.split(t, [90, 180], axis=-1)]
+        )
+        for t in tensors.outputs
+    ]
     actual_sliced_chord_labels = [
         np.argmax(t[:, :-12], axis=-1) for t in tensors.controls]
     actual_sliced_key_labels = [
