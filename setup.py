@@ -44,7 +44,7 @@ REQUIRED_PACKAGES = [
     'six == 1.16.0',
     'sk-video == 1.1.10',
     'sox == 1.4.1',
-    'tensorflow == 2.9.1',
+    'tensorflow == 2.11.1',
     'tensorflow-datasets == 4.6.0',
     'tensorflow-probability == 0.17.0',
     'tf_slim == 1.1.0',
