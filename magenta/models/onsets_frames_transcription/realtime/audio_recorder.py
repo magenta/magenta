@@ -43,8 +43,8 @@ except ModuleNotFoundError:
 
 def resample(audio, source_rate, target_rate):
   if librosa:
-    return librosa.core.resample(
-        audio, orig_sr=source_rate, target_sr=target_rate)
+    return (librosa.core.resample(
+        audio.T, orig_sr=source_rate, target_sr=target_rate)).T
   if samplerate:
     ratio = float(target_rate) / source_rate
     return samplerate.resample(audio, ratio, 'sinc_best')
