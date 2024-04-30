@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Generative Jamming</title>
+    <link
+      rel="icon"
+      href="https://magenta.tensorflow.org/favicon.ico"
+      type="image/x-icon"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto">
+
+    <script src="https://cdn.jsdelivr.net/npm/webmidi@latest/dist/iife/webmidi.iife.js"></script>
+    <script src="https://unpkg.com/tone" type="module"></script>
+    <script src="https://unpkg.com/@tonejs/midi"></script>
+    <script src="tonejs_instruments.js"></script>
+    <script src="note_visualization.js" type="module"></script>
+    <script src="play_from_midi_input.js"></script>
+    <script src="main.js"></script>
+  </head>
+  <body>
+    <div class="splash">
+      <h1>Generative Jamming</h1>
+      <div class="splash-main">
+        <p>Jam live with an AI accompanist!</p>
+        <button class="splash-button loading" id="play-btn" disabled autofocus>
+          <span>Loading...</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="loaded" hidden>
+      <div class="footer">
+        <div class="stack">
+          <div class="flex-wide">
+            <button id="metronome-button" class="footer-button">
+              <span>Enable Metronome</span>
+            </button>
+            <buton id="metronome-freq-button" class="footer-button">
+              <span>1/4</span>
+            </button>
+          </div>
+          <div class="flex-wide">
+            <label for="bpm-input">Beats per Minute</label>
+            <input id="bpm-input" type="number" min="1" max="300" step="1" />
+          </div>
+          <div class="flex-wide">
+            <label for="time-sig-input">Beats per Measure</label>
+            <input id="time-sig-input" type="number" min="1" max="16" step="1" />
+          </div>
+        </div>
+        <div class="stack">
+          <div class="flex-wide">
+            <label for="silence-input">Initial Beats of Silence</label>
+            <input id="silence-input" type="number" min="0" max="16" step="1" />
+          </div>
+          <div class="flex-wide">
+            <label for="lookahead-input">Lookahead Beats</label>
+            <input id="lookahead-input" type="number" min="1" max="8" step="1" />
+          </div>
+          <div class="flex-wide">
+            <label for="commitahead-input">Commit Beats</label>
+            <input id="commitahead-input" type="number" min="0" max="8" step="1" />
+          </div>
+        </div>
+        <div class="stack">
+          <div class="flex-wide">
+            <label for="temperature-input">Temperature</label>
+            <input id="temperature-input" type="number" min="0" max="3" step="0.1" />
+          </div>
+          <div class="flex-wide">
+            <label for="model-select">Model</label>
+            <select id="model-select"></select>
+          </div>
+        </div>
+        <div class="stack">
+          <button id="live-session-button" class="footer-button" disabled>
+            <span>Start Live Session</span>
+          </button>
+          <div class="flex-wide">
+            <label for="download-session-check">Download Sessions</label>
+            <input id="download-session-check" type="checkbox" checked="checked" />
+          </div>
+          <div class="flex-wide">
+            <label for="metronome-check">Metronome Enabled</label>
+            <input id="metronome-check" type="checkbox" checked="checked" />
+          </div>
+        </div>
+        <div class="stack">
+          <label for="show-chords-check">Show Incoming Chords</label>
+          <div class="flex-wide">
+            <input id="show-chords-check" class="centered" type="checkbox" checked="checked" />
+          </div>
+        </div>
+        <div class="stack">
+          <div class="flex-wide">
+            <label for="chord-inst-select">Chord Instrument</label>
+            <select id="chord-inst-select"></select>
+          </div>
+          <div class="flex-wide">
+            <label for="melody-inst-select">Melody Instrument</label>
+            <select id="melody-inst-select"></select>
+          </div>
+        </div>
+        <div class="stack">
+          <div class="flex-wide">
+            <label for="interface-select">MIDI Interface</label>
+            <select id="interface-select"></select>
+          </div>
+        </div>
+      </div>
+      <div class="background"></div>
+    </div>
+  </body>
+</html>

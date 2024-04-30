@@ -1,0 +1,8 @@
+network.TransformerConfig:
+  emb_dim = 512
+  num_heads = 6
+  num_layers = 8
+  head_dim = 64
+  mlp_dim = 1024
+
+TRAIN_TASK_FEATURE_LENGTHS={'inputs': 0, 'targets': 512}

@@ -1,0 +1,17 @@
+# ginlint: disable=bad-import-order
+from __gin__ import dynamic_registration
+from t5x.examples.decoder_only import network
+from t5x import decoding
+from magenta.models.realchords import inference_utils
+# ginlint: enable=bad-import-order
+
+# Override the MODEL in base_model
+MODEL = @inference_utils.GenWithDataDecoderOnlyModel()
+inference_utils.GenWithDataDecoderOnlyModel:
+  module = @network.DecoderWrapper()
+  vocabulary = %VOCABULARY
+  optimizer_def = %OPTIMIZER
+  decode_fn = @decoding.temperature_sample
+  z_loss = %Z_LOSS
+  label_smoothing = %LABEL_SMOOTHING
+  loss_normalizing_factor = %LOSS_NORMALIZING_FACTOR
