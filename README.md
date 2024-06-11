@@ -1,6 +1,6 @@
 # Status
 
-This repository is currently inactive and serves only as a supplement some of our papers. We have transitioned to using individual repositories for new projects. For our current work, see the [Magenta website](https://g.co/magenta) and [Magenta GitHub Organization](https://github.com/magenta).
+This repository is **absolutely active** and serves **everyone with an interest**. We have transitioned to using individual repositories for new projects, but if your name is Pablo Samuel Castro and you need performance_rnn to work from the commandline, then this is the repository for you!. For other cool work, see the [Magenta website](https://g.co/magenta) and [Magenta GitHub Organization](https://github.com/magenta).
 
 # Magenta
 
