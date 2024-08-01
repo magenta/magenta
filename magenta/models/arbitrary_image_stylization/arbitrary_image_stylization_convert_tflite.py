@@ -1,4 +1,4 @@
-# Copyright 2023 The Magenta Authors.
+# Copyright 2024 The Magenta Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import math
 import os
 import tempfile
 
@@ -317,7 +318,7 @@ def calculate_style_bottleneck(session,
   session.run(iterator.initializer)
   next_element = iterator.get_next()
 
-  for _ in range(np.math.ceil(min_sample_count / batch_size)):
+  for _ in range(math.ceil(min_sample_count / batch_size)):
     style_image = session.run(next_element)
 
     style_bottleneck_batch = session.run(
