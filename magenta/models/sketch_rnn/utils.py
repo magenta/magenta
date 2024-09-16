@@ -324,8 +324,5 @@ class DataLoader(object):
       result[i, l:, 4] = 1
       # put in the first token, as described in sketch-rnn methodology
       result[i, 1:, :] = result[i, :-1, :]
-      result[i, 0, :] = 0
-      result[i, 0, 2] = self.start_stroke_token[2]  # setting S_0 from paper.
-      result[i, 0, 3] = self.start_stroke_token[3]
-      result[i, 0, 4] = self.start_stroke_token[4]
+      result[i, 0, :] = self.start_stroke_token[:]  # setting S_0 from paper.
     return result
