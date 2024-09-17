@@ -151,8 +151,7 @@ def train(train_dir,
         config.hparams, config.train_examples_path or config.tfds_name,
         train_dir)
   with tf.Graph().as_default():
-    with tf.device(tf.train.replica_device_setter(
-        num_ps_tasks, merge_devices=True)):
+    with tf.device(tf.train.replica_device_setter(num_ps_tasks, merge_devices=True)):
 
       model = config.model
       model.build(config.hparams,
