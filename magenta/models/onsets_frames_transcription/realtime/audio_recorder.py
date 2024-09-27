@@ -204,8 +204,8 @@ class AudioRecorder(object):
     num_audio_chunks = int(
         math.ceil(num_audio_frames * self._downsample_factor /
                   self.frames_per_chunk))
-    logging.debug('Capturing %d chunks to get at least %d frames.',
-                  num_audio_chunks, num_audio_frames)
+    logging.debug('Capturing %d chunks of size %d to get at least %d frames.',
+                  num_audio_chunks, self.frames_per_chunk, num_audio_frames)
     if num_audio_chunks < 1:
       num_audio_chunks = 1
     try:

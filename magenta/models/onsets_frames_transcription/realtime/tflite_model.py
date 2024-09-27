@@ -15,6 +15,7 @@
 """Code for interacting with the TFLite model."""
 import importlib
 import numpy as np
+from absl import logging
 
 try:
   tflite = importlib.import_module('tensorflow.compat.v1').lite
@@ -53,6 +54,13 @@ class Model(object):
         self._output_roll_length - 1)
     self._timestep = float(self._hop_size) / Model.MODEL_SAMPLE_RATE
 
+  def pad(self, samples):
+    input_size = self._input_details[0]['shape'][0]
+    if (len(samples) < input_size):
+      logging.debug("Padding %d samples with %d's 0x0 to fit %d input tensors" % (len(samples), input_size - len(samples), input_size))
+      return np.pad(samples, (0, input_size - len(samples)), mode='constant')
+    return samples
+
   def get_sample_rate(self):
     return Model.MODEL_SAMPLE_RATE
 
@@ -71,9 +79,11 @@ class Model(object):
 
   def infer(self, samples):
     """Do inference over the provided samples."""
+    p = self.pad(samples)
+
     self._interpreter.set_tensor(
         self._interpreter.get_input_details()[0]['index'],
-        samples)
+        p)
 
     self._interpreter.invoke()
     predictions = [
