@@ -41,7 +41,7 @@ python -m tensorflow_datasets.scripts.download_and_prepare --datasets=nsynth/gan
 To test that training works, run from the following command, replacing 'gs://tfds-data/datasets' with your local directory if you used option 2 above:
 
 ```bash
-gansynth_train.py --hparams='{"tfds_data_dir":"gs://tfds-data/datasets", "train_root_dir":"/tmp/gansynth/train"}'
+gansynth_train --hparams='{"tfds_data_dir":"gs://tfds-data/datasets", "train_root_dir":"/tmp/gansynth/train"}'
 ```
 
 This will run the model with suitable hyperparmeters for quickly testing training (which you can find in `model.py`). The best performing hyperparmeter configuration from the paper _(Mel-Spectrograms, Progressive Training, High Frequency Resolution)_, can be found in `configs/mel_prog_hires.py`. You can train with this config by adding it as a flag:
