@@ -48,7 +48,7 @@ class RNNCellTest(tf.test.TestCase):
         self.assertAllClose(res[0], [[0.154605, 0.154605, 0.154605]])
 
   def testAttentionCellWrapperFailures(self):
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         TypeError, contrib_rnn.ASSERT_LIKE_RNNCELL_ERROR_REGEXP):
       contrib_rnn.AttentionCellWrapper(None, 0)
 
@@ -57,17 +57,17 @@ class RNNCellTest(tf.test.TestCase):
       with tf.Graph().as_default():
         lstm_cell = rnn_cell.BasicLSTMCell(
             num_units, state_is_tuple=state_is_tuple)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueError, "attn_length should be greater than zero, got 0"):
           contrib_rnn.AttentionCellWrapper(
               lstm_cell, 0, state_is_tuple=state_is_tuple)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueError, "attn_length should be greater than zero, got -1"):
           contrib_rnn.AttentionCellWrapper(
               lstm_cell, -1, state_is_tuple=state_is_tuple)
       with tf.Graph().as_default():
         lstm_cell = rnn_cell.BasicLSTMCell(num_units, state_is_tuple=True)
-        with self.assertRaisesRegexp(
+        with self.assertRaisesRegex(
             ValueError, "Cell returns tuple of states, but the flag "
             "state_is_tuple is not set. State size is: *"):
           contrib_rnn.AttentionCellWrapper(
