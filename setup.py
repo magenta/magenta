@@ -48,7 +48,7 @@ REQUIRED_PACKAGES = [
     'tensorflow-datasets == 4.6.0',
     'tensorflow-probability == 0.17.0',
     'tf_slim == 1.1.0',
-    'wheel == 0.37.1',
+    'wheel == 0.38.1',
 ]
 
 EXTRAS_REQUIRE = {
