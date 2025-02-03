@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import subprocess
 
 from magenta.models.onsets_frames_transcription import audio_label_data_utils
 from magenta.models.onsets_frames_transcription import configs
@@ -58,7 +59,13 @@ tf.app.flags.DEFINE_string(
 
 def create_example(filename, sample_rate, load_audio_with_librosa):
   """Processes an audio file into an Example proto."""
-  wav_data = tf.gfile.Open(filename, 'rb').read()
+  fileparts = os.path.splitext(filename.lower())
+  if fileparts[1] != ".wav":
+    tf.logging.info('Converting %s into wav using ffmpeg...' % (filename) )
+    result = subprocess.run(['ffmpeg', '-i', filename, '-f', 'wav', '-'], capture_output=True, shell=False)
+    wav_data = result.stdout
+  else:
+    wav_data = tf.gfile.Open(filename, 'rb').read()
   example_list = list(
       audio_label_data_utils.process_record(
           wav_data=wav_data,
@@ -115,7 +122,7 @@ def run(argv, config_map, data_fn):
         # the data processing functionality in data.py without having to
         # construct all the Example protos in memory ahead of time or create
         # a temporary tfrecord file.
-        tf.logging.info('Processing file...')
+        tf.logging.info('Processing file %s...' % (filename))
         sess.run(iterator.initializer,
                  {examples: [
                      create_example(filename, hparams.sample_rate,
@@ -140,7 +147,7 @@ def run(argv, config_map, data_fn):
         sequence_prediction = music_pb2.NoteSequence.FromString(
             prediction_list[0]['sequence_predictions'][0])
 
-        midi_filename = filename + FLAGS.transcribed_file_suffix + '.midi'
+        midi_filename = os.path.splitext(filename)[0] + FLAGS.transcribed_file_suffix + '.midi'
         midi_io.sequence_proto_to_midi_file(sequence_prediction, midi_filename)
 
         tf.logging.info('Transcription written to %s.', midi_filename)
