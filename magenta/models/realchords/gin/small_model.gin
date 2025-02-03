@@ -1,0 +1,8 @@
+include 'base_model.gin'
+
+network.TransformerConfig:
+  emb_dim = 512
+  num_heads = 6
+  num_layers = 8
+  head_dim = 64
+  mlp_dim = 1024
