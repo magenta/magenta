@@ -333,6 +333,92 @@ CONFIG_MAP['hier-trio_16bar'] = Config(
     eval_examples_path=None,
 )
 
+'''
+trio_32bar and quartet_16bar consumes much more RAM, compared with trio_16bar, so if the process will be killed, try to set in Hparams:
+batch_size=128
+enc_rnn_size=[512]
+dec_rnn_size=[512, 512]
+
+But take a note that setting these values can also increase the number of learning steps required.
+'''
+trio_32bar_converter = data.TrioConverter(
+    steps_per_quarter=4,
+    slice_bars=32,
+    gap_bars=2)
+CONFIG_MAP['hier-trio_32bar'] = Config(
+    model=MusicVAE(
+        lstm_models.HierarchicalLstmEncoder(
+            lstm_models.BidirectionalLstmEncoder, [32, 16]),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
+                core_decoders=[
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder()],
+                output_depths=[
+                    90,  # melody
+                    90,  # bass
+                    512,  # drums
+                ]),
+            level_lengths=[32, 16],
+            disable_autoregression=True)),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=256,
+            max_seq_len=32*16,
+            z_size=512,
+            enc_rnn_size=[1024],
+            dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=trio_32bar_converter,
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
+quartet_16bar_converter = data.QuartetConverter(
+    steps_per_quarter=4,
+    slice_bars=16,
+    gap_bars=2)
+CONFIG_MAP['hier-quartet_16bar'] = Config(
+    model=MusicVAE(
+        lstm_models.HierarchicalLstmEncoder(
+            lstm_models.BidirectionalLstmEncoder, [16, 16]),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
+                core_decoders=[
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder()],
+                output_depths=[
+                    90,  # synth
+                    90,  # melody
+                    90,  # bass
+                    512,  # drums
+                ]),
+            level_lengths=[16, 16],
+            disable_autoregression=True)),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=256,
+            max_seq_len=256,
+            z_size=512,
+            enc_rnn_size=[1024],
+            dec_rnn_size=[1024, 1024],
+            free_bits=256,
+            max_beta=0.2,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=quartet_16bar_converter,
+    train_examples_path=None,
+    eval_examples_path=None,
+)
+
 # 16-bar Melody Models
 mel_16bar_converter = data.OneHotMelodyConverter(
     skip_polyphony=False,
