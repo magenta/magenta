@@ -134,7 +134,7 @@ class BaseDataTest(object):
 
   def assertArraySetsEqual(self, lhs, rhs):
     def _np_sorted(arr_list):
-      return sorted(arr_list, key=lambda x: x.tostring())
+      return sorted(arr_list, key=lambda x: x.tobytes())
     self.assertEqual(len(lhs), len(rhs))
     for a, b in zip(_np_sorted(lhs), _np_sorted(rhs)):
       # Convert bool type to int for easier-to-read error messages.

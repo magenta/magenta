@@ -93,7 +93,7 @@ class DataSTFTHelper(DataHelper):
         mel_downscale=1,
         ifreq=True)
 
-  def _map_fn(self, wave, one_hot_label):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def _map_fn(self, wave, one_hot_label):  # pytype: disable=signature-mismatch
     waves = wave[tf.newaxis, :, :]
     data = self.waves_to_data(waves)
     return data[0], one_hot_label
@@ -143,7 +143,7 @@ class DataSTFTNoIFreqHelper(DataHelper):
         mel_downscale=1,
         ifreq=False)
 
-  def _map_fn(self, wave, one_hot_label):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def _map_fn(self, wave, one_hot_label):  # pytype: disable=signature-mismatch
     waves = wave[tf.newaxis, :, :]
     data = self.waves_to_data(waves)
     return data[0], one_hot_label
