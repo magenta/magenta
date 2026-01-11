@@ -40,7 +40,7 @@ REQUIRED_PACKAGES = [
     'pygtrie == 2.5.0',
     'python-rtmidi == 1.1.2',
     'scikit-image == 0.19.3',
-    'scipy == 1.7.3',
+    'scipy == 1.10.0',
     'six == 1.16.0',
     'sk-video == 1.1.10',
     'sox == 1.4.1',
