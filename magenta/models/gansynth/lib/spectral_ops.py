@@ -92,7 +92,7 @@ def linear_to_mel_weight_matrix(num_mel_bins=20,
   nyquist_hertz = sample_rate / 2.0
   linear_frequencies = np.linspace(
       0.0, nyquist_hertz, num_spectrogram_bins)[bands_to_zero:, np.newaxis]
-  # spectrogram_bins_mel = hertz_to_mel(linear_frequencies)
+  spectrogram_bins_mel = hertz_to_mel(linear_frequencies)
 
   # Compute num_mel_bins triples of (lower_edge, center, upper_edge). The
   # center of each band is the lower and upper edge of the adjacent bands.
@@ -124,10 +124,10 @@ def linear_to_mel_weight_matrix(num_mel_bins=20,
 
   # Calculate lower and upper slopes for every spectrogram bin.
   # Line segments are linear in the mel domain, not Hertz.
-  lower_slopes = (linear_frequencies - lower_edge_hz) / (
-      center_hz - lower_edge_hz)
-  upper_slopes = (upper_edge_hz - linear_frequencies) / (
-      upper_edge_hz - center_hz)
+  lower_slopes = (spectrogram_bins_mel - lower_edge_mel) / (
+      center_mel - lower_edge_mel)
+  upper_slopes = (upper_edge_mel - spectrogram_bins_mel) / (
+      upper_edge_mel - center_mel)
 
   # Intersect the line segments with each other and zero.
   mel_weights_matrix = np.maximum(0.0, np.minimum(lower_slopes, upper_slopes))
