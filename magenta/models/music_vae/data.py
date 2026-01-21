@@ -40,6 +40,7 @@ MAX_INSTRUMENT_NUMBER = 127
 MEL_PROGRAMS = range(0, 32)  # piano, chromatic percussion, organ, guitar
 BASS_PROGRAMS = range(32, 40)
 ELECTRIC_BASS_PROGRAM = 33
+SYNTH_PROGRAMS = range(40, 96) # strings, ensemble, brass, reed, pipe, synths
 
 # 9 classes: kick, snare, closed_hh, open_hh, low_tom, mid_tom, hi_tom, crash,
 # ride
@@ -1197,6 +1198,232 @@ class TrioConverter(BaseNoteSequenceConverter):
       ns.total_time = max(
           mel_ns.total_time, bass_ns.total_time, drums_ns.total_time)
       output_sequences.append(ns)
+    return output_sequences
+
+# New class for generating 4-channel midi, added range of instruments 41-96 (https://en.wikipedia.org/wiki/General_MIDI)
+# TODO: Tests have shown that the synthesizer channel is generated with very long notes, so perhaps there is a need to make some changes.
+class QuartetConverter(BaseNoteSequenceConverter):
+
+  class InstrumentType(object):
+    UNK = 0
+    SYNTH = 1
+    MEL = 2
+    BASS = 3
+    DRUMS = 4
+    INVALID = 5
+
+  def __init__(
+      self, slice_bars=None, gap_bars=2, max_bars=1024, steps_per_quarter=4,
+      quarters_per_bar=4, max_tensors_per_notesequence=5, chord_encoding=None):
+    self._melody_converter = OneHotMelodyConverter(
+        gap_bars=None, steps_per_quarter=steps_per_quarter,
+        pad_to_total_time=True, presplit_on_time_changes=False,
+        max_tensors_per_notesequence=None, chord_encoding=chord_encoding)
+    self._drums_converter = DrumsConverter(
+        gap_bars=None, steps_per_quarter=steps_per_quarter,
+        pad_to_total_time=True, presplit_on_time_changes=False,
+        max_tensors_per_notesequence=None)
+    self._slice_bars = slice_bars
+    self._gap_bars = gap_bars
+    self._max_bars = max_bars
+    self._steps_per_quarter = steps_per_quarter
+    self._steps_per_bar = steps_per_quarter * quarters_per_bar
+    self._chord_encoding = chord_encoding
+
+    self._split_output_depths = (
+        self._melody_converter.output_depth,
+        self._melody_converter.output_depth,
+        self._melody_converter.output_depth,
+        self._drums_converter.output_depth)
+    output_depth = sum(self._split_output_depths)
+
+    self._program_map = dict(
+        [(i, QuartetConverter.InstrumentType.SYNTH) for i in SYNTH_PROGRAMS] +
+        [(i, QuartetConverter.InstrumentType.MEL) for i in MEL_PROGRAMS] +
+        [(i, QuartetConverter.InstrumentType.BASS) for i in BASS_PROGRAMS])
+
+    super(QuartetConverter, self).__init__(
+        input_depth=output_depth,
+        input_dtype=np.bool,
+        output_depth=output_depth,
+        output_dtype=np.bool,
+        control_depth=self._melody_converter.control_depth,
+        control_dtype=self._melody_converter.control_dtype,
+        end_token=False,
+        presplit_on_time_changes=True,
+        max_tensors_per_notesequence=max_tensors_per_notesequence)
+
+  def _to_tensors(self, note_sequence):
+    try:
+      quantized_sequence = mm.quantize_note_sequence(
+          note_sequence, self._steps_per_quarter)
+      if (mm.steps_per_bar_in_quantized_sequence(quantized_sequence) !=
+          self._steps_per_bar):
+        return ConverterTensors()
+    except (mm.BadTimeSignatureError, mm.NonIntegerStepsPerBarError,
+            mm.NegativeTimeError):
+      return ConverterTensors()
+
+    if self._chord_encoding and not any(
+        ta.annotation_type == CHORD_SYMBOL
+        for ta in quantized_sequence.text_annotations):
+      # We are conditioning on chords but sequence does not have chords. Try to
+      # infer them.
+      try:
+        mm.infer_chords_for_sequence(quantized_sequence)
+      except mm.ChordInferenceError:
+        return ConverterTensors()
+
+      # The trio parts get extracted from the original NoteSequence, so copy the
+      # inferred chords back to that one.
+      for qta in quantized_sequence.text_annotations:
+        if qta.annotation_type == CHORD_SYMBOL:
+          ta = note_sequence.text_annotations.add()
+          ta.annotation_type = CHORD_SYMBOL
+          ta.time = qta.time
+          ta.text = qta.text
+
+    total_bars = int(
+        np.ceil(quantized_sequence.total_quantized_steps / self._steps_per_bar))
+    total_bars = min(total_bars, self._max_bars)
+
+    # Assign an instrument class for each instrument, and compute its coverage.
+    # If an instrument has multiple classes, it is considered INVALID.
+    instrument_type = np.zeros(MAX_INSTRUMENT_NUMBER + 1, np.uint8)
+    coverage = np.zeros((total_bars, MAX_INSTRUMENT_NUMBER + 1), np.bool)
+
+    for note in quantized_sequence.notes:
+      i = note.instrument
+      if i > MAX_INSTRUMENT_NUMBER:
+        tf.logging.warning('Skipping invalid instrument number: %d', i)
+        continue
+      if note.is_drum:
+        inferred_type = self.InstrumentType.DRUMS
+      else:
+        inferred_type = self._program_map.get(
+            note.program, self.InstrumentType.INVALID)
+      if not instrument_type[i]:
+        instrument_type[i] = inferred_type
+      elif instrument_type[i] != inferred_type:
+        instrument_type[i] = self.InstrumentType.INVALID
+
+      start_bar = note.quantized_start_step // self._steps_per_bar
+      end_bar = int(np.ceil(note.quantized_end_step / self._steps_per_bar))
+
+      if start_bar >= total_bars:
+        continue
+      coverage[start_bar:min(end_bar, total_bars), i] = True
+
+    # Group instruments by type.
+    instruments_by_type = collections.defaultdict(list)
+
+
+    for i, type_ in enumerate(instrument_type):
+      if type_ not in (self.InstrumentType.UNK, self.InstrumentType.INVALID):
+        instruments_by_type[type_].append(i)
+    if len(instruments_by_type) < 4:
+      # This NoteSequence doesn't have all 3 types.
+      return ConverterTensors()
+
+    # Encode individual instruments.
+    # Set total time so that instruments will be padded correctly.
+    note_sequence.total_time = (
+        total_bars * self._steps_per_bar *
+        60 / note_sequence.tempos[0].qpm / self._steps_per_quarter)
+    encoded_instruments = {}
+    encoded_chords = None
+    for i in (instruments_by_type[self.InstrumentType.SYNTH] +
+              instruments_by_type[self.InstrumentType.MEL] +
+              instruments_by_type[self.InstrumentType.BASS]):
+      tensors = self._melody_converter.to_tensors(
+          _extract_instrument(note_sequence, i))
+      if tensors.outputs:
+        encoded_instruments[i] = tensors.outputs[0]
+        if encoded_chords is None:
+          encoded_chords = tensors.controls[0]
+        elif not np.array_equal(encoded_chords, tensors.controls[0]):
+          tf.logging.warning('Quartet chords disagreement between instruments.')
+      else:
+        coverage[:, i] = False
+    for i in instruments_by_type[self.InstrumentType.DRUMS]:
+      tensors = self._drums_converter.to_tensors(
+          _extract_instrument(note_sequence, i))
+      if tensors.outputs:
+        encoded_instruments[i] = tensors.outputs[0]
+      else:
+        coverage[:, i] = False
+
+    # Fill in coverage gaps up to self._gap_bars.
+    og_coverage = coverage.copy()
+    for j in range(total_bars):
+      coverage[j] = np.any(
+          og_coverage[
+              max(0, j-self._gap_bars):min(total_bars, j+self._gap_bars) + 1],
+          axis=0)
+
+    # Take cross product of instruments from each class and compute combined
+    # encodings where they overlap.
+    seqs = []
+    control_seqs = []
+    for grp in itertools.product(
+        instruments_by_type[self.InstrumentType.SYNTH],
+        instruments_by_type[self.InstrumentType.MEL],
+        instruments_by_type[self.InstrumentType.BASS],
+        instruments_by_type[self.InstrumentType.DRUMS]):
+      # Consider an instrument covered within gap_bars from the end if any of
+      # the other instruments are. This allows more leniency when re-encoding
+      # slices.
+      grp_coverage = np.all(coverage[:, grp], axis=1)
+      grp_coverage[:self._gap_bars] = np.any(coverage[:self._gap_bars, grp])
+      grp_coverage[-self._gap_bars:] = np.any(coverage[-self._gap_bars:, grp])
+      for j in range(total_bars - self._slice_bars + 1):
+        if (np.all(grp_coverage[j:j + self._slice_bars]) and
+            all(i in encoded_instruments for i in grp)):
+          start_step = j * self._steps_per_bar
+          end_step = (j + self._slice_bars) * self._steps_per_bar
+          seqs.append(np.concatenate(
+              [encoded_instruments[i][start_step:end_step] for i in grp],
+              axis=-1))
+          if encoded_chords is not None:
+            control_seqs.append(encoded_chords[start_step:end_step])
+
+    return ConverterTensors(inputs=seqs, outputs=seqs, controls=control_seqs)
+
+  def _to_notesequences(self, samples, controls=None):
+    output_sequences = []
+    dim_ranges = np.cumsum(self._split_output_depths)
+    for i, s in enumerate(samples):
+      synth_ns = self._melody_converter.to_notesequences(
+          [s[:, :dim_ranges[0]]],
+          [controls[i]] if controls is not None else None)[0]
+      mel_ns = self._melody_converter.to_notesequences(
+          [s[:, dim_ranges[0]:dim_ranges[1]]],
+          [controls[i]] if controls is not None else None)[0]
+      bass_ns = self._melody_converter.to_notesequences(
+          [s[:, dim_ranges[1]:dim_ranges[2]]])[0]
+      drums_ns = self._drums_converter.to_notesequences(
+          [s[:, dim_ranges[2]:]])[0]
+
+      for n in synth_ns.notes:
+        n.instrument = 1
+        n.program = 89
+      for n in mel_ns.notes:
+        n.instrument = 2
+        n.program = 27
+      for n in bass_ns.notes:
+        n.instrument = 3
+        n.program = 33
+      for n in drums_ns.notes:
+        n.instrument = 9
+
+      ns = synth_ns
+      ns.notes.extend(mel_ns.notes)
+      ns.notes.extend(bass_ns.notes)
+      ns.notes.extend(drums_ns.notes)
+      ns.total_time = max(
+          synth_ns.total_time, mel_ns.total_time, bass_ns.total_time, drums_ns.total_time)
+      output_sequences.append(ns)
+
     return output_sequences
 
 
