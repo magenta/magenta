@@ -826,7 +826,7 @@ class HierarchicalLstmDecoder(base_model.BaseDecoder):
                hierarchical_encoder=None):
     """Initializer for HierarchicalLstmDecoder.
 
-    Hierarchicaly decodes a sequence across time.
+    Hierarchically decodes a sequence across time.
 
     Each sequence is padded per-segment. For example, a sequence with
     three segments [1, 2, 3], [4, 5], [6, 7, 8 ,9] and a `max_seq_len` of 12

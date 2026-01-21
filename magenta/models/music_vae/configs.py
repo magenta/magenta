@@ -29,10 +29,30 @@ HParams = contrib_training.HParams
 class Config(collections.namedtuple(
     'Config',
     ['model', 'hparams', 'note_sequence_augmenter', 'data_converter',
-     'train_examples_path', 'eval_examples_path', 'tfds_name'])):
+     'train_examples_path', 'eval_examples_path', 'tfds_name',
+     'signatures', 'ns_converter_name', 'architecture_name'])):
 
   def values(self):
     return self._asdict()
+
+  def serving_values(self):
+    """
+    Method to fetch the configuration values which are necessary for serving a savedmodel exported vae
+    :return: A json-serializable dictionary of Hparams required for serving re-instantiation
+    """
+    config_dict = self.values()
+    hparams = config_dict['hparams']
+    return {
+        'architecture_name': config_dict['architecture_name'],
+        'signatures': config_dict['signatures'],
+        'ns_converter_name': config_dict['ns_converter_name'],
+        'serving_hparams': {
+            'batch_size': hparams.get('batch_size'),
+            'max_seq_length': hparams.get('max_seq_len'),
+            'z_size': hparams.get('z_size')
+        },
+    }
+
 
 Config.__new__.__defaults__ = (None,) * len(Config._fields)
 
@@ -241,6 +261,11 @@ trio_16bar_converter = data.TrioConverter(
     steps_per_quarter=4,
     slice_bars=16,
     gap_bars=2)
+trio_4bar_converter = data.TrioConverter(
+    steps_per_quarter=4,
+    slice_bars=4,
+    gap_bars=2)
+
 
 CONFIG_MAP['flat-trio_16bar'] = Config(
     model=MusicVAE(
@@ -264,6 +289,7 @@ CONFIG_MAP['flat-trio_16bar'] = Config(
     data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
+    signatures=['sample', 'interpolate']
 )
 
 CONFIG_MAP['hierdec-trio_16bar'] = Config(
@@ -297,6 +323,9 @@ CONFIG_MAP['hierdec-trio_16bar'] = Config(
     data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
+    signatures=['sample', 'interpolate'],
+    architecture_name='music_vae',
+    ns_converter_name='trio_16bar_converter'
 )
 
 CONFIG_MAP['hier-trio_16bar'] = Config(
@@ -331,6 +360,9 @@ CONFIG_MAP['hier-trio_16bar'] = Config(
     data_converter=trio_16bar_converter,
     train_examples_path=None,
     eval_examples_path=None,
+    signatures=['sample', 'interpolate'],
+    architecture_name='music_vae',
+    ns_converter_name='trio_16bar_converter'
 )
 
 # 16-bar Melody Models
@@ -409,6 +441,43 @@ CONFIG_MAP['hier-mel_16bar'] = Config(
     train_examples_path=None,
     eval_examples_path=None,
 )
+
+CONFIG_MAP['hierdec-trio_4bar'] = Config(
+    model=MusicVAE(
+        lstm_models.BidirectionalLstmEncoder(),
+        lstm_models.HierarchicalLstmDecoder(
+            lstm_models.SplitMultiOutLstmDecoder(
+                core_decoders=[
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder(),
+                    lstm_models.CategoricalLstmDecoder()],
+                output_depths=[
+                    90,  # melody
+                    90,  # bass
+                    512,  # drums
+                ]),
+            level_lengths=[8, 8],
+            disable_autoregression=True)),
+    hparams=merge_hparams(
+        lstm_models.get_default_hparams(),
+        HParams(
+            batch_size=128,
+            max_seq_len=64,
+            z_size=512,
+            enc_rnn_size=[1024, 1024],
+            dec_rnn_size=[512, 512],
+            free_bits=256,
+            max_beta=0.2,
+        )),
+    note_sequence_augmenter=None,
+    data_converter=trio_4bar_converter,
+    train_examples_path=None,
+    eval_examples_path=None,
+    signatures=['sample', 'interpolate'],
+    architecture_name='music_vae',
+    ns_converter_name='trio_4bar_converter'
+)
+
 
 # Multitrack
 multiperf_encoder = lstm_models.HierarchicalLstmEncoder(
