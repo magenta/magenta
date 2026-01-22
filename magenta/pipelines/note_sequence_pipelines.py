@@ -206,3 +206,65 @@ class TranspositionPipeline(NoteSequencePipeline):
           stats['skipped_due_to_range_exceeded'].increment()
           return None
     return ts
+
+  class TranspositionToPipeline(NoteSequencePipeline):
+    """Transposes the input NoteSequence to a given key. 
+    
+    The pipeline is useful for standardizing an entire 
+    dataset to a single tonal center, i.e. middle C. 
+    This pipeline relies on the `key_signatures` record. 
+    If multiple key signatures are found, only the first 
+    one is used. If none are found, the note sequence 
+    is ignored. The key mode (major or minor) is not 
+    altered. """
+
+    def __init__(self, to_key=0, name=None):
+        """Creates a TranspositionToPipeline.
+
+        Args:
+          to_key: The tonic to which to transpose. Must be an integer. 
+              0 corresponds to middle C.
+          name: Pipeline name.
+        Returns:
+            A list with the transposed NoteSequence or an empty list.
+        """
+        super(TranspositionToPipeline, self).__init__(name=name)
+        self.to_key = to_key
+
+    def transform(self, sequence):
+        stats = dict([(state_name, statistics.Counter(state_name)) for state_name in
+                      ['skipped_due_to_missing_key_signature', 
+                       'seqs_with_multiple_key_signatures',
+                       'transpositions_generated']])
+        
+        if not sequence.key_signatures:
+            tf.logging.warning('No key signature in NoteSequence %s. \
+                               Skipping sequence.', sequence.filename)
+            self._set_stats([statistics.Counter( 'skipped_due_to_missing_key_signature', 1)])
+            return []
+        elif len(sequence.key_signatures) > 1:
+            tf.logging.warning('Multiple key signatures in NoteSequence %s. \
+                               The first one is used; the rest are ignored.', 
+                               sequence.filename)
+            stats['seqs_with_multiple_key_signatures'].increment()
+        if any(note.pitch_name for note in sequence.notes):
+            tf.logging.warn('Pitch names ignored by TranspositionToPipeline.')
+        if any(ta.annotation_type == CHORD_SYMBOL for ta in sequence.text_annotations):
+            tf.logging.warn('Chord symbols ignored by TranspositionToPipeline.')
+    
+        key = sequence.key_signatures[0].key 
+        transposed = self._transpose(sequence, self.to_key-key)
+        if transposed is not None:
+            stats['transpositions_generated'].increment()
+            self._set_stats(stats.values())
+            return [transposed]
+        else:
+            return []
+        
+    def _transpose(self, ns, amount):
+        """Transposes a NoteSequence `ns` by a specified `amount`."""
+        ts = copy.deepcopy(ns)
+        for note in ts.notes:
+            if not note.is_drum:
+                note.pitch += amount
+        return ts
