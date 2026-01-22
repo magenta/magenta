@@ -20,7 +20,7 @@ that even the cheap approximate blocked Gibbs procedure
 from (Yao, 2014) yields better samples than ancestral sampling,
 based on both log-likelihood and human evaluation.
 
-Paper can be found at https://ismir2017.smcnus.org/wp-content/uploads/2017/10/187_Paper.pdf.
+Paper can be found at https://arxiv.org/abs/1903.07227.
 Huang, C. Z. A., Cooijmans, T., Roberts, A., Courville, A., & Eck, D. (2016). Counterpoint by Convolution. International Society of Music Information Retrieval (ISMIR).
 
 ## How to Use
